@@ -36,8 +36,11 @@ struct QRFactorization{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, R
   REIGS::Vector{T}
   IEIGS::Vector{T}
   ctrs::AMRVW_Counter
-  end
+end
 
+
+# Twisting *would* require a different bulge chasing algorithm, so
+# we hold it in the type for dispatch
 struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
   N::Int
   QF::QFt
@@ -49,8 +52,10 @@ struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{
   ctrs::AMRVW_Counter
 end
 
-# constructor
-function qrfactorization(N, QF::AbstractQFactorization{T, Rt, Twt}, RF::AbstractRFactorization) where {T, Rt, Twt}
+# constructor for either case
+function qrfactorization(N,
+                         QF::AbstractQFactorization{T, Rt, Twt},
+                         RF::AbstractRFactorization) where {T, Rt, Twt}
 
     S = Rt == ComplexRealRotator{T} ? Complex{T} : T
 
@@ -68,7 +73,5 @@ function qrfactorization(N, QF::AbstractQFactorization{T, Rt, Twt}, RF::Abstract
 
     return state
 end
-
-
 
 Base.length(state::AbstractFactorizationState) = state.N

@@ -25,11 +25,14 @@ end
 ## A * U or (W,A) * V * U
 ## THis chases U or (V*U) through until the value can be absorbed
 ##
-## This just pushes work to passthrough_triu and passthroug_Q
+## This just pushes work to passthrough_triu and passthrough_Q
+##
 ## * passthrough_triu is basically passthrough(RF) with some efficiencies for first
 ## time through
-## * passthrough_Q passes through chain return false, until fusion when
+##
+## * passthrough_Q passes through chain and return false, until fusion when
 ## it returns true
+##
 function absorb_U(state::AbstractFactorizationState{T, S,Rt, QFt, RFt, Val{:not_twisted}}) where {T, S,Rt, QFt, RFt}
 
     flag = false

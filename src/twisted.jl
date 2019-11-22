@@ -1,4 +1,5 @@
 ## Twisted refers to the QFactorization
+##
 struct QFactorizationTwisted{T, Rt} <: AbstractQFactorization{T, Rt, Val{:twisted}}
   Q::TwistedChain{Rt}
   D::AbstractSparseDiagonalMatrix{T, Rt}
@@ -7,8 +8,9 @@ end
 
 
 ## return q[i:k, j:k]
-function getQ(QF::QFactorizationTwisted, k)
+function Base.getindex(QF::QFactorizationTwisted, j, k)
 
+    ## XXX
     Q = QF.Q
 
     i, j = k-2, k-1

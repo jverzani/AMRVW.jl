@@ -1,7 +1,7 @@
 ##
 ## Transformations are
-## * givens rotations  Find [c s; -conj(s) conj(c)][a,b] = [x 0]; in RDS, CCSS or CSS
-## * fuse U,V -> UV or UVD or DUV (when complex real)
+## * givens rotations  Find [c s; -conj(s) conj(c)][a,b] = [x 0];
+## * fuse U,V -> UV or UV,D (when complex real)
 ## * turnover: [   [ -->  [
 ##               [      [   [
 ## to this we add abstract "passthrough" functions
@@ -29,7 +29,7 @@ function givensrot(a::Complex{T},b::Complex{T}) where {T <: Real}
     G.s, real(G.c), r
 end
 
-givensrot(a::Complex{T},b::T) where {T <: Real} = givensrot(a, complex(b, zero(T)))
+givensrot(a::Complex{T},b::T) where {T <: Real} =  givensrot(a, complex(b, zero(T)))
 
 ## This is suggested in the book. A bit slower, but only one function needed...
 ## function givensrotX(a::S, b::T) where {T <: Real, S <: Union{T, Complex{T}}}
@@ -98,6 +98,7 @@ end
 ## To get D * (UV) a flip is needed
 @inline function fuse(a::ComplexRealRotator{T}, b::ComplexRealRotator{T}) where {T}
 
+    i = idx(a)
     #    idx(a) == idx(b) || error("can't fuse")
     c1, s1 = vals(a)
     c2, s2 = vals(b)
@@ -110,7 +111,7 @@ end
     c = u * alpha
 
 
-    Rotator(c, s, idx(b)), DiagonalRotator(conj(alpha), idx(b))
+    Rotator(c, s, i), DiagonalRotator(conj(alpha), i)
 end
 
 
@@ -121,7 +122,7 @@ end
 #
 # This is the key computation once matrices are written as rotators
 # This function returns
-# c4,s4, c5,s5,c6,s6
+# c4,s4,c5,s5,c6,s6
 
 # following pp15-17 in book
 # and the paper
@@ -132,14 +133,16 @@ end
 #     * M =| a x x |
 # U1'      | b x x |
 #          | 0 x x |
-# Then use fact that a^2 + b^2 ~ 1 to use approx givens to find V1 clear [2,1]
+# Then use fact that a^2 + b^2 ~ 1 to use approx givens to find V1 to clear [2,1]
 # V1' *     * M  = | 1 0 0 |
 #       U1'        | 0 c s |
 #                  | 0 -s cbar|
 # The 1 in [1,1] must be 1 and not -1;  so the  lower part is a rotator
-# from here [2:3,2:3] is unitary, we pick [3,3] for c and use invariant s1*s2 = s5*s6 to find s6 unless s5=0
+# from here [2:3,2:3] is unitary, we pick [3,3] for c and use
+# the invariant s1*s2 = s5*s6 to find s6 unless s5=0
 #
-# question, polishing slows things down, and doesn't seem necessary, as approx_givensrot does this
+# question: polishing slows things down, and doesn't seem necessary,
+# as approx_givensrot does this; but does make Wilkinson case a bit better
 @inline function _turnover(c1::S, s1::T, c2::S, s2::T, c3::S, s3::T) where {S,T}
 
 
@@ -176,7 +179,7 @@ end
 
 
 ##
-##  Turnover
+##  Turnover interface for rotators
 ##
 function turnover(Q1::AbstractRotator{T},
                   Q2::AbstractRotator{T},

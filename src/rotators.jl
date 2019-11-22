@@ -34,6 +34,7 @@ function adjoint(r::RealRotator)
 end
 
 Base.eltype(::Type{RealRotator{T}}) where {T} = T
+
 Base.one(::Type{RealRotator{T}}) where {T} = RealRotator(one(T), zero(T), 0)# end
 
 ##################################################
@@ -48,10 +49,10 @@ end
 function adjoint(r::ComplexRealRotator)
     ComplexRealRotator(conj(r.c), -r.s, r.i)
 end
+
 Base.eltype(::Type{ComplexRealRotator{T}}) where {T} = complex(T)
+
 Base.one(::Type{ComplexRealRotator{T}}) where {T} = ComplexRealRotator(complex(one(T), zero(T)), zero(T), 0)
-
-
 
 Base.copy(a::ComplexRealRotator) = ComplexRealRotator(a.c, a.s, a.i)
 
@@ -81,6 +82,8 @@ vals(D::DiagonalRotator) = D.c, zero(D.c)
 
 abstract type AbstractRotatorChain{T} end
 
+Base.length(A::AbstractRotatorChain) = length(A.x)
+
 Base.@propagate_inbounds Base.getindex(A::AbstractRotatorChain, i::Int) = getindex(A.x, i)
 Base.@propagate_inbounds Base.setindex!(A::AbstractRotatorChain, X, inds...) = setindex!(A.x, X, inds...)
 
@@ -88,7 +91,7 @@ Base.@propagate_inbounds Base.setindex!(A::AbstractRotatorChain, X, inds...) = s
 Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
 Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
 
-Base.eltype(::AbstractRotatorChain{T}) where {T} = eltype(T)
+
 struct DescendingChain{T} <: AbstractRotatorChain{T}
   x::Vector{T}
 end
@@ -104,7 +107,7 @@ end
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
-Base.length(A::AbstractRotatorChain) = length(A.x)
+
 
 
 

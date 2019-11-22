@@ -1,9 +1,6 @@
 ## ComplexReal case
 
 
-
-
-
 ##################################################
 
 # after a quick fuse
@@ -25,10 +22,14 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,ComplexRealRota
 
     i = idx(U)
     flag = false
+
     if  i < state.ctrs.tr
+
         flag = simple_passthrough(RF, U, Val(:right))
+
     end
     if i > state.ctrs.tr || !flag
+
         U = passthrough(RF, U, Val(:right))
         state.UV[1] = U
 
@@ -48,9 +49,11 @@ function simple_passthrough(RF::RFactorization{T, ComplexRealRotator{T}}, U, ::V
     _ = passthrough(RF.B, U, Val(:right))
 
     for k in 0:1
+
         a,b = vals(RF.B[i+k])
         ii = N + 1 - (i + k)
         RF.Ct[ii] = Rotator(conj(a), -b, i + k) # adjoint
+
     end
 
     true

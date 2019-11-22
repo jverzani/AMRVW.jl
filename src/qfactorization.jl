@@ -4,8 +4,12 @@
 abstract type AbstractQFactorization{T, Rt, Twt} end
 Base.length(QF::AbstractQFactorization) = length(QF.Q)
 
+Base.eltype(RF::AbstractQFactorization{T, RealRotator{T},Twt}) where {T,Twt} = T
+Base.eltype(RF::AbstractQFactorization{T, ComplexRealRotator{T},Twt}) where {T,Twt} = Complex{T}
+
 Base.zero(RF::AbstractQFactorization{T, RealRotator{T},Twt}) where {T,Twt} = zero(T)
 Base.zero(RF::AbstractQFactorization{T, ComplexRealRotator{T},Twt}) where {T,Twt} = zero(Complex{T})
+
 Base.one(RF::AbstractQFactorization{T, RealRotator{T},Twt}) where {T,Twt} = one(T)
 Base.one(RF::AbstractQFactorization{T, ComplexRealRotator{T},Twt}) where {T,Twt} = one(Complex{T})
 
@@ -17,29 +21,11 @@ struct QFactorization{T, Rt} <: AbstractQFactorization{T, Rt, Val{:not_twisted}}
   W::Vector{Rt}
 end
 
-## return q[i:k, j:k]
-function getQ(QF::QFactorization, k)
-
-    Q = QF.Q
-
-    i, j = k-2, k-1
-    cj, sj = vals(Q[j])
-    ck, sk = vals(Q[k])
-    ci, si = (k > 2) ? vals(Q[i]) : (one(cj), zero(sj))
-
-    dj, dk = QF.D[j], QF.D[k]
-    di = (k > 2) ? QF.D[i] : one(dj)
-
-    qji = -si * di
-    qkj = -sj * dj
-    qjj =  cj  * conj(ci) * dj
-    qjk = ck * dk * sj * conj(ci)
-    qkk = ck  * conj(cj) * dk
-
-    (qji, qjj, qjk, qkj, qkk)
-end
-
-function Base.getindex(QF::QFactorization, j,k)
+## Find Q[j,k] from its factored form
+## QFactorization is Hessenber
+## We will only need near  diagonal elements, as we multiply by
+## an  upper triangular matrix
+function Base.getindex(QF::QFactorization, j, k)
 
     Q = QF.Q
 
@@ -47,7 +33,6 @@ function Base.getindex(QF::QFactorization, j,k)
         return zero(QF)
     end
 
-    ck, sk = vals(Q[k])
 
     ## We need to compute QR[j:k, j:k]
     ## for this we use Q is Hessenberg, R if triangular
@@ -58,75 +43,37 @@ function Base.getindex(QF::QFactorization, j,k)
 
     Δ = k - j
     i, j = k-2, k-1
-    ## Q is Hessenberg, so we only need
-    if Δ > 1  # qik case
 
-        return zero(ck)
+    if Δ < -1
+        # Hessenberg
+        return zero(QF)
+
+    elseif Δ == -1 # e,g, qjk this count is off, as k < j
+
+        ck, sk = vals(Q[k])
+        dk = QF.D[k]
+        return -sk * dk
+
+    elseif Δ == 0 # gkk case, gjj
+
+        ck, sk = vals(Q[k])
+        cj, sj = j >= 1 ? vals(Q[j]) : (one(QF), real(zero(QF)))
+        dk = QF.D[k]
+        return ck  * conj(cj) * dk
 
     elseif Δ == 1 # qjk case
 
+        ck, sk = vals(Q[k])
         cj, sj = vals(Q[j])
         ci, si =  i >= 1 ? vals(Q[i]) : (one(QF), real(zero(QF)))
         dk = QF.D[k]
         return ck * dk * sj * conj(ci)
 
-    elseif Δ == 0 # gkk case, gjj
+    else # Δ > 1
 
-        cj, sj = j >= 1 ? vals(Q[j]) : (one(QF), real(zero(QF)))
-        dk = QF.D[k]
-        return ck  * conj(cj) * dk
-
-    elseif Δ == -1 # e,g, qjk this count is off, as k < j
-
-        dk = QF.D[k]
-        return -sk * dk
-
-    elseif Δ < -1
-
-        return zero(ck)
-
+        ## we don't need this as we multiply by a triangular matrix
+        return zero(QF) * NaN
     end
-
-
-
-
-
-    ## i, j = k-2, k-1
-    ## cj, sj = vals(Q[j])
-    ## ck, sk = vals(Q[k])
-    ## ci, si = (k > 2) ? vals(Q[i]) : (one(cj), zero(sj))
-
-    ## dj, dk = QF.D[j], QF.D[k]
-    ## di = (k > 2) ? QF.D[i] : one(dj)
-
-    ## qji = -si * di
-    ## qkj = -sj * dj
-    ## qjj =  cj  * conj(ci) * dj
-    ## qjk = ck * dk * sj * conj(ci)
-    ## qkk = ck  * conj(cj) * dk
-
-    ## ##
-    ## # [ qji qjj qjk
-    ## #    0  qkj qkk]
-
-    ## cj, sj = vals(Q[k-1])
-    ## if j == k # kk case
-    ##     ck, sk = vals(Q[k])
-    ##     dk = QF.D[k]
-    ##     return ck * conj(cj) * dk
-    ## elseif j - 1 == k # qkj case
-    ##     dj = QF.D[k-1]
-    ##     return -sj * dj
-    ## elseif j + 1 == k # qjk case
-    ##     if k == 2
-    ##         return zero(cj)
-    ##     else
-    ##         ck, sk = vals(Q[k])
-    ##         ci, si = vals(Q[k-2])
-    ##         dk = QF.D[k]
-    ##         return ck * dk * sj * conj(ci)
-    ##     end
-    ## end
 
 
 end
@@ -156,8 +103,9 @@ function q_factorization(xs::Vector{S}) where {S}
     Q[N] = Rotator(os, zt, N)   ## for convenience
 
     D = sparse_diagonal(S, N+1)
-    W = Rotator(zs, ot, 1)  #
+    W = Rotator(zs, ot, 1)  # only needed for RealRotator case
     QFactorization(Q, D, [W])
+
 end
 
 
