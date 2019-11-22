@@ -219,7 +219,7 @@ end
             d = length(p)-1
             F = A.Matrix(state)
             rts = sort(eigvals(F))
-            @test norm(sort(eigvals(F))  .- [1:d...] ) <= sqrt(eps(T))
+            @test norm(sort(eigvals(F))  .- [1:d...] ) <= 100sqrt(eps(T))
 
             allocs = @allocated A.bulge_step(state)
             @test allocs == 0
