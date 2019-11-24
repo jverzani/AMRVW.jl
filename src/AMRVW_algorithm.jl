@@ -13,7 +13,7 @@ function AMRVW_algorithm(state)
         state.ctrs.stop_index <= 0 && return     ## finished up!
         state.ctrs.it_count += 1
 
-        ## show_status(state)
+#        show_status(state)
 
 
         check_deflation(state)
@@ -30,8 +30,6 @@ function AMRVW_algorithm(state)
             diagonal_block(state,  k + 1)
 
             e1r,e1i, e2r,e2i = eigen_values(state)
-#            @show state.A
-#            @show complex(e1r,e1i), complex(e2r,e2i)
             state.REIGS[k], state.IEIGS[k] = e1r, e1i
             state.REIGS[k+1], state.IEIGS[k+1] = e2r, e2i
 
@@ -52,16 +50,12 @@ function AMRVW_algorithm(state)
             diagonal_block(state, state.ctrs.stop_index + 1)
             e1, e2 = state.A[1,1], state.A[2,2]
             if state.ctrs.stop_index == 1
-#                @show e1, e2
                 state.REIGS[1], state.IEIGS[1] = real(e1), imag(e1)
                 state.REIGS[2], state.IEIGS[2] = real(e2), imag(e2)
                 state.ctrs.stop_index = 0
 
             else
 
-#                KK = state.ctrs.stop_index + 1
-#                diagonal_block(state, KK)
-#                @show e2
                 state.REIGS[k+1], state.IEIGS[k+1] = real(e2), imag(e2)
                 state.ctrs.zero_index = 0
                 state.ctrs.start_index = 1

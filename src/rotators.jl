@@ -110,6 +110,46 @@ Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
 
 
 
+function Base.getindex(A::AscendingChain{T}, i, j) where {T}
+    N = length(A.x)
+    S = eltype(first(A.x))
+
+    if i == N
+        cj, sj = vals(A.x[N+1-j])
+        s = one(S)
+        for l in j:(i-1)
+            cl, sl = vals(A.x[N+1-l])
+            s *= -sl
+        end
+        return s * conj(cj)
+
+    else
+
+        k = i + 1
+        j > i+1 && return zero(S) # ascending chain's aree lower Hessian
+
+        ck, sk = vals(A.x[N+1-k])
+        j == i + 1 && return S(sk)
+
+        cj, sj  = vals(A.x[N+1-j])
+        j == i && return conj(cj)*ck
+
+        ci, si = vals(A.x[N+1-i])
+        s = -sj
+        for l in (j+1):i
+            cl, sl = vals(A.x[N+1-l])
+            s *= -sl
+        end
+
+        return ck * s * conj(ci)
+    end
+
+end
+
+function Base.getindex(A::DescendingChain, j, k)
+    N = length(A.x)
+
+end
 
 
 ## For the ComplexRealRotator case we need a diagonal matrix to store the phase

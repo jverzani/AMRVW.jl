@@ -23,7 +23,7 @@ function absorb_Ut(state::AbstractFactorizationState{T,S, RealRotator{T}, QFt, R
 
     W = QF.Q[i]
 
-    p = i == 1 ? one(T) : get_parity(QF.Q[i-1])
+    p = i == 1 ? one(T) : get_parity(QF,i-1)
 
     W = dflip(W, p)
     W, Ut, Vt = turnover(Ut, Vt, W)
@@ -111,7 +111,7 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
 
     else
 
-        p = get_parity(QF.Q[j+1]) # 1 or -1 possibly ## XXX
+        p = get_parity(QF,j+1) # 1 or -1 possibly ## XXX
         V = dflip(V, p)
         fuse!(QF, V)
 
@@ -123,7 +123,7 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
         # pass U through triangle then fuse
         U = passthrough(state.RF, U, Val(:right))
 
-        p = get_parity(QF.Q[i+1])
+        p = get_parity(QF,i+1)
         U = dflip(U, p)
         fuse!(QF, U)
 
@@ -145,10 +145,14 @@ end
 
 ## The zero_index and stop_index+1 point at diagonal rotators [1 0; 0 1] or [-1 0; 0 -1]
 ## this recoves 1 or -1
-function get_parity(a::RealRotator{T}) where {T}
-    c, s = vals(a)
-    ## @assert iszero(s)
-    sign(c)
+function get_parity(QF::QFactorization{T, RealRotator{T}}, k) where {T}
+    if k > length(QF)
+        return one(QF)
+    else
+        c, s = vals(QF.Q[k])
+        ## @assert iszero(s)
+        sign(c)
+    end
 end
 
 ##################################################
