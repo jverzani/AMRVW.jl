@@ -2,6 +2,8 @@
 
 ## Q Factorization
 abstract type AbstractQFactorization{T, Rt, Twt} end
+
+# implement Array interface
 Base.length(QF::AbstractQFactorization) = length(QF.Q)
 
 Base.eltype(RF::AbstractQFactorization{T, RealRotator{T},Twt}) where {T,Twt} = T
@@ -23,7 +25,7 @@ end
 ## an  upper triangular matrix
 
 function Base.getindex(QF::QFactorization, j, k)
-    k == 0 && return zero(QF)
+    (j <= 0 || k <= 0) && return zero(QF)
     QF.Q[j,k] * QF.D[k]
 end
 

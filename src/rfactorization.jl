@@ -7,12 +7,14 @@ abstract type AbstractRFactorization{T, Rt, Pt} end
 
 
 # Basic interface for an RFactorization:
-# getindex (k-2 <= j <= k)
+#
+# getindex (need just k-2 <= j <= k, but as general as possible)
 # passthrough(RF, U, dir) to pass a rotator through from left to right or right to left
 # simple_passthrough(RF, U, dir) for a shortcut passthrough
 # we also might need:
 # length
 # eltype
+# Matrix (in diagonostics)
 # zero(RF{T, Rt}) to give 0
 # one(RF{T, Rt}) to give 1
 
@@ -23,11 +25,6 @@ Base.eltype(RF::AbstractRFactorization{T, ComplexRealRotator{T},Pt}) where {T,Pt
 
 Base.zero(RF::AbstractRFactorization) = zero(eltype(RF))
 Base.one(RF::AbstractRFactorization) = one(eltype(RF))
-#Base.zero(RF::AbstractRFactorization{T, ComplexRealRotator{T},Pt}) where {T,Pt} = zero(Complex{T})
-
-#Base.one(RF::AbstractRFactorization{T, RealRotator{T},Pt}) where {T,Pt} = one(T)
-#Base.one(RF::AbstractRFactorization{T, ComplexRealRotator{T},Pt}) where {T,Pt} = one(Complex{T})
-
 
 
 ## R factorization can include just R or VW' [sp]
