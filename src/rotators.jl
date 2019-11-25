@@ -104,6 +104,11 @@ struct TwistedChain{T} <: AbstractRotatorChain{T}
    x::Vector{T}
 end
 
+function Base.size(C::AbstractRotatorChain)
+    N = length(C.x)
+    (N+1, N+1)
+end
+
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
@@ -114,41 +119,95 @@ function Base.getindex(A::AscendingChain{T}, i, j) where {T}
     N = length(A.x)
     S = eltype(first(A.x))
 
-    if i == N
-        cj, sj = vals(A.x[N+1-j])
+    if i == N + 1
+        i -= 1; j -= 1
+        ci, si = vals(A.x[N+1-i])
+
+        j == N && return conj(ci)
+
+        s = -S(si)
+        for l in (j+1):(i-1)
+            cj, sjj = vals(A.x[N+1-l])
+            s *= -sjj
+        end
+        cj, sj = j > 0 ? vals(A.x[N+1-j]) : (one(S), zero(S))
+        return s * conj(cj)
+
+    else
+
+
+        j > i+1 && return zero(S) # ascending chain's aree lower Hessian
+
+        ci, si = vals(A.x[N+1-i])
+
+        if j == i + 1
+            return S(si)
+        elseif j == i
+            cj, sj  = j > 1 ? vals(A.x[N+1-(j-1)]) : (one(S), zeros(S))
+            return conj(cj)*ci
+        end
+
         s = one(S)
         for l in j:(i-1)
             cl, sl = vals(A.x[N+1-l])
             s *= -sl
         end
-        return s * conj(cj)
 
-    else
-
-        k = i + 1
-        j > i+1 && return zero(S) # ascending chain's aree lower Hessian
-
-        ck, sk = vals(A.x[N+1-k])
-        j == i + 1 && return S(sk)
-
-        cj, sj  = vals(A.x[N+1-j])
-        j == i && return conj(cj)*ck
-
-        ci, si = vals(A.x[N+1-i])
-        s = -sj
-        for l in (j+1):i
-            cl, sl = vals(A.x[N+1-l])
-            s *= -sl
-        end
-
-        return ck * s * conj(ci)
+        cl, sl = j > 1 ? vals(A.x[N+1 - (j-1)]) : (one(S), zero(S))
+        return ci * s * conj(cl)
     end
 
 end
 
-function Base.getindex(A::DescendingChain, j, k)
-    N = length(A.x)
+function Base.getindex(A::DescendingChain, i, j)
 
+    N = length(A.x)
+    S = eltype(first(A.x))
+
+    if i > j + 1
+        return zero(S)
+    end
+
+    if j == N + 1
+        j -= 1
+        cj, sj = vals(A.x[j])
+
+        i == N+1 && return conj(cj)
+
+        i -= 1
+        s::S = sj
+        for l in (i+1):j-1
+            cj, sj = vals(A.x[l])
+            s *= S(sj)
+        end
+        ci, si = i > 0 ? vals(A.x[i]) : (one(S), zero(real(S)))
+        return s * conj(ci)
+
+    else
+
+
+        cj, sj = vals(A.x[j])
+
+        if i == j + 1
+
+            return -S(sj)
+
+        elseif j == i
+
+            ci, si  = i >= 2 ? vals(A.x[i-1]) : (one(S), zero(real(S)))
+            return conj(ci)*cj
+
+        end
+
+        s = one(S)
+        for l in i:(j-1)
+            cl, sl = vals(A.x[l])
+            s *= sl
+        end
+
+        cl, sl = i >= 2 ? vals(A.x[i-1]) : (one(S), zero(real(S)))
+        return cj * s * conj(cl)
+    end
 end
 
 

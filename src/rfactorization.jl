@@ -163,12 +163,16 @@ end
 
 ## u = rotm(cc_k, cs_k, 5,6) * rotm(cc_j, cs_j, 4,6) * rotm(cc_i, cs_i,3, 6)*rotm(cc_h, cs_h, 2,6) *  rotm(cc_g, cs_g, 1,6) * [what, wh, wi, wj, wk, wl]
 ## kk_4 = u[1](what => solve(u[6], what)[1]) |> simplify
-function Base.getindex(RF, j, k)
+function Base.getindex(RF::RFactorization, j, k)
     # neeed to compute Cts and Ws(B,D)
     Ct = RF.Ct
     B = RF.B
     D = RF.D
     N = length(Ct.x)
+
+    ## return 0 if request is out of bounds
+    ## or in lower triangular part (k < j)
+    (k < j || j == 0 || k > N+1) && return zero(RF)
 
     cj, sj  = vals(Ct[N+1-j])
     s = sj

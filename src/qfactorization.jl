@@ -21,61 +21,67 @@ end
 ## QFactorization is Hessenber
 ## We will only need near  diagonal elements, as we multiply by
 ## an  upper triangular matrix
+
 function Base.getindex(QF::QFactorization, j, k)
-
-    Q = QF.Q
-
-    if k == 0
-        return zero(QF)
-    end
-
-    ## We need to compute QR[j:k, j:k]
-    ## for this we use Q is Hessenberg, R if triangular
-    ## so we only need
-    ##
-    ## [ qji qjj qjk
-    ##    0  qkj qkk]
-
-    Δ = k - j
-    i, j = k-2, k-1
-
-    if k <= length(QF)
-        ck, sk =  vals(Q[k])
-    else
-        ck, sk = one(QF), real(zero(QF))
-    end
-
-    if Δ < -1
-        # Hessenberg
-        return zero(QF)
-
-    elseif Δ == -1 # e,g, qjk this count is off, as k < j
-
-        dk = QF.D[k]
-        return -sk * dk
-
-    elseif Δ == 0 # gkk case, gjj
-
-        cj, sj = j >= 1 ? vals(Q[j]) : (one(QF), real(zero(QF)))
-        dk = QF.D[k]
-        return ck  * conj(cj) * dk
-
-    elseif Δ == 1 # qjk case
-
-        cj, sj = vals(Q[j])
-        ci, si =  i >= 1 ? vals(Q[i]) : (one(QF), real(zero(QF)))
-        dk = QF.D[k]
-
-        return ck * dk * sj * conj(ci)
-
-    else # Δ > 1
-
-        ## we don't need this as we multiply by a triangular matrix
-        return zero(QF) * NaN
-    end
-
-
+    k == 0 && return zero(QF)
+    QF.Q[j,k] * QF.D[k]
 end
+
+## function Base_getindex(QF::QFactorization, j, k)
+
+##     Q = QF.Q
+
+##     if k == 0
+##         return zero(QF)
+##     end
+
+##     ## We need to compute QR[j:k, j:k]
+##     ## for this we use Q is Hessenberg, R if triangular
+##     ## so we only need
+##     ##
+##     ## [ qji qjj qjk
+##     ##    0  qkj qkk]
+
+##     Δ = k - j
+##     i, j = k-2, k-1
+
+##     if k <= length(QF)
+##         ck, sk =  vals(Q[k])
+##     else
+##         ck, sk = one(QF), real(zero(QF))
+##     end
+
+##     if Δ < -1
+##         # Hessenberg
+##         return zero(QF)
+
+##     elseif Δ == -1 # e,g, qjk this count is off, as k < j
+
+##         dk = QF.D[k]
+##         return -sk * dk
+
+##     elseif Δ == 0 # gkk case, gjj
+
+##         cj, sj = j >= 1 ? vals(Q[j]) : (one(QF), real(zero(QF)))
+##         dk = QF.D[k]
+##         return ck  * conj(cj) * dk
+
+##     elseif Δ == 1 # qjk case
+
+##         cj, sj = vals(Q[j])
+##         ci, si =  i >= 1 ? vals(Q[i]) : (one(QF), real(zero(QF)))
+##         dk = QF.D[k]
+
+##         return ck * dk * sj * conj(ci)
+
+##     else # Δ > 1
+
+##         ## we don't need this as we multiply by a triangular matrix
+##         return zero(QF) * NaN
+##     end
+
+
+## end
 
 
 ##################################################

@@ -3,9 +3,6 @@
 ## with 2x2 view of full matrix; A[k-1:k, k-1:k]
 ## For QRFactorization, we exploit fact that QF is Hessenberg and
 ## R  is upper  triangular to simplify the matrix multiplication:
-## This uses Q is Hessenberg, R is upper triangular, so that
-## (QR)[j,k] = sum Q[j,l] + R[l,k] means l >  j-1 and l < k so
-##  QR[j,k]  =  Q[j,j-1] *  R[j-1,k] +  Q[j,j]*R[j,k]  + Q[j,k] *  R[k,k]
 function diagonal_block(state::QRFactorization{T, S, Rt, QFt, RFt}, k) where {T,  S, Rt, QFt,  RFt}
 
     A  = state.A
@@ -17,15 +14,16 @@ function diagonal_block(state::QRFactorization{T, S, Rt, QFt, RFt}, k) where {T,
 
     rjj, rjk = RF[j,j], RF[j,k]
     rkk = RF[k,k]
-    rij, rik = (k > 2) ? (RF[i,j], RF[i,k]) : (zero(rkk), zero(rkk))
+    rij, rik = RF[i,j], RF[i,k]
 
     ## This is matrix multiplication of a Hessenberg matrix times a upper triangular
     ## (triu(Q,-1) * triu(R))[k-1:k, k-1:k]
+    ## could be just sum(QF[i,l] * RF[l,j] for l in i-1:j)
+
     A[1,1] = qji * rij + qjj * rjj
     A[1,2] = qji * rik + qjj * rjk + qjk * rkk
     A[2,1] = qkj * rjj
     A[2,2] = qkj * rjk + qkk * rkk
-
 
     return nothing
 end

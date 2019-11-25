@@ -13,7 +13,7 @@ function AMRVW_algorithm(state)
         state.ctrs.stop_index <= 0 && return     ## finished up!
         state.ctrs.it_count += 1
 
-#        show_status(state)
+        ## show_status(state)
 
 
         check_deflation(state)
