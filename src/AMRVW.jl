@@ -2,6 +2,7 @@ module AMRVW
 
 
 using LinearAlgebra
+import LinearAlgebra: eigvals
 import Base: adjoint
 
 # package code goes here
@@ -17,6 +18,7 @@ include("create_bulge.jl")
 include("RDS.jl")
 include("CSS.jl")
 include("pencil.jl")
+include("twisted.jl")
 include("AMRVW_algorithm.jl")
 
 include("diagnostics.jl")

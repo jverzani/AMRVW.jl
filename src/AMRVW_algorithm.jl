@@ -2,7 +2,7 @@
 ## Main algorithm of AMRVW
 ## This follows that given in the paper very closely
 ## should trace algorithm better with `verbose`
-function AMRVW_algorithm(state)
+function AMRVW_algorithm(state::QRFactorization)
 
     it_max = 20 * length(state)
     kk = 0
@@ -68,7 +68,13 @@ function AMRVW_algorithm(state)
     end
 
 
-    @warn "Not all roots were found. The first $(state.ctrs.stop_index-1) are missing."
+    @warn "Not all eigenvalues were found. The first $(state.ctrs.stop_index-1) are missing."
+end
+
+## Find eigenvalues from factorization
+function LinearAlgebra.eigvals(state::QRFactorization, args...)
+    AMRVW_algorithm(state)
+    complex.(state.REIGS, state.IEIGS)
 end
 
 
@@ -143,7 +149,13 @@ end
 
 
 
+"""
 
+    amrvw(ps)
+
+For a polynomial specified by `ps` computes a sparse factorization of its companion matrix.
+
+"""
 function amrvw(ps::Vector{S}) where {S}
 
     N = length(ps) - 1
@@ -165,13 +177,26 @@ function adjust_pencil(vs::Vector{T}, ws::Vector{T}) where {T}
     ps, qs
 end
 
-function amrvw_pencil(ps::Vector{S}, qs::Vector{S}) where {S}
+"""
 
-    N = length(ps)
+    amrvw(vs, ws)
 
-    vs, ws = adjust_pencil(ps, qs)
+Computes a sparse factorization of of the companion matrix of a polynomial specified througha  pencil decomposition.
+A pencil decomposition of a polynomial, is a specificaiton where
+if `p = a0 + a1x^1 + ... + xn x^n`
+then
+`vs[1] = a0`,
+`vs[i+1] + ws[i] = ai`, and
+`ws[n] = an`.
+
+"""
+function amrvw(vs::Vector{S}, ws::Vector{S}) where {S}
+
+    N = length(vs)
+
+    ps, qs = adjust_pencil(vs, ws)
     QF = q_factorization(Vector{S}(undef, N+1))
-    ZF = z_factorization(vs, ws)
+    ZF = z_factorization(ps, qs)
 
     qrfactorization(N, QF, ZF)
 
@@ -265,7 +290,7 @@ function roots(vs::Vector{S}, ws::Vector{S}) where {S}
         return rts
     end
 
-    state = amrvw_pencil(ps, qs)
+    state = amrvw(ps, qs)
     AMRVW_algorithm(state)
 
     if K > 0 # put back in leading zeros
@@ -276,16 +301,3 @@ function roots(vs::Vector{S}, ws::Vector{S}) where {S}
 
     complex.(state.REIGS, state.IEIGS)
 end
-
-
-
-##
-## Twisting
-## Compute sigma
-##
-## function CMV(ps)
-##     n = length(ps) - 1
-##     sigma=vcat(1:2:n, 2:2:n)
-##     sigma
-## end
-## const basic_twist = CMV

@@ -114,6 +114,15 @@ end
     Rotator(c, s, i), DiagonalRotator(conj(alpha), i)
 end
 
+## Fuse for diagonal matrices
+fuse(D::IdentityDiagonalRotator, U) = U
+function fuse(D::DiagonalRotator{T}, U) where {T}
+    alpha,_ = vals(D)
+    i = idx(D)
+    @assert i == idx(U)
+    c, s = vals(U)
+    Rotator(c*alpha, s, i)
+end
 
 ##################################################
 # Turnover: Q1    Q3   | x x x |      Q1
@@ -169,7 +178,7 @@ end
         c6, s6 = approx_givensrot(a, s1*s2/s5)
     else
         b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0
-        c6, s5 = approx_givensrot(a, b)
+        c6, s6 = approx_givensrot(a, b)
     end
 #    c6, s6 = approx_givensrot(a, b)
 #    c6, s6 =  polish_givens(c6, s6)
@@ -182,9 +191,9 @@ end
 ##
 ##  Turnover interface for rotators
 ##
-function turnover(Q1::AbstractRotator{T},
-                  Q2::AbstractRotator{T},
-                  Q3::AbstractRotator{T}) where {T}
+function turnover(Q1::AbstractRotator,
+                  Q2::AbstractRotator,
+                  Q3::AbstractRotator)
 
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
@@ -200,23 +209,23 @@ function turnover(Q1::AbstractRotator{T},
 
 end
 
-function turnover(Q1::Rt,
-                  Q2::Rt,
-                  Q3::Rt) where {Rt}
+## function turnoverXXX(Q1::Rt,
+##                   Q2::Rt,
+##                   Q3::Rt) where {Rt}
 
-    c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
-    i,j,k = idx(Q1), idx(Q2), idx(Q3)
-    # @assert i == k && (abs(j-i) == 1)
+##     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
+##     i,j,k = idx(Q1), idx(Q2), idx(Q3)
+##     # @assert i == k && (abs(j-i) == 1)
 
-    c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
-    R1::Rt = Rotator(c4, s4, j)
-    R2::Rt = Rotator(c5, s5, i)
-    R3::Rt = Rotator(c6, s6, j)
+##     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
+##     R1::Rt = Rotator(c4, s4, j)
+##     R2::Rt = Rotator(c5, s5, i)
+##     R3::Rt = Rotator(c6, s6, j)
 
-    # we have Q1*Q2*Q3 = R1*R2*R3
-    R1, R2, R3
+##     # we have Q1*Q2*Q3 = R1*R2*R3
+##     R1, R2, R3
 
-end
+## end
 
 ##################################################
 

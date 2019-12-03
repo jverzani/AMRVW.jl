@@ -74,8 +74,16 @@ struct DiagonalRotator{T} <: AbstractRotator{T}
 c::T
 i::Int
 end
+function DiagonalRotator(c,s,i)
+    @assert iszero(s)
+    DiagaonalRotator(c,i)
+end
 
-vals(D::DiagonalRotator) = D.c, zero(D.c)
+vals(D::DiagonalRotator{T}) where {T} = D.c, zero(real(T))
+
+struct IdentityDiagonalRotator{T} <: AbstractRotator{T}
+IdentityDiagonalRotator{T}() where {T} = new()
+end
 
 
 #### Group rotators
@@ -100,9 +108,6 @@ struct AscendingChain{T} <: AbstractRotatorChain{T}
   x::Vector{T}
 end
 
-struct TwistedChain{T} <: AbstractRotatorChain{T}
-   x::Vector{T}
-end
 
 function Base.size(C::AbstractRotatorChain)
     N = length(C.x)
@@ -111,7 +116,6 @@ end
 
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
-Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
 
 
 
@@ -164,7 +168,7 @@ function Base.getindex(A::DescendingChain, i, j)
     N = length(A.x)
     S = eltype(first(A.x))
 
-    if i > j + 1
+    if i > j + 1 || i <= 0 || j <= 0
         return zero(S)
     end
 

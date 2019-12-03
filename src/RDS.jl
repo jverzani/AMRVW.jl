@@ -133,11 +133,10 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
 end
 
 ##################################################
-function deflate(QF::QFactorization{T, RealRotator{T}}, k) where {T}
+function deflate(QF::AbstractQFactorization{T, RealRotator{T}}, k) where {T}
 
     c,s = vals(QF.Q[k])
     i = idx(QF.Q[k])
-
     QF.Q[k] = Rotator(sign(c), zero(T), i) # ± 1, not just 1
 
 

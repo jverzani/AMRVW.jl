@@ -217,6 +217,20 @@ function passthrough(RF::RFactorization{T, St}, U::AbstractRotator, ::Val{:left}
     U
 end
 
+# pass thorugh  R <- Us
+function passthrough!(RF::AbstractRFactorization, Us::Vector)
+    for i in  eachindex(Us)
+        Us[i] =  passthrough(RF, Us[i],  Val(:right))
+    end
+end
+
+# passthrough Us -> R
+function passthrough!(Us::Vector, RF::AbstractRFactorization)
+    for i in length(Us):-1:1
+         Us[i] =  passthrough(RF, Us[i], Val(:left))
+    end
+end
+
 
 
 ## An Identity R factorization

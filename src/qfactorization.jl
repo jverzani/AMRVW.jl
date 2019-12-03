@@ -24,7 +24,7 @@ end
 ## We will only need near  diagonal elements, as we multiply by
 ## an  upper triangular matrix
 
-function Base.getindex(QF::QFactorization, j, k)
+function Base.getindex(QF::AbstractQFactorization, j, k)
     (j <= 0 || k <= 0) && return zero(QF)
     QF.Q[j,k] * QF.D[k]
 end
