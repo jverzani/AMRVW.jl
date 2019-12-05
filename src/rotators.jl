@@ -71,12 +71,8 @@ RotatorType(::Type{T}) where {T <: Real} = RealRotator{T}
 
 ##################################################
 struct DiagonalRotator{T} <: AbstractRotator{T}
-c::T
+c::Complex{T}
 i::Int
-end
-function DiagonalRotator(c,s,i)
-    @assert iszero(s)
-    DiagaonalRotator(c,i)
 end
 
 vals(D::DiagonalRotator{T}) where {T} = D.c, zero(real(T))
@@ -90,6 +86,7 @@ end
 
 abstract type AbstractRotatorChain{T} end
 
+
 Base.length(A::AbstractRotatorChain) = length(A.x)
 
 Base.@propagate_inbounds Base.getindex(A::AbstractRotatorChain, i::Int) = getindex(A.x, i)
@@ -98,7 +95,6 @@ Base.@propagate_inbounds Base.setindex!(A::AbstractRotatorChain, X, inds...) = s
 
 Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
 Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
-
 
 struct DescendingChain{T} <: AbstractRotatorChain{T}
   x::Vector{T}
@@ -113,6 +109,8 @@ function Base.size(C::AbstractRotatorChain)
     N = length(C.x)
     (N+1, N+1)
 end
+
+Base.extrema(C::AbstractRotatorChain) = extrema(idx.(C.x))
 
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
@@ -237,6 +235,14 @@ sparse_diagonal(::Type{S}, N) where {S} = SparseDiagonal{real(S)}(N)
 @inbounds Base.getindex(D::SparseDiagonal, k) = D.x[k]
 
 Base.@propagate_inbounds Base.setindex!(D::SparseDiagonal, X, inds...) = setindex!(D.x, X, inds...)
+
+function fuse!(Di::DiagonalRotator, D::SparseDiagonal)
+    i = idx(Di)
+    alpha, _ = vals(Di)
+    D[i] *= alpha
+    D[i+1] *= conj(alpha)
+end
+
 
 
 # real case is a series of noops
