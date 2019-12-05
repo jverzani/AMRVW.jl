@@ -209,23 +209,6 @@ function turnover(Q1::AbstractRotator,
 
 end
 
-## function turnoverXXX(Q1::Rt,
-##                   Q2::Rt,
-##                   Q3::Rt) where {Rt}
-
-##     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
-##     i,j,k = idx(Q1), idx(Q2), idx(Q3)
-##     # @assert i == k && (abs(j-i) == 1)
-
-##     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
-##     R1::Rt = Rotator(c4, s4, j)
-##     R2::Rt = Rotator(c5, s5, i)
-##     R3::Rt = Rotator(c6, s6, j)
-
-##     # we have Q1*Q2*Q3 = R1*R2*R3
-##     R1, R2, R3
-
-## end
 
 ##################################################
 
