@@ -57,12 +57,18 @@ function qrfactorization(N,
                          QF::AbstractQFactorization{T, Rt, Twt},
                          RF::AbstractRFactorization) where {T, Rt, Twt}
 
-    S = Rt == ComplexRealRotator{T} ? Complex{T} : T
+
+    if Rt == ComplexRealRotator{T}
+        S = Complex{T}
+        UV = Vector{ComplexRealRotator{T}}(undef, 1)
+    else
+        S = T
+        UV = Vector{RealRotator{T}}(undef, 2)
+    end
 
     A = zeros(S, 2, 2)
-    reigs = zeros(real(S), N)
-    ieigs = zeros(real(S), N)
-    UV = [QF.Q[1], QF.Q[1]]  # to populate later
+    reigs = zeros(T, N)
+    ieigs = zeros(T, N)
     ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
 
     if Twt == Val{:not_twisted}

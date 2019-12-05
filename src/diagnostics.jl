@@ -69,6 +69,8 @@ end
 
 tilde(A) = A[1:end-1, 1:end-1]
 
+Matrix(IdentityRFactorization) = I
+
 function Matrix(RF::RFactorization{T, Rt}) where {T, Rt}
     S = Rt == RealRotator{T} ? T : Complex{T}
 
@@ -100,7 +102,7 @@ end
 function Matrix(QF::QFactorization{T, Rt}) where {T, Rt}
     S = Rt == RealRotator{T} ? T : Complex{T}
 
-    n = length(QF) + 1
+    n = length(QF) + 2  ## note 2
     M = diagm(0 => ones(S, n))
     D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
     D = D*M

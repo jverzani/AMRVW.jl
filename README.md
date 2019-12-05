@@ -103,3 +103,29 @@ julia> n = 3000
 julia> xbar .+ 1.96*s/sqrt(n) * [-1,1], 2/pi*log(n) + .625738072 + 2/(pi*n)
  ([5.67865426156726, 5.820012405099407], 5.7229621769994745)
 ```
+
+
+----
+
+There are no exported functions, as of now. But the internal functions may be of interest. For example, the paper [Fast and stable unitary QR algorithm](http://etna.mcs.kent.edu/volumes/2011-2020/vol44/abstract.php?vol=44&pages=327-341) discusses a situation where a matrix `A` is unitary Hessenberg, and so is factored in terms of a descending chain of rotatorrs. To fit this model into the current framework, we have, for example:
+
+```
+using LinearAlgebra
+T = Float64
+const A =  AMRVW
+Qs = A.random_rotator.(A.RealRotator{T}, 1:10)
+D = A.IdentityDiagonal{T}()
+Q = A.DescendingChain(Qs)
+W = A.Rotator(zero(T), one(T), 1)
+QF = A.QFactorization(Q,D,[W])
+RF = A.IdentityRFactorization{T, A.RealRotator{T}}()
+s = A.qrfactorization(11, QF, RF)
+eigvals(s)   #  0.000056 seconds (5 allocations: 416 bytes)
+```
+
+Which can be compared with:
+
+```
+M = diagm(0 => ones(T, 11))
+Qs * M |> eigvals  # 0.003984 seconds (69 allocations: 8.984 KiB)
+```

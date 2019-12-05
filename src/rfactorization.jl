@@ -7,12 +7,14 @@ abstract type AbstractRFactorization{T, Rt, Pt} end
 
 
 # Basic interface for an RFactorization:
-# getindex (k-2 <= j <= k)
+#
+# getindex (need just k-2 <= j <= k, but as general as possible)
 # passthrough(RF, U, dir) to pass a rotator through from left to right or right to left
 # simple_passthrough(RF, U, dir) for a shortcut passthrough
 # we also might need:
 # length
 # eltype
+# Matrix (in diagonostics)
 # zero(RF{T, Rt}) to give 0
 # one(RF{T, Rt}) to give 1
 
@@ -21,12 +23,8 @@ Base.length(RF::AbstractRFactorization) = length(RF.Ct)
 Base.eltype(RF::AbstractRFactorization{T, RealRotator{T},Pt}) where {T,Pt} = T
 Base.eltype(RF::AbstractRFactorization{T, ComplexRealRotator{T},Pt}) where {T,Pt} = Complex{T}
 
-Base.zero(RF::AbstractRFactorization{T, RealRotator{T},Pt}) where {T,Pt} = zero(T)
-Base.zero(RF::AbstractRFactorization{T, ComplexRealRotator{T},Pt}) where {T,Pt} = zero(Complex{T})
-
-Base.one(RF::AbstractRFactorization{T, RealRotator{T},Pt}) where {T,Pt} = one(T)
-Base.one(RF::AbstractRFactorization{T, ComplexRealRotator{T},Pt}) where {T,Pt} = one(Complex{T})
-
+Base.zero(RF::AbstractRFactorization) = zero(eltype(RF))
+Base.one(RF::AbstractRFactorization) = one(eltype(RF))
 
 
 ## R factorization can include just R or VW' [sp]
@@ -105,105 +103,98 @@ end
 
 
 ## getindex
-##
-## Find R using Ct*B*D decompostion
-## writes R as [what, wj, wk,wl] and solves
-##
+
+function _w(B, j, k)
+
+    ck, sk = vals(B[k])
+    if j == k
+        return -sk
+    else
+        cj, sj = vals(B[j])
+        s = one(sj)
+        for i in (j+1):(k-1)
+            ci, si = vals(B[i])
+            s *= si
+        end
+        return conj(cj) * s *  ck
+    end
+end
+
+
+## We have W = C * R, where W invovles B and D, and C involves Ct; This
+## solves for R terms, as in the paper
+## To see the W pattern
 ## function rotm(a::T,b, i, N) where {T}
-##      r = diagm(0 => ones(T, N))#Matrix{T}(I, N,  N)
-##      r[i:i+1, i:i+1] = [a b; -conj(b) conj(a)]
+##      r = diagm(0 => ones(T, N))
+##      r[i:i+1, i:i+1] = [a b; -b conj(a)]
 ##      r
 ## end
+## @vars bgc bhc bic bjc bkc blc
+## @vars bgs bhs bis bjs bks bls
+## @vars dg dh di dj dk dl dm
+## Bg = rotm(bgc, bgs, 1, 7)
+## Bh = rotm(bhc, bhs, 2, 7)
+## Bi = rotm(bic, bis, 3, 7)
+## Bj = rotm(bjc, bjs, 4, 7)
+## Bk =  rotm(bkc, bks, 5, 7)
+## Bl = rotm(blc, bls, 6, 7)
+## D = diagm(0  => [dg, dh, di, dj, dk,dl, dm])
+## en = [0,0,0,0, 0, 1,0]
+## Ws = Bg * Bh  * Bi * Bj *  Bk *  *Bl * D   *  en
+## To see the C pattern:
 ## @vars bc_i bs_i bc_j bs_j bc_k bs_k
-## @vars cc_i cs_i cc_j cs_j cc_k cs_k
+## @vars cc_g cs_g cc_h cs_h cc_i cs_i cc_j cs_j cc_k cs_k
 ## @vars d_i d_j d_k d_l
-## D = diagm(0 => [d_i,d_j,d_k,d_l])
-## Bi = rotm(bc_i, bs_i, 1, 4)
-## Bj = rotm(bc_j, bs_j, 2, 4)
-## Bk = rotm(bc_k, bs_k, 3, 4)
-## what, wj, wk, wl = Bi * Bj * Bk * D * [0,0,1,0]
-## @show wj wk wl
-## @vars what wj wk wl
+## @vars what wg wh wi wj wk wl
 ## u = rotm(cc_k, cs_k, 1,2) * [what, wl]
 ## kk = u[1](what => solve(u[2], what)[1]) |> simplify
-## @show kk
 
-## u =  rotm(cc_j, cs_j, 2,3) * rotm(cc_k, cs_k, 1,3) * [what, wk, wl]
-## kk_1 = u[1](what => solve(u[2], what)[1]) |> simplify
-## @show kk_1
+## u = rotm(cc_k, cs_k, 2,3) *  rotm(cc_j, cs_j, 1,3) * [what, wk, wl]
+## kk_1 = u[1](what => solve(u[3], what)[1]) |> simplify
 
-## u =  rotm(cc_k, cs_k, 3,4) * rotm(cc_j, cs_j, 2,4) * rotm(cc_i, cs_i, 1,4) * [what, wi, wk, wl]
-## kk_2 = u[1](what => solve(u[2], what)[1]) |> simplify
-## @show kk_2
-##
-## wj = bc_k*bs_j*d_k*conjugate(bc_i)
-## wk = bc_k*d_k*conjugate(bc_j)
-## wl = -d_k*conjugate(bs_k)
-## kk = cc_k*wl*conjugate(cc_k)/conjugate(cs_k) + cs_k*wl
-## kk_1 = cc_k*wk*conjugate(cc_k)/conjugate(cs_k) + cs_k*wk + cc_k*cs_j*wl/(cc_j*conjugate(cs_k))
-## kk_2 = bc_k*bs_j*cc_i*d_k*conjugate(bc_i)*conjugate(cc_i)/conjugate(cs_i) + bc_k*bs_j*cs_i*d_k*conjugate(bc_i) + cc_i*cs_j*wk/(cc_j*conjugate(cs_i))
+## u = rotm(cc_k, cs_k,3, 4)*rotm(cc_j, cs_j, 2,4) *  rotm(cc_i, cs_i, 1,4) * [what, wj, wk, wl]
+## kk_2 = u[1](what => solve(u[4], what)[1]) |> simplify
 
-function Rjk(Ct, B, dk, j, k)
+## u = rotm(cc_k, cs_k, 4,5) * rotm(cc_j, cs_j,3, 5)*rotm(cc_i, cs_i, 2,5) *  rotm(cc_h, cs_h, 1,5) * [what, wi, wj, wk, wl]
+## kk_3 = u[1](what => solve(u[5], what)[1]) |> simplify
 
-    N = length(Ct)
-    # @assert  0 <= k - j <= 2
-
-    if k - j == 0 # (k,k) case is easiest
-        bkc, bks = vals(B[k])
-        ckc, cks = vals(Ct[N+1-k])
-
-        wl = -conj(bks) * dk
-        return wl / conj(cks)
-
-    elseif k - j == 1
-
-        j = k-1
-        bkc, bks = vals(B[k])
-        bjc, bjs = vals(B[j])
-        ckc, cks = vals(Ct[N+1-k])
-        cjc, cjs = vals(Ct[N+1-j])
-
-        wl = -conj(bks) * dk
-        wk = bkc * conj(bjc) * dk
-
-        return wk/conj(cjs) - (wl * cjc * conj(ckc))/conj(cjs*cks)
-
-
-    else# k - j == 2
-
-        i, j = k-2, k-1
-
-        bkc, bks = vals(B[k])
-        bjc, bjs = vals(B[j])
-        bic, bis = vals(B[i])
-        ckc, cks = vals(Ct[N+1-k])
-        cjc, cjs = vals(Ct[N+1-j])
-        cic, cis = vals(Ct[N+1-i])
-
-        wl = -conj(bks) * dk
-        wk = bkc * conj(bjc) * dk
-        wj = bjs * bkc * conj(bic) * dk
-
-        return wj/conj(cis) - (wk * cic * conj(cjc)) /conj(cis*cjs) + (wl*cic * conj(ckc))/conj(cis*cjs*cks) #+ wj*cis
-
-    end
-end
-
-## RFactorization is upper triangular, so i>j is  zero
-function Base.getindex(RF::RFactorization, i, j)
+## u = rotm(cc_k, cs_k, 5,6) * rotm(cc_j, cs_j, 4,6) * rotm(cc_i, cs_i,3, 6)*rotm(cc_h, cs_h, 2,6) *  rotm(cc_g, cs_g, 1,6) * [what, wh, wi, wj, wk, wl]
+## kk_4 = u[1](what => solve(u[6], what)[1]) |> simplify
+function Base.getindex(RF::RFactorization, j, k)
+    # neeed to compute Cts and Ws(B,D)
+    Ct = RF.Ct
+    B = RF.B
     D = RF.D
+    N = length(Ct.x)
 
-    if j < i
-        r_ij = zero(RF)
-    elseif i + 2 >= j
-        r_ij = Rjk(RF.Ct, RF.B, D[j], i, j)
-    else
-        ## we don't compute this, as it isn't needed
-        ## when Q is Hessenberg
-        r_ij = zero(RF)*NaN
+    ## return 0 if request is out of bounds
+    ## or in lower triangular part (k < j)
+    (k < j || j == 0 || k > N+1) && return zero(RF)
+
+    cj, sj  = vals(Ct[N+1-j])
+    s = sj
+    par = -1
+
+
+    dk = D[k]
+    w  =  _w(B, j,  k) * dk
+
+
+    tot = w/s
+
+    for i in (j+1):k
+        w =  _w(B,  i,  k)
+        ci, si = vals(Ct[N+1-i])
+        s  = s*si
+        tot += par *  cj*conj(ci)/s * w * dk
+        par *= -1
     end
-    r_ij
+
+    tot
 end
+
+
+
 
 
 
@@ -226,15 +217,32 @@ function passthrough(RF::RFactorization{T, St}, U::AbstractRotator, ::Val{:left}
     U
 end
 
+# pass thorugh  R <- Us
+function passthrough!(RF::AbstractRFactorization, Us::Vector)
+    for i in  eachindex(Us)
+        Us[i] =  passthrough(RF, Us[i],  Val(:right))
+    end
+end
+
+# passthrough Us -> R
+function passthrough!(Us::Vector, RF::AbstractRFactorization)
+    for i in length(Us):-1:1
+         Us[i] =  passthrough(RF, Us[i], Val(:left))
+    end
+end
+
 
 
 ## An Identity R factorization
 ## used for generic purposes
-struct IdentityRFactorization{T, Rt}
+struct IdentityRFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}}
+IdentityRFactorization{T, Rt}() where {T, Rt} = new()
 end
+
 
 
 Base.getindex(RF::IdentityRFactorization, i, j) = i==j ? one(RF) : zero(RF)
 
 passthrough(RF::IdentityRFactorization, U::AbstractRotator, dir) = U
 simple_passthrough(RF::IdentityRFactorization, U::AbstractRotator, dir) = true
+simple_passthrough(RF::IdentityRFactorization, U::AbstractRotator, V::AbstractRotator, dir) = true

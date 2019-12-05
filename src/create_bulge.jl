@@ -22,7 +22,7 @@ function create_bulge(state::AbstractFactorizationState{T, S, RealRotator{T}, QF
     else
 
         Δ = state.ctrs.stop_index
-        diagonal_block(state,Δ+1)
+        diagonal_block(state, Δ+1)
 
         l1r, l1i, l2r, l2i = eigen_values(state)
 
@@ -70,7 +70,7 @@ function create_bulge(state::AbstractFactorizationState{T, S,ComplexRealRotator{
 
     else
 
-        flag = diagonal_block(state, state.ctrs.stop_index+1)
+        diagonal_block(state, state.ctrs.stop_index+1)
 
         if ray
             # Wilkinson
@@ -86,7 +86,7 @@ function create_bulge(state::AbstractFactorizationState{T, S,ComplexRealRotator{
     end
 
     k =  state.ctrs.start_index
-    flag = diagonal_block(state, k+1)
+    diagonal_block(state, k+1)
     c,s,nrm = givensrot(state.A[1,1] - shift, state.A[2,1])
     R = Rotator(c, s, k)
     state.UV[1] = R'

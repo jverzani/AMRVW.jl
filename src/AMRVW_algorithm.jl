@@ -2,7 +2,7 @@
 ## Main algorithm of AMRVW
 ## This follows that given in the paper very closely
 ## should trace algorithm better with `verbose`
-function AMRVW_algorithm(state)
+function AMRVW_algorithm(state::QRFactorization)
 
     it_max = 20 * length(state)
     kk = 0
@@ -30,8 +30,6 @@ function AMRVW_algorithm(state)
             diagonal_block(state,  k + 1)
 
             e1r,e1i, e2r,e2i = eigen_values(state)
-#            @show state.A
-#            @show complex(e1r,e1i), complex(e2r,e2i)
             state.REIGS[k], state.IEIGS[k] = e1r, e1i
             state.REIGS[k+1], state.IEIGS[k+1] = e2r, e2i
 
@@ -52,16 +50,12 @@ function AMRVW_algorithm(state)
             diagonal_block(state, state.ctrs.stop_index + 1)
             e1, e2 = state.A[1,1], state.A[2,2]
             if state.ctrs.stop_index == 1
-#                @show e1, e2
                 state.REIGS[1], state.IEIGS[1] = real(e1), imag(e1)
                 state.REIGS[2], state.IEIGS[2] = real(e2), imag(e2)
                 state.ctrs.stop_index = 0
 
             else
 
-#                KK = state.ctrs.stop_index + 1
-#                diagonal_block(state, KK)
-#                @show e2
                 state.REIGS[k+1], state.IEIGS[k+1] = real(e2), imag(e2)
                 state.ctrs.zero_index = 0
                 state.ctrs.start_index = 1
@@ -74,7 +68,13 @@ function AMRVW_algorithm(state)
     end
 
 
-    @warn "Not all roots were found. The first $(state.ctrs.stop_index-1) are missing."
+    @warn "Not all eigenvalues were found. The first $(state.ctrs.stop_index-1) are missing."
+end
+
+## Find eigenvalues from factorization
+function LinearAlgebra.eigvals(state::QRFactorization, args...)
+    AMRVW_algorithm(state)
+    complex.(state.REIGS, state.IEIGS)
 end
 
 
@@ -149,7 +149,13 @@ end
 
 
 
+"""
 
+    amrvw(ps)
+
+For a polynomial specified by `ps` computes a sparse factorization of its companion matrix.
+
+"""
 function amrvw(ps::Vector{S}) where {S}
 
     N = length(ps) - 1
@@ -171,13 +177,26 @@ function adjust_pencil(vs::Vector{T}, ws::Vector{T}) where {T}
     ps, qs
 end
 
-function amrvw_pencil(ps::Vector{S}, qs::Vector{S}) where {S}
+"""
 
-    N = length(ps)
+    amrvw(vs, ws)
 
-    vs, ws = adjust_pencil(ps, qs)
+Computes a sparse factorization of of the companion matrix of a polynomial specified througha  pencil decomposition.
+A pencil decomposition of a polynomial, is a specificaiton where
+if `p = a0 + a1x^1 + ... + xn x^n`
+then
+`vs[1] = a0`,
+`vs[i+1] + ws[i] = ai`, and
+`ws[n] = an`.
+
+"""
+function amrvw(vs::Vector{S}, ws::Vector{S}) where {S}
+
+    N = length(vs)
+
+    ps, qs = adjust_pencil(vs, ws)
     QF = q_factorization(Vector{S}(undef, N+1))
-    ZF = z_factorization(vs, ws)
+    ZF = z_factorization(ps, qs)
 
     qrfactorization(N, QF, ZF)
 
@@ -271,7 +290,7 @@ function roots(vs::Vector{S}, ws::Vector{S}) where {S}
         return rts
     end
 
-    state = amrvw_pencil(ps, qs)
+    state = amrvw(ps, qs)
     AMRVW_algorithm(state)
 
     if K > 0 # put back in leading zeros
@@ -282,16 +301,3 @@ function roots(vs::Vector{S}, ws::Vector{S}) where {S}
 
     complex.(state.REIGS, state.IEIGS)
 end
-
-
-
-##
-## Twisting
-## Compute sigma
-##
-## function CMV(ps)
-##     n = length(ps) - 1
-##     sigma=vcat(1:2:n, 2:2:n)
-##     sigma
-## end
-## const basic_twist = CMV

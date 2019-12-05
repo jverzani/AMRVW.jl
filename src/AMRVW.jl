@@ -2,6 +2,7 @@ module AMRVW
 
 
 using LinearAlgebra
+import LinearAlgebra: eigvals
 import Base: adjoint
 
 # package code goes here

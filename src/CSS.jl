@@ -48,7 +48,7 @@ function simple_passthrough(RF::RFactorization{T, ComplexRealRotator{T}}, U, ::V
 
     _ = passthrough(RF.B, U, Val(:right))
 
-    for k in 0:1
+    @inbounds for k in 0:1
 
         a,b = vals(RF.B[i+k])
         ii = N + 1 - (i + k)

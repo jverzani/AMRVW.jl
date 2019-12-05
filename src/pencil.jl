@@ -17,6 +17,7 @@ function Base.getindex(RF::ZFactorization, l, k)
     Δ = k - l
     #@assert 0 <= Δ <= 2
     V, W = RF.V, RF.W
+    l <= 0 &&  return zero(RF)
     if iszero(Δ)
         return V[k,k] / W[k,k]
     elseif Δ == 1

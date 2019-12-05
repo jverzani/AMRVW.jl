@@ -54,8 +54,8 @@ givensrot(a::Complex{T},b::T) where {T <: Real} =  givensrot(a, complex(b, zero(
 # fail. If it is not neglected, the programmer has a good chance of
 # producing an accurate turnover.
 function approx_givensrot(a::S,b::T) where {S,T}
-    delta = real(a*conj(a)) + b^2 - one(T)
-    r = one(T) - delta/(one(T)+one(T))  # taylor approx for 1/sqrt(1 + delta) when delta ~ 0
+    delta::T = abs(a*conj(a)) + b^2 - one(T)
+    r::T = one(T) - delta/(one(T)+one(T))  # taylor approx for 1/sqrt(1 + delta) when delta ~ 0
     c = a*r
     s = b*r
     return conj(c),s
@@ -114,6 +114,15 @@ end
     Rotator(c, s, i), DiagonalRotator(conj(alpha), i)
 end
 
+## Fuse for diagonal matrices
+fuse(D::IdentityDiagonalRotator, U) = U
+function fuse(D::DiagonalRotator{T}, U) where {T}
+    alpha,_ = vals(D)
+    i = idx(D)
+    @assert i == idx(U)
+    c, s = vals(U)
+    Rotator(c*alpha, s, i)
+end
 
 ##################################################
 # Turnover: Q1    Q3   | x x x |      Q1
@@ -156,7 +165,7 @@ end
 
 
     UVW11 = c1*c3 - c2*s1*s3
-    c5, s5 = approx_givensrot(UVW11, real(r4))
+    c5, s5::T = approx_givensrot(UVW11, real(r4))
     c5, s5 = conj(c5), -s5
 #    c5, s5 =  polish_givens(c5, s5)
 
@@ -166,11 +175,12 @@ end
     ## get a from  M  = V1' * U1' * U *  V  *  W; a = M[3,3]
     a = conj(c1) * s2 * s4 + conj(c2) * c4
     if !iszero(s5)
-        b = s1*s2/s5
+        c6, s6 = approx_givensrot(a, s1*s2/s5)
     else
         b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0
+        c6, s6 = approx_givensrot(a, b)
     end
-    c6, s6 = approx_givensrot(a, b)
+#    c6, s6 = approx_givensrot(a, b)
 #    c6, s6 =  polish_givens(c6, s6)
 
     return (c4, s4, c5, s5, c6, s6)
@@ -181,9 +191,9 @@ end
 ##
 ##  Turnover interface for rotators
 ##
-function turnover(Q1::AbstractRotator{T},
-                  Q2::AbstractRotator{T},
-                  Q3::AbstractRotator{T}) where {T}
+function turnover(Q1::AbstractRotator,
+                  Q2::AbstractRotator,
+                  Q3::AbstractRotator)
 
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
@@ -198,6 +208,7 @@ function turnover(Q1::AbstractRotator{T},
     R1, R2, R3
 
 end
+
 
 ##################################################
 
@@ -296,7 +307,7 @@ function passthrough(A::DescendingChain, D::SparseDiagonal, Di::DiagonalRotator,
     ## D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(c, conj(alpha)s) D_i(alpha)
     ## R_{i+1}(c, conj(alpha) s) = R_{i+1}(conj(alpha) c, s) D_{i+1}(alpha)
     ## so D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(conj(alpha) c, s) D{{i+1}(alpha) D_i(alpha)
-
+    ## Also D_i(alpha) * R_i(c,s) = R_i(c*alpha/conj(alpha), s) D_i(conj(alpha)
     i, n = idx(Di), length(A)
     alpha, _ = vals(Di)
 

@@ -71,16 +71,21 @@ RotatorType(::Type{T}) where {T <: Real} = RealRotator{T}
 
 ##################################################
 struct DiagonalRotator{T} <: AbstractRotator{T}
-c::T
+c::Complex{T}
 i::Int
 end
 
-vals(D::DiagonalRotator) = D.c, zero(D.c)
+vals(D::DiagonalRotator{T}) where {T} = D.c, zero(real(T))
+
+struct IdentityDiagonalRotator{T} <: AbstractRotator{T}
+IdentityDiagonalRotator{T}() where {T} = new()
+end
 
 
 #### Group rotators
 
 abstract type AbstractRotatorChain{T} end
+
 
 Base.length(A::AbstractRotatorChain) = length(A.x)
 
@@ -91,7 +96,6 @@ Base.@propagate_inbounds Base.setindex!(A::AbstractRotatorChain, X, inds...) = s
 Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
 Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
 
-
 struct DescendingChain{T} <: AbstractRotatorChain{T}
   x::Vector{T}
 end
@@ -100,16 +104,113 @@ struct AscendingChain{T} <: AbstractRotatorChain{T}
   x::Vector{T}
 end
 
-struct TwistedChain{T} <: AbstractRotatorChain{T}
-   x::Vector{T}
+
+function Base.size(C::AbstractRotatorChain)
+    N = length(C.x)
+    (N+1, N+1)
 end
+
+Base.extrema(C::AbstractRotatorChain) = extrema(idx.(C.x))
 
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
-Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
 
 
 
+function Base.getindex(A::AscendingChain{T}, i, j) where {T}
+    N = length(A.x)
+    S = eltype(first(A.x))
+
+    if i == N + 1
+        i -= 1; j -= 1
+        ci, si = vals(A.x[N+1-i])
+
+        j == N && return conj(ci)
+
+        s = -S(si)
+        for l in (j+1):(i-1)
+            cj, sjj = vals(A.x[N+1-l])
+            s *= -sjj
+        end
+        cj, sj = j > 0 ? vals(A.x[N+1-j]) : (one(S), zero(S))
+        return s * conj(cj)
+
+    else
+
+
+        j > i+1 && return zero(S) # ascending chain's aree lower Hessian
+
+        ci, si = vals(A.x[N+1-i])
+
+        if j == i + 1
+            return S(si)
+        elseif j == i
+            cj, sj  = j > 1 ? vals(A.x[N+1-(j-1)]) : (one(S), zeros(S))
+            return conj(cj)*ci
+        end
+
+        s = one(S)
+        for l in j:(i-1)
+            cl, sl = vals(A.x[N+1-l])
+            s *= -sl
+        end
+
+        cl, sl = j > 1 ? vals(A.x[N+1 - (j-1)]) : (one(S), zero(S))
+        return ci * s * conj(cl)
+    end
+
+end
+
+function Base.getindex(A::DescendingChain, i, j)
+
+    N = length(A.x)
+    S = eltype(first(A.x))
+
+    if i > j + 1 || i <= 0 || j <= 0
+        return zero(S)
+    end
+
+    if j == N + 1
+        j -= 1
+        cj, sj = vals(A.x[j])
+
+        i == N+1 && return conj(cj)
+
+        i -= 1
+        s::S = sj
+        for l in (i+1):j-1
+            cj, sj = vals(A.x[l])
+            s *= S(sj)
+        end
+        ci, si = i > 0 ? vals(A.x[i]) : (one(S), zero(real(S)))
+        return s * conj(ci)
+
+    else
+
+
+        cj, sj = vals(A.x[j])
+
+        if i == j + 1
+
+            return -S(sj)
+
+        elseif j == i
+
+            ci, si  = i >= 2 ? vals(A.x[i-1]) : (one(S), zero(real(S)))
+            return conj(ci)*cj
+
+        end
+
+        s = one(S)
+        for l in i:(j-1)
+            cl, sl = vals(A.x[l])
+            s *= sl
+        end
+
+        cl, sl = i >= 2 ? vals(A.x[i-1]) : (one(S), zero(real(S)))
+        return cj * s * conj(cl)
+    end
+end
 
 
 ## For the ComplexRealRotator case we need a diagonal matrix to store the phase
@@ -134,6 +235,14 @@ sparse_diagonal(::Type{S}, N) where {S} = SparseDiagonal{real(S)}(N)
 @inbounds Base.getindex(D::SparseDiagonal, k) = D.x[k]
 
 Base.@propagate_inbounds Base.setindex!(D::SparseDiagonal, X, inds...) = setindex!(D.x, X, inds...)
+
+function fuse!(Di::DiagonalRotator, D::SparseDiagonal)
+    i = idx(Di)
+    alpha, _ = vals(Di)
+    D[i] *= alpha
+    D[i+1] *= conj(alpha)
+end
+
 
 
 # real case is a series of noops
