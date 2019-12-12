@@ -11,12 +11,14 @@ companion matrix in:
 * Fast and backward stable computation of the eigenvalues of matrix polynomials. By Aurentz, Jared & Mach, Thomas & Robol, Leonardo & Vandebril, Raf & Watkins, David. (2016). Mathematics of Computation. 88. DOI: 10.1090/mcom/3338.
 
 
-* Fast and backward stable computation of roots of polynomials, Part II: backward error analysis; companion matrix and companion pencil
+* Fast and backward stable computation of roots of polynomials, Part II: backward error analysis; companion matrix and companion pencil. By
 Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, David S. Watkins; arXiv:1611.02435
 
 The methods are summarized in monograph format:
 
 Core-Chasing Algorithms for the Eigenvalue Problem; by Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, and David S. Watkins; https://doi.org/10.1137/1.9781611975345
+
+As well, the twisted algorithm from A generalization of the multishift QR algorithm by Raf Vandebril and David S. Watkins; https://doi.org/10.1137/11085219X
 
 The core-chasing algorithms utilize Francis's QR algorithm on sparse factorizations of the respected companion matrix. For polynomials with real coefficients, the storage requirements are O(n) and the algorithm requires O(n) flops per iteration, or O(n^2) flops overall. The basic QR algorithm applied to the full companion matrix would require O(n^2) storage and O(n^3) flops overall.
 

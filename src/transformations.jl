@@ -295,6 +295,27 @@ end
     return Rotator(beta1 * c, s, i)
 end
 
+passthrough(D::IdentityDiagonal, U::AbstractRotator{T}, args...) where {T} = U
+
+function passthrough!(D::SparseDiagonal, Asc::AscendingChain)
+    for i in 1:length(Asc) # pass  Asc through D
+        Asc[i] = passthrough(D, Asc[i], Val(:right))
+    end
+end
+
+function passthrough!(Des::DescendingChain, D::SparseDiagonal)
+    for i in length(Des):-1:1
+        Des[i] = passthrough(D, Des[i], Val(:left))
+    end
+end
+
+## could do two others...
+
+## noop when Identity Diagonal
+passthrough!(D::IdentityDiagonal, C::AbstractRotatorChain) =  nothing
+passthrough!(C::AbstractRotatorChain, D::IdentityDiagonal) =  nothing
+
+
 ## U D -> D U
 ## Identity
 @inline function passthrough(D::IdentityDiagonal, U::AbstractRotator, dir)

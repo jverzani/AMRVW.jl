@@ -86,6 +86,7 @@ end
 
 abstract type AbstractRotatorChain{T} end
 
+eltype(A::AbstractRotatorChain) = eltype(A.x)
 
 Base.length(A::AbstractRotatorChain) = length(A.x)
 
@@ -241,8 +242,9 @@ function fuse!(Di::DiagonalRotator, D::SparseDiagonal)
     alpha, _ = vals(Di)
     D[i] *= alpha
     D[i+1] *= conj(alpha)
+    return nothing
 end
-
+fuse!(Di::DiagonalRotator, D::IdentityDiagonal) = nothing
 
 
 # real case is a series of noops

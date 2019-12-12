@@ -39,18 +39,6 @@ struct QRFactorization{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, R
 end
 
 
-# Twisting *would* require a different bulge chasing algorithm, so
-# we hold it in the type for dispatch
-struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
-  N::Int
-  QF::QFt
-  RF::RFt
-  UV::Vector{Rt}    # temp storage for U[V] Vector{Rt}, ,
-  A::Matrix{S}
-  REIGS::Vector{T}
-  IEIGS::Vector{T}
-  ctrs::AMRVW_Counter
-end
 
 # constructor for either case
 function qrfactorization(N,
