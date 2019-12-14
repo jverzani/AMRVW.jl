@@ -231,37 +231,108 @@ end
 
 ## Various "passthrough" functions
 ## These passthrough the chains
-
+## XXX use passthrough!; remove these calls
 function passthrough(A::DescendingChain, U::AbstractRotator, ::Val{:right})
-    i = idx(U)
-    # @assert i < length(A)
-    U, A[i], A[i+1] = turnover(A[i], A[i+1], U)
-    return U
+    return passthrough!(A, U)
 end
 
 
 function passthrough(A::DescendingChain, U::AbstractRotator, ::Val{:left})
-    i, n  = idx(U), length(A)
-    # @assert i > 1
-    A[i-1], A[i], U = turnover(U, A[i-1], A[i])
-    return U
+    return passthrough!(U, A)
 end
 
 
 function passthrough(A::AscendingChain, U::AbstractRotator, ::Val{:right})
-    i, n = idx(U), length(A)
-    j = n - i + 1
-    # @assert  i > 1
-    U, A[j], A[j+1] = turnover(A[j], A[j+1],U)
-    return U
+    return passthrough!(A, U)
 end
 
 
 function passthrough(A::AscendingChain, U::AbstractRotator, ::Val{:left})
-    i, n = idx(U), length(A)
-    j = n - i + 1
-    A[j-1], A[j], U = turnover(U, A[j-1], A[j])
-    return U
+    return passthrough!(U, A)
+end
+
+## XX these to replace the 4 above
+# left to  right; return U
+# do not assume DescendingChain is 1 ... n
+function passthrough!(A::DescendingChain, U::AbstractRotator)
+    i = idx(U)
+    n = idx(A.x[1])
+    N = idx(A.x[end])
+    @assert n <= i < N
+    l = (i-n) + 1
+    U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
+    U
+end
+
+function passthrough!(A::AscendingChain, U::AbstractRotator)
+    i = idx(U)
+    n = idx(A.x[end])
+    N = idx(A.x[1])
+    @assert n < i <= N
+    l = length(A.x)  - (i-n)
+    U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
+    U
+
+end
+
+## right to left; return U
+function passthrough!(U::AbstractRotator, A::DescendingChain)
+    i = idx(U)
+    n = idx(A.x[1])
+    N = idx(A.x[end])
+    @assert n < i <= N
+    l = (i-n) + 1
+    A[l-1], A[l], U = turnover(U, A[l-1], A[l])
+    U
+end
+
+function passthrough!(U::AbstractRotator, A::AscendingChain)
+    i = idx(U)
+    n = idx(A.x[end])
+    N = idx(A.x[1])
+    @assert n <= i < N
+    l = length(A.x)  - (i-n)
+    A[l-1], A[l], U = turnover(U, A[l-1], A[l])
+    U
+end
+
+# Need to check  bounds to ensure possible
+function passthrough!(A::DescendingChain, B::AscendingChain)
+    m, M = idx(A.x[1]), idx(A.x[end])
+    n, N = idx(B.x[end]), idx(B.x[1])
+
+    if M < N && n <= m
+        for (i, U) in enumerate(B.x)
+            B[i] = passthrough!(A, U)
+        end
+    else
+        lA = length(A.x)
+        for i in 1:lA
+            A[lA+1-1] = passthrough!(A[lA+1-i], B)
+        end
+    end
+    return nothing
+end
+
+
+end
+
+function passthrough!(A::AscendingChain, B::DescendingChain)
+    m, M = idx(A.x[1]), idx(A.x[end])
+    n, N = idx(B.x[end]), idx(B.x[1])
+
+    if n <= m-1 && N <= M
+        for (i, U) in enumerate(B.x)
+            B[i] = passthrough!(A, U)
+        end
+    else
+        lA = length(A.x)
+        for i in 1:lA
+            j = lA - i + 1
+            A[j] = passthrough!(A[j], B)
+        end
+    end
+    return nothing
 end
 
 

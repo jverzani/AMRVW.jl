@@ -6,11 +6,11 @@ abstract type AbstractQFactorization{T, Rt, Twt} end
 # implement Array interface
 Base.length(QF::AbstractQFactorization) = length(QF.Q)
 
-Base.eltype(RF::AbstractQFactorization{T, RealRotator{T},Twt}) where {T,Twt} = T
-Base.eltype(RF::AbstractQFactorization{T, ComplexRealRotator{T},Twt}) where {T,Twt} = Complex{T}
+Base.eltype(QF::AbstractQFactorization{T, RealRotator{T},Twt}) where {T,Twt} = T
+Base.eltype(QF::AbstractQFactorization{T, ComplexRealRotator{T},Twt}) where {T,Twt} = Complex{T}
 
-Base.zero(RF::AbstractQFactorization) = zero(eltype(RF))
-Base.one(RF::AbstractQFactorization) = one(eltype(RF))
+Base.zero(QF::AbstractQFactorization) = zero(eltype(QF))
+Base.one(QF::AbstractQFactorization) = one(eltype(QF))
 
 
 struct QFactorization{T, Rt} <: AbstractQFactorization{T, Rt, Val{:not_twisted}}

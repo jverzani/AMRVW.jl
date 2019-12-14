@@ -213,6 +213,72 @@ function passthrough!(L::Vector, A::DescendingChain)
     end
 end
 
+
+## Move twisted through down R <- L
+function  passthrough!(A::Union{DescendingChain, AscendingChain}, B::TwistedChain)
+    ##  startt at bottom of B
+    ## must calibratet A and B
+    n = B.m
+    N = idx(A[1])
+
+    pv = B.pv
+    inds = [iget(B, l)[1] for  l  in n:n+length(pv)]  # Can use j's from iget, as we  modify B  along the way
+
+    for (i, pi) in enumerate(reverse(pv)) # work from bottom
+
+        #i = 2 -> length(pv) - 2 + 1 idx in pv
+        #n + length(pv) - i + 1 idx in A of lower one
+        #j = inds[length(pv) - 1 + 1] index of lower one
+
+        if pi  == :right
+            j = inds[length(pv) - i + 1 + 1]
+            B[j] = passthrough!(A, B[j])
+        end
+    end
+
+    # move first over
+    j =  inds[1]
+    B[j] = passthrough!(A, B[j])
+
+    for (i, pi) in enumerate(pv) # work down
+        if pi == :left
+            j = inds[i + 1]
+            B[j] = passthrough!(A, B[j])
+        end
+    end
+
+end
+
+## Move twisted through  up R --> L
+function  passthrough!(B::TwistedChain, A::Union{DescendingChain,AscendingChain})
+    n = B.m
+    N = idx(A.x[end])
+    pv = B.pv
+    inds = [iget(B, l)[1] for  l  in n:n+length(pv)]  # Can use j's from iget, as we  modify B  along the way
+
+    for (i, pi) in enumerate(reverse(pv)) # work from bottom
+
+        if pi  == :left
+            j = inds[length(pv) - i + 1 + 1]
+            U = B[j]
+            B[j] = passthrough!(U, A)
+        end
+    end
+
+    # move first over
+    j =  inds[1]
+    B[j] = passthrough!(B[j], A)
+
+    for (i, pi) in enumerate(pv) # work down
+        if pi == :right
+            j = inds[i+1]
+            B[j] = passthrough!(B[j], A)
+        end
+    end
+
+
+end
+
 # need to specilize for diagonal rotator
 function turnover(Q1::DiagonalRotator{T},
                   Q2::ComplexRealRotator,
@@ -247,60 +313,14 @@ function _fuse(U::ComplexRealRotator{T}, V::ComplexRealRotator{T}) where {T}
     fuse(U,V)
 end
 
-# pass a diagonal rotator from a fuse operation through one or more rotator chains, merge with D
-# a diagonal matrix
-# fused to M, so Ui is really Ui*Di
-# needs to move right through Vs
-# Set M == nothing if no more interaction with M, as in fusing to descending chain at bottom
-passthrough_phase(M, Di::IdentityDiagonalRotator, args...) = nothing
+# pass a diagonal rotator from a fuse operation through one or more rotator chains
+# merge with D a diagonal matrix
+passthrough_phase!(Di, Vs::Tuple, D::IdentityDiagonal) = nothing
 
-# This case only hits with initial fuse *and* when Ms is descending at top
-# so first case is a :left
-function passthrough_phase(M::TwistedChain, Di::DiagonalRotator{T}, Vs::Tuple, D) where {T}
-
-    ## We have two rules
-    ##
-    ##   U1     V1 E1  where if U1=(c,s), D2=(alpha,0), then Vi=(c/alpha,s) Ei=(alpha,0)
-    ## D2   -->    E2
-    ##   U3     V3 E3
-    ## and just
-    ##   U1     V1 E1 where V1=(c/alpha,s), Ei = (alpha,0)
-    ## D2   -->    E2
-    ## Similarly
-    ## D2    -->    E2
-    ##    U3     V3 E3
-
-    ## Deal with initial Descending part of M, then passthrough
-
-    j = idx(Di) + 1
-    _, Uj = iget(M, j)
-    DesM = [Uj]
-    for pj  in M.pv
-        if pj == :right
-            break
-        else
-            j = j + 1
-            push!(DesM, iget(M.x,j)[2])
-        end
-    end
-
-
-    passthrough_phase(nothing, Di, (DescendingChain(DesM), Vs...), D)
-    for U in DesM
-        j,V = iget(M.x, idx(U))
-        M.x[j] = U
-    end
-
-    return nothing
-end
-
-passthrough_phase(M::Nothing, Di::DiagonalRotator{T}, Vs::Tuple, D) where {T} = passthrough_phase(Di, Vs, D)
-
-passthrough_phase(Di, Vs::Tuple, D::IdentityDiagonal) = nothing
-function passthrough_phase(Di::DiagonalRotator{T}, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator{T}, Vs::Tuple, D) where {T}
     if length(Vs) > 0
         Vhead, Vtail = Vs[1], Vs[2:end]
-        passthrough_phase(Di, Vhead, Vtail, D)
+        passthrough_phase!(Di, Vhead, Vtail, D)
     else
         fuse!(Di, D)
     end
@@ -308,13 +328,13 @@ function passthrough_phase(Di::DiagonalRotator{T}, Vs::Tuple, D) where {T}
 end
 
 # peeled one off
-function passthrough_phase(Di::DiagonalRotator{T}, V::DescendingChain, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator{T}, V::DescendingChain, Vs::Tuple, D) where {T}
 
     i = idx(Di)
     alpha, _ = vals(Di)
 
     if length(V) == 0
-        return passthrough_phase(Di, Vs, D)
+        return passthrough_phase!(Di, Vs, D)
     end
 
     n, N = extrema(V)
@@ -331,13 +351,13 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::DescendingChain, Vs::Tuple
         V.x[1] = Ujalpha
 
         ## Di can be passed on to Vs
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
         ##  Dj
         ## pass Dj through
         ## we don't have views so we must modify
         VV = V.x[2:end]
-        passthrough_phase(Dj,  DescendingChain(VV), Vs, D)
+        passthrough_phase!(Dj,  DescendingChain(VV), Vs, D)
         V.x[2:end] = VV
 
     elseif i == n
@@ -352,14 +372,14 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::DescendingChain, Vs::Tuple
         Dii = DiagonalRotator(conj(alpha), i)
 
         VV  = V.x[2:end]
-        passthrough_phase(Dii, DescendingChain(VV), Vs, D)
+        passthrough_phase!(Dii, DescendingChain(VV), Vs, D)
         V.x[2:end] = VV
 
     elseif n < i <= N
 
         # turnover
         V.x[i-n], V.x[i-n+1], Di = turnover(Di, V.x[i-n], V.x[i-n+1])
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
     elseif i == N+1
 
@@ -370,25 +390,25 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::DescendingChain, Vs::Tuple
         Dh = DiagonalRotator(alpha, N)
         V.x[end] = Ualpha
 
-        passthrough_phase(Dh, Vs, D)
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Dh, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
     else
 
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
     end
 
 
 end
 
-function passthrough_phase(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple, D) where {T}
 
     i = idx(Di)
     alpha, _ = vals(Di)
 
     if length(V) == 0
-        return passthrough_phase(Di, Vs, D)
+        return passthrough_phase!(Di, Vs, D)
     end
 
     n, N = extrema(V)
@@ -404,11 +424,11 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple,
         V.x[1] = Ujalpha
 
         ## Di
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
         ## pass Dj through rest of V
         VV = V.x[2:end]
-        passthrough_phase(Dj,  AscendingChain(VV), Vs, D)
+        passthrough_phase!(Dj,  AscendingChain(VV), Vs, D)
         V.x[2:end] = VV
 
     elseif i == N
@@ -422,14 +442,14 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple,
         Dii = DiagonalRotator(conj(alpha), i)
 
         VV  = V.x[2:end]
-        passthrough_phase(Dii, AscendingChain(VV), Vs, D)
+        passthrough_phase!(Dii, AscendingChain(VV), Vs, D)
         V.x[2:end] = VV
 
     elseif n <= i < N
 
         # turnover
         V.x[N+1-i-1], V.x[N+1-i], Di = turnover(Di, V.x[N+1-i-1], V.x[N+1-i])
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
     elseif i == n-1
 
@@ -439,18 +459,18 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple,
         Dh = DiagonalRotator(alpha, i+1)
         V.x[end] = Ualpha
 
-        passthrough_phase(Dh, Vs, D)
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Dh, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
     else
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
     end
 
 
 end
 
 
-function passthrough_phase(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D) where {T}
     i = idx(Di)
     alpha, _ = vals(Di)
     n = V.m
@@ -458,17 +478,17 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D
     ps = V
 
     if i < n - 1
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
     elseif i == n - 1
         idx, Ui = iget(V, i)
         Uialpha = Rotator(c*conj(alpha), s, i)
         V[idx] = Uialpha
         Dj = DiagonalRotator(alpha, i+1)
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
         ## bottom
         inds, MMs = iget(Ms, i, Val{:Des})
-        passthrough_phase(Dj, TwistedChain(MMs), Vs, D)
+        passthrough_phase!(Dj, TwistedChain(MMs), Vs, D)
         for (i,j) in enumerate(inds)
             V[j] = MMs[i]
         end
@@ -490,11 +510,11 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D
         Uialpha = Rotator(c*conj(alpha), s, i)
         V[idx] = Uialpha
         Dh = DiagonalRotator(alpha, i-1)
-        passthrough_phase(Di, Vs, D)
+        passthrough_phase!(Di, Vs, D)
 
         ## top
         inds, MMs = iget((Ms,),i, Val(:Asc))
-        passthrough_phase(Dj, TwistedChain(MMs), Vs, D)
+        passthrough_phase!(Dj, TwistedChain(MMs), Vs, D)
         for (i,j) in enumerate(inds)
             V[j] = MMs[i]
         end
@@ -613,10 +633,6 @@ function passthrough_phase(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D
     end
 
 
-
-
-
-
 end
 
 ##################################################
@@ -630,7 +646,7 @@ struct QFactorizationTwisted{T, Rt} <: AbstractQFactorization{T, Rt, Val{:twiste
   D::AbstractSparseDiagonalMatrix{T, Rt}
 end
 
-
+Base.eltype(QF::QFactorizationTwisted) = eltype(QF.Q.x)
 ## return q[i:k, j:k]
 function Base.getindex(QF::QFactorizationTwisted, j, k)
     ## This is wrong as QF.Q[j,k] is not correct
@@ -786,10 +802,15 @@ function step_0!(ps, m,  Ms, Des, Asc, D) where {T}
         Des[end], Di = _fuse(Des[end], U)  # fuse with descending; aka Ms[m]
 
         ## need to passthrough Ms too now
+        i = idx(Di)
+        inds, MMs = iget(TwistedChain(Ms), i, Val(:Des))
         if limb_side == :right
-            passthrough_phase(TwistedChain(Ms), Di, (AscendingChain(Asc), Chain(limb)), D) ### need to pass through limb as well
+            passthrough_phase!(Di, DescendingChain(MMs),  (AscendingChain(Asc), Chain(limb)), D)
         else
-            passthrough_phase(TwistedChain(Ms), Di, (AscendingChain(Asc), ), D)
+            passthrough_phase!(Di, DescendingChain(MMs),  (AscendingChain(Asc), ), D)
+        end
+        for (i,j) in enumerate(inds)
+            Ms[j] = MMs[i]
         end
 
 
@@ -799,9 +820,9 @@ function step_0!(ps, m,  Ms, Des, Asc, D) where {T}
         AA, Di = _fuse(U, AA)
 
         if limb_side == :right
-            passthrough_phase(Di, (AscendingChain(Asc), Chain(limb)), D)
+            passthrough_phase!(Di, (AscendingChain(Asc), Chain(limb)), D)
         else
-            passthrough_phase(Di, (AscendingChain(Asc), ), D)
+            passthrough_phase!(Di, (AscendingChain(Asc), ), D)
         end
         pushfirst!(Asc, AA)
 
@@ -887,9 +908,9 @@ function step_knit!( n, m, phatk::Symbol, limb_side, limb, Des,  Asc, Decoupled,
     bottom, Di = _fuse(U,V)
 
     if limb_side == :right
-        passthrough_phase(nothing, Di, (AscendingChain(Asc), Chain(limb)), D)
+        passthrough_phase!(Di, (AscendingChain(Asc), Chain(limb)), D)
     else
-        passthrough_phase(nothing, Di, (AscendingChain(Asc),), D)
+        passthrough_phase!(Di, (AscendingChain(Asc),), D)
     end
 
 
@@ -923,7 +944,7 @@ function step_knit!( n, m, phatk::Symbol, limb_side, limb, Des,  Asc, Decoupled,
                     Asc[1], Di = _fuse(L, Asc[1])
                     if length(Asc) > 1
                         AA = Asc[2:end]
-                        passthrough_phase(nothing, Di, (AscendingChain(AA),), D)  # XXX And something prior?
+                        passthrough_phase!(nothing, Di, (AscendingChain(AA),), D)  # XXX And something prior?
                         Asc[2:end] = AA
                     end
                 else
@@ -931,7 +952,7 @@ function step_knit!( n, m, phatk::Symbol, limb_side, limb, Des,  Asc, Decoupled,
                     Asc[1], Di = _fuse(L, Asc[1])
                     if length(Asc) > 1
                         AA = Asc[2:end]
-                        passthrough_phase(nothing, Di, (AscendingChain(AA),), D)  # XXX and something prior?
+                        passthrough_phase!(nothing, Di, (AscendingChain(AA),), D)  # XXX and something prior?
                         Asc[2:end] = AA
                         passthrough!(limb, AscendingChain(Asc))
                     end
@@ -973,9 +994,9 @@ function step_knit!( n, m, phatk::Symbol, limb_side, limb, Des,  Asc, Decoupled,
         bottom, Di = _fuse(U,V)
 
         if limb_side == :right
-            passthrough_phase(nothing, Di, (AscendingChain(Asc), Chain(limb)), D)
+            passthrough_phase!(nothing, Di, (AscendingChain(Asc), Chain(limb)), D)
         else
-            passthrough_phase(nothing, Di, (AscendingChain(Asc),), D)
+            passthrough_phase!(nothing, Di, (AscendingChain(Asc),), D)
         end
 
     end

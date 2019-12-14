@@ -86,7 +86,7 @@ end
 
 abstract type AbstractRotatorChain{T} end
 
-eltype(A::AbstractRotatorChain) = eltype(A.x)
+Base.eltype(A::AbstractRotatorChain) = eltype(A.x)
 
 Base.length(A::AbstractRotatorChain) = length(A.x)
 
