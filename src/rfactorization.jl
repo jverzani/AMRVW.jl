@@ -199,20 +199,27 @@ end
 
 
 ## Pass a rotator through Rfactorization from left or right
-function passthrough(RF::RFactorization{T, St}, U::AbstractRotator, ::Val{:right}) where {T, St}
+## function passthrough(RF::RFactorization{T, St}, U::AbstractRotator, ::Val{:right}) where {T, St}
+##     passthrough!(RF, U)
+## end
 
-    U = passthrough(RF.D, U, Val(:right))
-    U = passthrough(RF.B, U, Val(:right))
-    U = passthrough(RF.Ct, U, Val(:right))
+function passthrough!(RF::RFactorization{T, St}, U::AbstractRotator) where {T, St}
+    U = passthrough!(RF.D, U)
+    U = passthrough!(RF.B, U)
+    U = passthrough!(RF.Ct, U)
 
     U
 end
 
-function passthrough(RF::RFactorization{T, St}, U::AbstractRotator, ::Val{:left}) where {T, St}
+#function passthrough(RF::RFactorization{T, St}, U::AbstractRotator, ::Val{:left}) where {T, St}
+#    passthrough!(U, RF)
+#end
 
-    U = passthrough(RF.Ct, U, Val(:left))
-    U = passthrough(RF.B, U, Val(:left))
-    U = passthrough(RF.D, U, Val(:left))
+function passthrough!(U::AbstractRotator, RF::RFactorization{T, St}) where {T, St}
+
+    U = passthrough!(U, RF.Ct)
+    U = passthrough!(U, RF.B)
+    U = passthrough!(U, RF.D)
 
     U
 end
@@ -220,14 +227,14 @@ end
 # pass thorugh  R <- Us
 function passthrough!(RF::AbstractRFactorization, Us::Vector)
     for i in  eachindex(Us)
-        Us[i] =  passthrough(RF, Us[i],  Val(:right))
+        Us[i] =  passthrough!(RF, Us[i])
     end
 end
 
 # passthrough Us -> R
 function passthrough!(Us::Vector, RF::AbstractRFactorization)
     for i in length(Us):-1:1
-         Us[i] =  passthrough(RF, Us[i], Val(:left))
+         Us[i] =  passthrough!(Us[i], RF)
     end
 end
 
@@ -243,6 +250,8 @@ end
 
 Base.getindex(RF::IdentityRFactorization, i, j) = i==j ? one(RF) : zero(RF)
 
-passthrough(RF::IdentityRFactorization, U::AbstractRotator, dir) = U
+#passthrough(RF::IdentityRFactorization, U::AbstractRotator, dir) = U
+passthrough!(RF::IdentityRFactorization, U::AbstractRotator) = U
+passthrough!(U::AbstractRotator, RF::IdentityRFactorization) = U
 simple_passthrough(RF::IdentityRFactorization, U::AbstractRotator, dir) = true
 simple_passthrough(RF::IdentityRFactorization, U::AbstractRotator, V::AbstractRotator, dir) = true

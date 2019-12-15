@@ -47,20 +47,20 @@ end
 
 
 ## Pass a rotator through Rfactorization with Pencil from left or right
-function passthrough(RF::ZFactorization{T, St}, U::AbstractRotator, ::Val{:right}) where {T, St}
+function passthrough!(RF::ZFactorization{T, St}, U::AbstractRotator) where {T, St}
 
     ## Pass Ut -> W (not W^{-1} <- U
     ## Then  passthrough V
-    Ut = passthrough(RF.W, U', Val(:left))
-    U = passthrough(RF.V, Ut', Val(:right))
+    Ut = passthrough!(U', RF.W)
+    U = passthrough!(RF.V, Ut')
 
     U
 end
 
-function passthrough(RF::ZFactorization{T, St}, U::AbstractRotator, ::Val{:left}) where {T, St}
+function passthrough!(U::AbstractRotator, RF::ZFactorization{T, St}) where {T, St}
 
-    U = passthrough(RF.V, U, Val(:left))
-    Ut = passthrough(RF.W, U', Val(:right))
+    U = passthrough!(U, RF.V)
+    Ut = passthrough!(RF.W, U')
     U = Ut'
 
     U

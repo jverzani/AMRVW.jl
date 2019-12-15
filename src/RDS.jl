@@ -56,8 +56,8 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,RealRotator{T},
 
     if j > state.ctrs.tr || !flag
 
-        V = passthrough(RF, V, Val(:right))
-        U = passthrough(RF, U, Val(:right))
+        V = passthrough!(RF, V)
+        U = passthrough!(RF, U)
         state.UV[1], state.UV[2]  = U, V
 
     end
@@ -75,8 +75,8 @@ function simple_passthrough(RF::RFactorization{T, RealRotator{T}}, U, V, ::Val{:
     j = idx(V)
     N = length(RF)
 
-    _ = passthrough(RF.B, V, Val(:right))
-    _ = passthrough(RF.B, U, Val(:right))
+    _ = passthrough!(RF.B, V)
+    _ = passthrough!(RF.B, U)
 
     for k in -1:1
         a,b = vals(RF.B[j+k])
@@ -101,8 +101,8 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
     i = idx(U); j = i + 1
     if j < state.ctrs.stop_index
 
-        V = passthrough(QF, V, Val(:right))
-        U = passthrough(QF, U, Val(:right))
+        V = passthrough!(QF, V)
+        U = passthrough!(QF, U)
         V, U, W = turnover(W, V, U)
 
         state.UV[1], state.UV[2],  QF.W[1] = U, V, W
@@ -116,12 +116,12 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
         fuse!(QF, V)
 
         # now turnover U, merge with W, unitary over, pass through, and fuse
-        U = passthrough(QF.Q, U, Val(:right))
+        U = passthrough!(QF.Q, U)
         i += 1 # after turnover, U moves down
         U = fuse(W, U)
 
         # pass U through triangle then fuse
-        U = passthrough(state.RF, U, Val(:right))
+        U = passthrough!(state.RF, U)
 
         p = get_parity(QF,i+1)
         U = dflip(U, p)

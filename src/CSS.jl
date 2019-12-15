@@ -30,7 +30,7 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,ComplexRealRota
     end
     if i > state.ctrs.tr || !flag
 
-        U = passthrough(RF, U, Val(:right))
+        U = passthrough!(RF, U)
         state.UV[1] = U
 
     end
@@ -46,7 +46,7 @@ function simple_passthrough(RF::RFactorization{T, ComplexRealRotator{T}}, U, ::V
     i = idx(U)
     N = length(RF)
 
-    _ = passthrough(RF.B, U, Val(:right))
+    _ = passthrough!(RF.B, U)
 
     @inbounds for k in 0:1
 
@@ -69,7 +69,7 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,ComplexRealRotator
 
     if i < state.ctrs.stop_index
 
-        U = passthrough(QF, U, Val(:right))
+        U = passthrough!(QF, U)
 
         state.UV[1] = U
         return false
@@ -77,7 +77,7 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,ComplexRealRotator
     else
 
         # handle details of knitting in
-        U = passthrough(QF.D, U, Val(:right))
+        U = passthrough!(QF.D, U)
         Di = fuse!(QF, U) # handles D bit
 
         return true
@@ -115,6 +115,6 @@ function deflate(QF::QFactorization{T, ComplexRealRotator{T}}, k) where {T}
 
     # absorb Di into D
     Di =  DiagonalRotator(alpha, i)
-    passthrough(QF, Di, Val(:left))
+    passthrough!(Di,QF)
 
 end

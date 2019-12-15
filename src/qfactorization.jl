@@ -120,23 +120,35 @@ end
 ##
 ## Transformations
 ##
-function passthrough(QF::QFactorization, U::AbstractRotator, dir::Val{:right})
+## function passthrough(QF::QFactorization, U::AbstractRotator, dir::Val{:right})
+##     passthrough!(QF, U)
+## end
 
-    U = passthrough(QF.D, U, Val(:right))
-    passthrough(QF.Q, U, Val(:right))
+function passthrough!(QF::QFactorization, U::AbstractRotator)
+
+    U = passthrough!(QF.D, U)
+    passthrough!(QF.Q, U)
 
 end
 
-function passthrough(QF::QFactorization, U::AbstractRotator, dir::Val{:left})
+## function passthrough(QF::QFactorization, U::AbstractRotator, dir::Val{:left})
+##     passthrough!(U, QF)
+## end
 
-    U = passthrough(QF.Q, U, Val(:left))
-    passthrough(QF.D, U, Val(:left))
+function passthrough!(U::AbstractRotator, QF::QFactorization)
+
+    U = passthrough!(U, QF.Q)
+    passthrough!(U, QF.D)
 
 end
 
 # pass diagonal rotator through and merge into D
-function passthrough(QF::QFactorization, U::DiagonalRotator, dir::Val{:left})
-    passthrough(QF.Q, QF.D, U, Val(:left))
+## function passthrough(QF::QFactorization, U::DiagonalRotator, dir::Val{:left})
+##     passthrough!(U, QF)
+## end
+
+function passthrough!(Di::DiagonalRotator, QF::QFactorization)
+    passthrough_phase!(Di, QF.Q, QF.D)
 end
 
 ## fuse! modifies QF and returns Di is needed.
@@ -165,7 +177,7 @@ end
 function fuse!(U::AbstractRotator, QF::QFactorization{T, ComplexRealRotator{T}}) where {T}
     i = idx(U)
     QF.Q[i], Di = fuse(U, QF.Q[i])
-    passthrough(QF, Di, Val(:left))
+    passthrough!(Di, QF)
 
     return nothing
 end

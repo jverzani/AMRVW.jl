@@ -6,9 +6,12 @@ import LinearAlgebra: eigvals
 import Base: adjoint
 
 # package code goes here
+include("utils.jl")
 include("rotators.jl")
 include("transformations.jl")
-include("utils.jl")
+include("diagonal.jl")
+include("chains.jl")
+
 include("rfactorization.jl")
 include("qfactorization.jl")
 include("types.jl")
