@@ -122,3 +122,11 @@ function qdrtc(b::T, c::T) where {T <: Real}
         return (r, zero(T), c/r, zero(T))
     end
 end
+
+##################################################
+
+## We need zero and one to match T,Complex{T} or just T,T depending
+function _zero_one(xs::Vector{S}) where {S}
+    T = real(S)
+    zero(T), one(T), zero(S), one(S)
+end

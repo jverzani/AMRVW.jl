@@ -9,8 +9,8 @@ import Base: adjoint
 include("utils.jl")
 include("rotators.jl")
 include("transformations.jl")
-include("diagonal.jl")
 include("chains.jl")
+include("diagonal.jl")
 
 include("rfactorization.jl")
 include("qfactorization.jl")
@@ -23,6 +23,7 @@ include("CSS.jl")
 include("pencil.jl")
 include("twisted.jl")
 include("AMRVW_algorithm.jl")
+include("companion.jl")
 
 include("diagnostics.jl")
 

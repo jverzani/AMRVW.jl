@@ -78,5 +78,9 @@ end
 vals(D::DiagonalRotator{T}) where {T} = D.c, zero(real(T))
 
 struct IdentityDiagonalRotator{T} <: AbstractRotator{T}
-IdentityDiagonalRotator{T}() where {T} = new()
+i::Int
+IdentityDiagonalRotator{T}(i) where {T} = new(i)
 end
+
+vals(D::IdentityDiagonalRotator{T}) where {T} = (one(T), zero(T))
+idx(D::IdentityDiagonalRotator{T}) where {T} = D.i

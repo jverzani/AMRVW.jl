@@ -51,7 +51,7 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,RealRotator{T},
         # this leverages Ct*B*U = I*U when Ct, B not touched
         # so V, U are not touched, but Ct, B are
         # flag is true if done, false if not
-        flag = simple_passthrough(RF, U, V, Val(:right))
+        flag = simple_passthrough!(RF, U, V)
     end
 
     if j > state.ctrs.tr || !flag
@@ -70,7 +70,7 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,RealRotator{T},
 end
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
-function simple_passthrough(RF::RFactorization{T, RealRotator{T}}, U, V, ::Val{:right}) where {T}
+function simple_passthrough!(RF::RFactorization{T, RealRotator{T}}, U, V) where {T}
 
     j = idx(V)
     N = length(RF)

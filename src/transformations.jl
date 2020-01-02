@@ -210,3 +210,24 @@ function turnover(Q1::AbstractRotator,
     R1, R2, R3
 
 end
+
+# need to specilize for diagonal rotator
+# as we want a  diagonal rotator to come o ut
+# This a  counter part.
+function turnover(Q1::DiagonalRotator{T},
+                  Q2::ComplexRealRotator,
+                  Q3::ComplexRealRotator) where {T}
+
+    c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
+    i,j,k = idx(Q1), idx(Q2), idx(Q3)
+    # @assert i == k && (abs(j-i) == 1)
+
+    c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
+    R1 = ComplexRealRotator(c4, s4, j)
+    R2 = ComplexRealRotator(c5, s5, i)
+    R3 = DiagonalRotator(c6, j)
+
+    # we have Q1*Q2*Q3 = R1*R2*R3
+    R1, R2, R3
+
+end

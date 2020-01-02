@@ -25,7 +25,7 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,ComplexRealRota
 
     if  i < state.ctrs.tr
 
-        flag = simple_passthrough(RF, U, Val(:right))
+        flag = simple_passthrough!(RF, U)
 
     end
     if i > state.ctrs.tr || !flag
@@ -41,7 +41,7 @@ end
 
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
-function simple_passthrough(RF::RFactorization{T, ComplexRealRotator{T}}, U, ::Val{:right}) where {T}
+function simple_passthrough!(RF::RFactorization{T, ComplexRealRotator{T}}, U) where {T}
 <
     i = idx(U)
     N = length(RF)

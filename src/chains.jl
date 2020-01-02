@@ -26,7 +26,7 @@ end
 
 
 function Base.size(C::AbstractRotatorChain)
-    N = length(C.x)
+    n, N = extrema(C)
     (N+1, N+1)
 end
 
@@ -35,6 +35,11 @@ Base.extrema(C::AbstractRotatorChain) = extrema(idx.(C.x))
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
 
+function Base.Matrix(C::AbstractRotatorChain)
+    S =  eltype(first(C.x).c)
+    M = diagm(0 => ones(S, size(C)[2]))
+    C * M
+end
 
 
 function Base.getindex(A::AscendingChain{T}, i, j) where {T}
@@ -186,33 +191,14 @@ end
 function passthrough!(A::DescendingChain, B::AscendingChain)
     m, M = idx(A.x[1]), idx(A.x[end])
     n, N = idx(B.x[end]), idx(B.x[1])
-
-    if M < N && n <= m
+    if M > N && n <= m
         for (i, U) in enumerate(B.x)
             B[i] = passthrough!(A, U)
         end
     else
         lA = length(A.x)
         for i in 1:lA
-            A[lA+1-1] = passthrough!(A[lA+1-i], B)
-        end
-    end
-    return nothing
-end
-
-
-function passthrough!(A::AscendingChain, B::DescendingChain)
-    m, M = idx(A.x[1]), idx(A.x[end])
-    n, N = idx(B.x[end]), idx(B.x[1])
-
-    if n <= m-1 && N <= M
-        for (i, U) in enumerate(B.x)
-            B[i] = passthrough!(A, U)
-        end
-    else
-        lA = length(A.x)
-        for i in 1:lA
-            j = lA - i + 1
+            j = lA + 1 - i
             A[j] = passthrough!(A[j], B)
         end
     end
@@ -220,26 +206,25 @@ function passthrough!(A::AscendingChain, B::DescendingChain)
 end
 
 
-function passthrough!(D::SparseDiagonal, Asc::AscendingChain)
-    for i in 1:length(Asc) # pass  Asc through D
-        Asc[i] = passthrough(D, Asc[i], Val(:right))
+function passthrough!(A::AscendingChain, B::DescendingChain)
+    m, M = idx(A.x[end]), idx(A.x[1])
+    n, N = idx(B.x[1]), idx(B.x[end])
+
+    if m+1 <= n && M >= N
+        for (i, U) in enumerate(B.x)
+            B[i] = passthrough!(A, U)
+        end
+    else
+        lA = length(A.x)
+        for i in 1:lA
+            j = lA - i + 1
+
+            A[j] = passthrough!(A[j], B)
+        end
     end
+    return nothing
 end
 
-function passthrough!(Des::DescendingChain, D::SparseDiagonal)
-    for i in length(Des):-1:1
-        Des[i] = passthrough(D, Des[i], Val(:left))
-    end
-end
-
-## could do two others...
-
-## noop when Identity Diagonal
-passthrough!(D::IdentityDiagonal, C::AbstractRotatorChain) =  nothing
-passthrough!(C::AbstractRotatorChain, D::IdentityDiagonal) =  nothing
-
-passthrough!(D::IdentityDiagonal, U::AbstractRotator{T}) where {T} = U
-passthrough!(U::AbstractRotator{T}, D::IdentityDiagonal) where {T} = U
 
 
 
@@ -259,35 +244,100 @@ passthrough!(U::AbstractRotator{T}, D::IdentityDiagonal) where {T} = U
 ## end
 
 
-## pass Di thorugh A; fuses with D
-## in Twisted we have passthrough_phase with a tuple
-## this is speficic to this task
-function passthrough_phase!(Di::DiagonalRotator, A::DescendingChain, D::SparseDiagonal)
-    ## We have two rules here
-    ## D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(c, conj(alpha)s) D_i(alpha)
-    ## R_{i+1}(c, conj(alpha) s) = R_{i+1}(conj(alpha) c, s) D_{i+1}(alpha)
-    ## so D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(conj(alpha) c, s) D{{i+1}(alpha) D_i(alpha)
-    ## Also D_i(alpha) * R_i(c,s) = R_i(c*alpha/conj(alpha), s) D_i(conj(alpha)
-    i, n = idx(Di), length(A)
-    alpha, _ = vals(Di)
+## Structure to hold a twisted represenation
+## pv is thee position vector of length  n-1
+## m is lowest index of rotators
+struct TwistedChain{T} <: AbstractRotatorChain{T}
+  x::Vector{T}
+  pv::Vector{Symbol}
+  m::Base.RefValue{Int}
+end
 
-    ## D_i will passthrough and can be merged into D
-    ## we will have D_i(alpha) * D_{i+1}(alpha) * ... * D_j(alpha) which will only have alpha at i and conj(alpha) at j+1
-    D[i] *= alpha
+## Constructor
+function TwistedChain(xs::Vector{T}) where {T}
+    sigma = idx.(xs)
+    m = minimum(sigma)
+    ps = position_vector(sigma)
+    TwistedChain(xs, ps, Ref(m))
+end
 
-
-    while i < n
-        j = i + 1
-        c, s = vals(A[j])
-        @assert j == idx(A[j])
-
-        iszero(s) && break
-        A[j] = Rotator(conj(alpha)*c, s, j)
-        i = i + 1
+## Constructor of a chain
+function Chain(xs::Vector{T}) where  {T}
+    if length(xs)  <=  1
+        return DescendingChain(xs)
+    else
+        inds =  idx.(xs)
+        pv = position_vector(inds)
+        if all(pv .==  :left)
+            return DescendingChain(xs)
+        elseif all(pv .== :right)
+            return AscendingChain(xs)
+        else
+            return TwistedChain(xs,  pv, minimum(inds))
+        end
     end
+end
 
-    D[i+1] *= conj(alpha)
 
-    return nothing
+## Find position vector from a permuation of 1...n
+## If i is to the left of i+1, set  ps[i] = :left
+## if i is to the right if i+1, set ps[i] = :right
+## e.g. 4,3,2,1 -> r,r,r (descending)
+##      1,2,3,4 -> l,l,l (ascending)
+##      1,3,2,4 -> rlr  (CMV)
+function position_vector(sigma)
+    ## sigma a perm of 1....n
+    sigma = sigma .- minimum(sigma) .+ 1
+    n = length(sigma)
+    n <= 1 && return Symbol[]
+    ps =  repeat([:nothing],n-1)
+    for (i,v) in enumerate(sigma)
+       if v == 1
 
+            if ps[1] == :nothing
+              ps[1] = :left
+            end
+       elseif  v == n
+            if ps[end] == :nothing
+                ps[end] = :right
+            end
+       else
+          if ps[v-1] == :nothing
+                ps[v-1] =  :right
+            end
+            if ps[v]  == :nothing
+                ps[v] = :left
+            end
+        end
+    end
+    ps
+end
+
+Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
+
+## Get i,j entry of twisted chain
+## XXX This is not correct XXX
+## The general formula is complicated, so we use
+## the formula for a descending chain, as our algorithm is set up to turn twisted
+## chains into descending chains
+function Base.getindex(A::TwistedChain{T}, i, j) where {T}
+    DescendingChain(A.x)[i,j]
+end
+
+
+
+# Fish out of M the rotator with idx i
+function iget(Ms, i)
+    for (j,M) in enumerate(Ms)
+        if idx(M) == i
+            return (j, M)
+        end
+    end
+end
+
+# fish out and remove
+function iget!(Ms,i)
+    j, M = iget(Ms, i)
+    deleteat!(Ms, j)
+    M
 end

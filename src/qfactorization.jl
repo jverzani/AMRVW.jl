@@ -86,54 +86,18 @@ end
 ## end
 
 
-##################################################
-##
-## factor
-##
-## xs are decompose(ps)
-
-## We need zero and one to match T,Complex{T} or just T,T depending
-function _zero_one(xs::Vector{S}) where {S}
-    T = real(S)
-    zero(T), one(T), zero(S), one(S)
-end
-
-function q_factorization(xs::Vector{S}) where {S}
-    N = length(xs) - 1
-
-    Q =  DescendingChain(Vector{RotatorType(S)}(undef, N-1))
-    zt,ot,zs,os = _zero_one(xs)
-
-    @inbounds for ii = 1:(N-1)
-        Q[ii] = Rotator(zs, ot, ii)
-    end
-
-    D = sparse_diagonal(S, N+1)
-    W = Rotator(zs, ot, 1)  # only needed for RealRotator case
-    QFactorization(Q, D, [W])
-
-end
-
 
 
 ##################################################
 ##
 ## Transformations
 ##
-## function passthrough(QF::QFactorization, U::AbstractRotator, dir::Val{:right})
-##     passthrough!(QF, U)
-## end
-
 function passthrough!(QF::QFactorization, U::AbstractRotator)
 
     U = passthrough!(QF.D, U)
     passthrough!(QF.Q, U)
 
 end
-
-## function passthrough(QF::QFactorization, U::AbstractRotator, dir::Val{:left})
-##     passthrough!(U, QF)
-## end
 
 function passthrough!(U::AbstractRotator, QF::QFactorization)
 
@@ -143,10 +107,6 @@ function passthrough!(U::AbstractRotator, QF::QFactorization)
 end
 
 # pass diagonal rotator through and merge into D
-## function passthrough(QF::QFactorization, U::DiagonalRotator, dir::Val{:left})
-##     passthrough!(U, QF)
-## end
-
 function passthrough!(Di::DiagonalRotator, QF::QFactorization)
     passthrough_phase!(Di, QF.Q, QF.D)
 end

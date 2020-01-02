@@ -69,10 +69,10 @@ end
 
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
-function simple_passthrough(RF::ZFactorization{T, Rt}, U, V, ::Val{:right}) where {T, Rt}
+function simple_passthrough!(RF::ZFactorization{T, Rt}, U, V) where {T, Rt}
     false  # might have room for improvement here; o/w consolidate methods
 end
 
-function simple_passthrough(RF::ZFactorization{T, Rt}, U, ::Val{:right}) where {T, Rt}
+function simple_passthrough!(RF::ZFactorization{T, Rt}, U) where {T, Rt}
     false  # might have room for improvement here
 end
