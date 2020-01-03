@@ -13,6 +13,8 @@ Base.@propagate_inbounds Base.getindex(A::AbstractRotatorChain, i::Int) = getind
 Base.@propagate_inbounds Base.setindex!(A::AbstractRotatorChain, X, inds...) = setindex!(A.x, X, inds...)
 
 
+Base.deleteat!(A::AbstractRotatorChain, j) = deleteat!(A.x, j)
+
 Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
 Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
 
@@ -255,10 +257,14 @@ end
 
 ## Constructor
 function TwistedChain(xs::Vector{T}) where {T}
-    sigma = idx.(xs)
-    m = minimum(sigma)
-    ps = position_vector(sigma)
-    TwistedChain(xs, ps, Ref(m))
+    if length(xs) > 0
+        sigma = idx.(xs)
+        m = minimum(sigma)
+        ps = position_vector(sigma)
+        TwistedChain(xs, ps, Ref(m))
+    else
+        TwistedChain(xs, Symbol[], Ref(-1))
+    end
 end
 
 ## Constructor of a chain
@@ -323,6 +329,18 @@ Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
 function Base.getindex(A::TwistedChain{T}, i, j) where {T}
     DescendingChain(A.x)[i,j]
 end
+
+# In a Twisted chain from n to N, pop off the N rotator
+# and modify the position vector
+function Base.pop!(A::TwistedChain)
+    n = A.m[]
+    N = n + length(A.pv)
+    L = iget!(A.x, N)
+    length(A.pv) > 0 && pop!(A.pv)
+    L
+end
+
+
 
 
 
