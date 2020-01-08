@@ -69,9 +69,9 @@ end
 
 tilde(A) = A[1:end-1, 1:end-1]
 
-Matrix(IdentityRFactorization) = I
+Base.Matrix(IdentityRFactorization) = I
 
-function Matrix(RF::RFactorization{T, Rt}) where {T, Rt}
+function Base.Matrix(RF::RFactorization{T, Rt}) where {T, Rt}
     S = Rt == RealRotator{T} ? T : Complex{T}
 
     n = length(RF) + 1
@@ -93,27 +93,39 @@ function Matrix(RF::RFactorization{T, Rt}) where {T, Rt}
 end
 
 
-function Matrix(RF::ZFactorization)
+function Base.Matrix(RF::ZFactorization)
     V = Matrix(RF.V)
     W = Matrix(RF.W)
     V * inv(W)
 end
 
-function Matrix(QF::QFactorization{T, Rt}) where {T, Rt}
+function Base.Matrix(QF::QFactorization{T, Rt}) where {T, Rt}
     S = Rt == RealRotator{T} ? T : Complex{T}
-
     n = length(QF) + 2  ## note 2
+    @show n
     M = diagm(0 => ones(S, n))
     D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
     D = D*M
-    tilde( QF.Q * (D *M))
+    tilde( QF.Q * D )
+end
+
+
+function Base.Matrix(QF::QFactorizationTwisted{T, Rt}) where {T, Rt}
+
+    S = Rt == RealRotator{T} ? T : Complex{T}
+    n = length(QF) + 1
+    M = diagm(0 => ones(S, n))
+    D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
+    D = D*M
+    return QF.Q * D
+    tilde( QF.Q * D)
+
 end
 
 
 
-
 # return A
-function Matrix(state::AbstractFactorizationState)
+function Base.Matrix(state::AbstractFactorizationState)
 
     Q = Matrix(state.QF)
     R = Matrix(state.RF)

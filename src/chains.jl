@@ -140,110 +140,6 @@ function Base.getindex(A::DescendingChain, i, j)
 end
 
 
-##################################################
-
-## Various "passthrough" functions
-## we have passthrough!(A,B) mutates A,B to return AB = BA
-## If A or B is immutatble, return new one
-# do not assume DescendingChain is 1 ... n
-# left to  right; return U
-function passthrough!(A::DescendingChain, U::AbstractRotator)
-    i = idx(U)
-    n = idx(A.x[1])
-    N = idx(A.x[end])
-    @assert n <= i < N
-    l = (i-n) + 1
-    U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
-    U
-end
-
-function passthrough!(A::AscendingChain, U::AbstractRotator)
-    i = idx(U)
-    n = idx(A.x[end])
-    N = idx(A.x[1])
-    @assert n < i <= N
-    l = length(A.x)  - (i-n)
-    U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
-    U
-
-end
-
-## right to left; return U
-function passthrough!(U::AbstractRotator, A::DescendingChain)
-    i = idx(U)
-    n = idx(A.x[1])
-    N = idx(A.x[end])
-    @assert n < i <= N
-    l = (i-n) + 1
-    A[l-1], A[l], U = turnover(U, A[l-1], A[l])
-    U
-end
-
-function passthrough!(U::AbstractRotator, A::AscendingChain)
-    i = idx(U)
-    n = idx(A.x[end])
-    N = idx(A.x[1])
-    @assert n <= i < N
-    l = length(A.x)  - (i-n)
-    A[l-1], A[l], U = turnover(U, A[l-1], A[l])
-    U
-end
-
-# Need to check  bounds to ensure possible
-function passthrough!(A::DescendingChain, B::AscendingChain)
-    m, M = idx(A.x[1]), idx(A.x[end])
-    n, N = idx(B.x[end]), idx(B.x[1])
-    if M > N && n <= m
-        for (i, U) in enumerate(B.x)
-            B[i] = passthrough!(A, U)
-        end
-    else
-        lA = length(A.x)
-        for i in 1:lA
-            j = lA + 1 - i
-            A[j] = passthrough!(A[j], B)
-        end
-    end
-    return nothing
-end
-
-
-function passthrough!(A::AscendingChain, B::DescendingChain)
-    m, M = idx(A.x[end]), idx(A.x[1])
-    n, N = idx(B.x[1]), idx(B.x[end])
-
-    if m+1 <= n && M >= N
-        for (i, U) in enumerate(B.x)
-            B[i] = passthrough!(A, U)
-        end
-    else
-        lA = length(A.x)
-        for i in 1:lA
-            j = lA - i + 1
-
-            A[j] = passthrough!(A[j], B)
-        end
-    end
-    return nothing
-end
-
-
-
-
-##################################################
-
-## Pass a diagonal rotator through a chain
-## [  D --> D [
-##  [           [
-## function passthrough(A::DescendingChain, D::DiagonalRotator, ::Val{:right})
-##     XXX
-## end
-
-##  [ D --> D   [
-## [          [
-## function passthrough(A::AscendingChain, D::DiagonalRotator, ::Val{:right})
-##     ## XXX write me, but not needed...
-## end
 
 
 ## Structure to hold a twisted represenation
@@ -358,4 +254,186 @@ function iget!(Ms,i)
     j, M = iget(Ms, i)
     deleteat!(Ms, j)
     M
+end
+
+
+##################################################
+
+## Various "passthrough" functions
+## we have passthrough!(A,B) mutates A,B to return AB = BA
+## If A or B is immutatble, return new one
+# do not assume DescendingChain is 1 ... n
+# left to  right; return U
+function passthrough!(A::DescendingChain, U::AbstractRotator)
+    i = idx(U)
+    n = idx(A.x[1])
+    N = idx(A.x[end])
+    @assert n <= i < N
+    l = (i-n) + 1
+    U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
+    U
+end
+
+function passthrough!(A::AscendingChain, U::AbstractRotator)
+    i = idx(U)
+    n = idx(A.x[end])
+    N = idx(A.x[1])
+    @assert n < i <= N
+    l = length(A.x)  - (i-n)
+    U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
+    U
+
+end
+
+## right to left; return U
+function passthrough!(U::AbstractRotator, A::DescendingChain)
+    i = idx(U)
+    n = idx(A.x[1])
+    N = idx(A.x[end])
+    @assert n < i <= N
+    l = (i-n) + 1
+    A[l-1], A[l], U = turnover(U, A[l-1], A[l])
+    U
+end
+
+function passthrough!(U::AbstractRotator, A::AscendingChain)
+    i = idx(U)
+    n = idx(A.x[end])
+    N = idx(A.x[1])
+    @assert n <= i < N
+    l = length(A.x)  - (i-n)
+    A[l-1], A[l], U = turnover(U, A[l-1], A[l])
+    U
+end
+
+# Need to check  bounds to ensure possible
+function passthrough!(A::DescendingChain, B::AscendingChain)
+    m, M = idx(A.x[1]), idx(A.x[end])
+    n, N = idx(B.x[end]), idx(B.x[1])
+    if M > N && n <= m
+        for (i, U) in enumerate(B.x)
+            B[i] = passthrough!(A, U)
+        end
+    else
+        lA = length(A.x)
+        for i in 1:lA
+            j = lA + 1 - i
+            A[j] = passthrough!(A[j], B)
+        end
+    end
+    return nothing
+end
+
+
+function passthrough!(A::AscendingChain, B::DescendingChain)
+    m, M = idx(A.x[end]), idx(A.x[1])
+    n, N = idx(B.x[1]), idx(B.x[end])
+
+    if m+1 <= n && M >= N
+        for (i, U) in enumerate(B.x)
+            B[i] = passthrough!(A, U)
+        end
+    else
+        lA = length(A.x)
+        for i in 1:lA
+            j = lA - i + 1
+
+            A[j] = passthrough!(A[j], B)
+        end
+    end
+    return nothing
+end
+
+## Pass a diagonal rotator through a chain
+## [  D --> D [
+##  [           [
+## function passthrough(A::DescendingChain, D::DiagonalRotator, ::Val{:right})
+##     XXX
+## end
+
+##  [ D --> D   [
+## [          [
+## function passthrough(A::AscendingChain, D::DiagonalRotator, ::Val{:right})
+##     ## XXX write me, but not needed...
+## end
+
+## Pass chain (Des, Asc, Twisted) through a chain (Des, Asc)
+## Move twisted through down R <- L
+function  passthrough!(A::Union{DescendingChain, AscendingChain}, B::TwistedChain)
+    length(B) == 0 && return nothing
+    ##  startt at bottom of B
+    ## must calibratet A and B
+    n = B.m[]
+    N = idx(A[1])
+
+    pv = B.pv
+    inds = [iget(B, l)[1] for  l  in n:n+length(pv)]  # Can use j's from iget, as we  modify B  along the way
+
+    for (i, pi) in enumerate(reverse(pv)) # work from bottom
+
+        #i = 2 -> length(pv) - 2 + 1 idx in pv
+        #n + length(pv) - i + 1 idx in A of lower one
+        #j = inds[length(pv) - 1 + 1] index of lower one
+
+        if pi  == :right
+            j = inds[length(pv) - i + 1 + 1]
+            B[j] = passthrough!(A, B[j])
+        end
+    end
+
+    # move first over
+    j =  inds[1]
+    B[j] = passthrough!(A, B[j])
+
+    for (i, pi) in enumerate(pv) # work down
+        if pi == :left
+            j = inds[i + 1]
+            B[j] = passthrough!(A, B[j])
+        end
+    end
+
+    if isa(A, DescendingChain)
+        B.m[] += 1
+    else
+        B.m[] -= 1
+    end
+
+end
+
+## Move twisted through  up R --> L
+function  passthrough!(B::TwistedChain, A::Union{DescendingChain,AscendingChain})
+    length(B) == 0 && return
+
+    n = B.m[]
+    N = idx(A.x[end])
+    pv = B.pv
+
+    inds = [iget(B, l)[1] for  l  in n:n+length(pv)]  # Can't use j's from iget, as we  modify B  along the way
+
+    for (i, pi) in enumerate(reverse(pv)) # work from bottom
+
+        if pi  == :left
+            j = inds[length(pv) - i + 1 + 1]
+            U = B[j]
+            B[j] = passthrough!(U, A)
+        end
+    end
+
+    # move first over
+    j =  inds[1]
+    B[j] = passthrough!(B[j], A)
+
+    for (i, pi) in enumerate(pv) # work down
+        if pi == :right
+            j = inds[i+1]
+            B[j] = passthrough!(B[j], A)
+        end
+    end
+
+
+    if isa(A, DescendingChain)
+        B.m[] -= 1
+    else
+        B.m[] += 1
+    end
 end

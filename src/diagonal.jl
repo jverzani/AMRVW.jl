@@ -15,6 +15,8 @@ SparseDiagonal{T}(x::Vector) where {T} = new(x)
 SparseDiagonal{T}(N::Int) where {T} = new(ones(Complex{T}, N))
 end
 
+Base.Matrix(D::SparseDiagonal) = diagm(0=>D.x)
+
 sparse_diagonal(::Type{T}, N) where {T <: Real} = IdentityDiagonal{T}()
 sparse_diagonal(::Type{S}, N) where {S} = SparseDiagonal{real(S)}(N)
 
@@ -70,8 +72,8 @@ end
     return Rotator(beta1 * c, s, i)
 end
 
-passthrough!(D::IdentityDiagonal, U::AbstractRotator{T}) where {T} = U
-passthrough!(U::AbstractRotator{T}, D::IdentityDiagonal) where {T} = U
+passthrough!(D::IdentityDiagonal, U::Union{RealRotator, ComplexRealRotator})  = U
+passthrough!(U::Union{RealRotator, ComplexRealRotator}, D::IdentityDiagonal)  = U
 
 # Move a chain through a diagonal
 function passthrough!(D::SparseDiagonal, Asc::AscendingChain)
@@ -167,4 +169,336 @@ function passthrough_phase!(Di::DiagonalRotator, A::DescendingChain, D::SparseDi
 
     return nothing
 
+end
+
+
+
+# pass a diagonal rotator from a fuse operation through one or more rotator chains
+# merge with D a diagonal matrix
+passthrough_phase!(Di, Vs::Tuple, D::IdentityDiagonal) = nothing
+passthrough_phase!(Di, C::AbstractRotatorChain, Vs::Tuple, D::IdentityDiagonal) = nothing
+
+function passthrough_phase!(Di::DiagonalRotator{T}, Vs::Tuple, D) where {T}
+    if length(Vs) > 0
+        Vhead, Vtail = Vs[1], Vs[2:end]
+        passthrough_phase!(Di, Vhead, Vtail, D)
+    else
+        fuse!(Di, D)
+    end
+    return nothing
+end
+
+# peeled one off
+function passthrough_phase!(Di::DiagonalRotator{T}, V::DescendingChain, Vs::Tuple, D) where {T}
+
+    i = idx(Di)
+    alpha, _ = vals(Di)
+
+    if length(V) == 0
+        return passthrough_phase!(Di, Vs, D)
+    end
+
+    n, N = extrema(V)
+
+    if i == n-1
+
+        # Di * Uj = Ujalpha * Di * Dj
+        j  =  i  + 1
+        Uj = V.x[1]
+        @assert idx(Uj) == j
+        c, s = vals(Uj)
+        Ujalpha = Rotator(c*conj(alpha), s, j)
+        Dj = DiagonalRotator(alpha, j)
+        V.x[1] = Ujalpha
+
+        ## Di can be passed on to Vs
+        passthrough_phase!(Di, Vs, D)
+
+        ##  Dj
+        ## pass Dj through
+        ## we don't have views so we must modify
+        VV = V.x[2:end]
+        passthrough_phase!(Dj,  DescendingChain(VV), Vs, D)
+        V.x[2:end] = VV
+
+    elseif i == n
+
+        V.x[1], Dii = passthrough!(Di, V.x[1])
+        VV  = V.x[2:end]
+        passthrough_phase!(Dii, DescendingChain(VV), Vs, D)
+        V.x[2:end] = VV
+
+    elseif n < i <= N
+
+        # turnover
+        V.x[i-n], V.x[i-n+1], Di = turnover(Di, V.x[i-n], V.x[i-n+1])
+        passthrough_phase!(Di, Vs, D)
+
+    elseif i == N+1
+
+        U = V.x[end]
+        @assert idx(U) == N
+        c,s = vals(U)
+        Ualpha = Rotator(c*conj(alpha), s, N)
+        Dh = DiagonalRotator(alpha, N)
+        V.x[end] = Ualpha
+
+        passthrough_phase!(Dh, Vs, D)
+        passthrough_phase!(Di, Vs, D)
+
+    else
+
+        passthrough_phase!(Di, Vs, D)
+
+    end
+
+
+end
+
+
+
+function passthrough_phase!(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple, D) where {T}
+
+    i = idx(Di)
+    alpha, _ = vals(Di)
+
+    if length(V) == 0
+        return passthrough_phase!(Di, Vs, D)
+    end
+
+    n, N = extrema(V)
+
+    if i == N +  1
+
+        # Di * Uj = Ujalpha * Di * Dj
+        j  =  i  - 1
+        Uj = V.x[1]
+        c, s = vals(Uj)
+        Ujalpha = Rotator(c*conj(alpha), s, j)
+        Dj = DiagonalRotator(alpha, j)
+        V.x[1] = Ujalpha
+
+        ## Di
+        passthrough_phase!(Di, Vs, D)
+
+        ## pass Dj through rest of V
+        VV = V.x[2:end]
+        passthrough_phase!(Dj,  AscendingChain(VV), Vs, D)
+        V.x[2:end] = VV
+
+    elseif i == N
+
+        V.x[1], Dii = passthrough!(Di, V.x[1])
+
+        VV  = V.x[2:end]
+        passthrough_phase!(Dii, AscendingChain(VV), Vs, D)
+        V.x[2:end] = VV
+
+    elseif n <= i < N
+
+        # turnover
+        V.x[N+1-i-1], V.x[N+1-i], Di = turnover(Di, V.x[N+1-i-1], V.x[N+1-i])
+        passthrough_phase!(Di, Vs, D)
+
+    elseif i == n-1
+
+        U = V.x[end]
+        c,s = vals(U)
+        Ualpha = Rotator(c*conj(alpha), s, n)
+        Dh = DiagonalRotator(alpha, i+1)
+        V.x[end] = Ualpha
+
+        passthrough_phase!(Dh, Vs, D)
+        passthrough_phase!(Di, Vs, D)
+
+    else
+        passthrough_phase!(Di, Vs, D)
+    end
+
+
+end
+
+# two special functions useful to simplify the below:
+function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Des}) where {T}
+    inds, Des = iget(V, j, Val(:Des))
+    passthrough_phase!(Di, DescendingChain(Des), Vs, D)
+    for (i,j) in enumerate(inds)
+        V[j] = Des[i]
+    end
+end
+
+function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Asc}) where {T}
+    inds, Asc = iget(V, j, Val(:Asc))
+    passthrough_phase!(Di, AscendingChain(Asc), Vs, D)
+    for (i,j) in enumerate(inds)
+        V[j] = Asc[i]
+    end
+end
+
+function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D) where {T}
+
+    length(V.x) <= 2 && return passthrough_phase!(Di, Chain(V.x), Vs, D)
+
+    n = V.m[]
+    pv = V.pv
+    N = n + length(pv)
+    i = idx(Di)  # pv[i-n+1] informs if Ui+1 is left or right of Ui
+    if i < n - 1
+        passthrough_phase!(Di, Vs, D) # misses chain
+    elseif i == n - 1
+        passthrough_phase!(Di, V, Vs, D,  n-1, Val(:Des))
+    elseif i == n
+        if pv[1] == :left
+            ind, Ui = iget(V, i)
+            Ui, Di = passthrough!(Di, Ui)
+            V[ind] = Ui
+            passthrough_phase!(Di, V, Vs, D, i, Val(:Des))
+        else ## right, so turnover
+            if pv[2] == :right
+                ii, Ui = iget(V, i)
+                ij, Uj = iget(V, i+1)
+                Uj, Ui, Dj = turnover(Di, Uj, Ui)
+                V[ii] = Ui
+                V[ij] = Uj
+                passthrough_phase!(Dj, Vs, D)
+            else
+                # D1, 2,1,3 pattern
+                ii,  Ui  =  iget(V,  i)
+                ij,  Uj =  iget(V, i+1)
+                Uj, Ui, Dj = turnover(Di, Uj, Ui)
+                V[ii] = Ui
+                V[ij] = Uj
+                passthrough_phase!(Dj, V, Vs,  D,  i+1, Val(:Des))
+            end
+        end
+    elseif i == N
+        if pv[end] == :right
+            # flip, get Ascending
+            ind, Ui = iget(V, i)
+            Ui, Di = passthrough!(Di, Ui)
+            V[ind] = Ui
+            passthrough_phase!(Di, V, Vs, D,   i, Val(:Asc))
+        elseif pv[end] == :left && pv[end-1] == :left
+            ii, Ui = iget(V, i)
+            ih, Uh = iget(V, i-1)
+            Uh, Ui, Dh = turnover(Di, Uh, Ui)
+            V[ii] = Ui
+            V[ih] = Uh
+            passthrough_phase!(Dh, Vs, D)
+        else
+            # D3, 2,1,3 pattern
+            ih, Uh =  iget(V, i-1)
+            ii, Ui = iget(V, i)
+            Uh, Ui,  Dh =  turnover(Di, Uh, Ui)
+            V[ii] =  Ui
+            V[ih] = Uh
+            passthrough_phase!(Dh, V, Vs,  D,  i-1, Val(:Asc))
+        end
+    elseif i == N + 1
+        passthrough_phase!(Di, V, Vs, D, N+1, Val(:Asc))
+    elseif i > N + 1
+        passthrough_phase!(Di, Vs, D)
+    else # n < i < N
+        ## 4  cases
+        if  (pv[i-n+1] == :left) &&  (pv[i-n] == :left)
+            # [
+            #   [
+            #     [.
+            ih, Uh = iget(V, i-1)
+            ii, Ui = iget(V, i)
+            Uh, Ui, Dh = turnover(Di, Uh, Ui)
+            V[ih] = Uh
+            V[ii] = Ui
+            # We might have  to pass  through i-2, but *only* if Dh is on the right
+            if i-n-1 > 0 && pv[i-n-1] == :right
+                passthrough_phase!(Dh, V, Vs, D, i-1, Val(:Asc))
+            else
+                passthrough_phase!(Dh, Vs, D)
+            end
+
+        elseif (pv[i-n] == :right) && (pv[i-n+1] == :right)
+            #     [.
+            #   [
+            # [
+            # turnover
+            ii, Ui = iget(V, i)
+            ij, Uj = iget(V, i + 1)
+            Uj, Ui, Dj = turnover(Di, Uj, Ui)
+            V[ii] = Ui
+            V[ij] = Uj
+            if i-n+2 <= length(pv)  && pv[i-n+2] == :left
+                passthrough_phase!(Dj, V, Vs, D, i+1, Val(:Des))
+            else
+                passthrough_phase!(Dj, Vs, D)
+            end
+        elseif pv[i-n] == :right && pv[i-n+1] == :left
+            #    [         [          [ Dh        [ Dj
+            # Di[ --   [ Di  --> [ Di   Di  --> [   Di
+            #    [         [               [      [ Dj
+            #
+            ih, Uh = iget(V, i-1)
+            ii, Ui = iget(V, i)
+            ij, Uj = iget(V, i+1)
+            Ui, Di = passthrough!(Di, Ui)
+            Uh, Dh, = tip(Di, Uh)
+            Uj, Dj = tip(Di, Uj)
+
+            V[ih] = Uh
+            V[ii] = Ui
+            V[ij] = Uj
+            ## pass Di through
+            passthrough_phase!(Di, Vs, D)
+            ## Move Dh pass  Asc, if present
+            if i-n-1 > 0 && pv[i-n-1] == :right
+                passthrough_phase!(Dh, V, Vs, D, i-1, Val(:Asc))
+            else
+                passthrough_phase!(Dh, Vs, D)
+            end
+
+            ## Move Dj passed Des, if present
+            if i-n + 2 <= length(pv)  && pv[i-n+2] == :left
+                passthrough_phase!(Dj, V, Vs, D, i+1, Val(:Des))
+            else
+                passthrough_phase!(Dj, Vs, D)
+            end
+
+
+        elseif  pv[i-n] == :left && pv[i-n+1] == :right
+            #  [     [ Dh       [ Dh       [   Dh  if rig
+            # D [ ->   Di  [ ->      [  ->   [ Di
+            #  [         [          [ Dj   [   Dj
+            #
+            ih, Uh = iget(V, i-1)
+            ii, Ui = iget(V, i)
+            ij, Uj = iget(V, i+1)
+            ##  pass through Dh:
+            Uh, Dh = tip(Di, Uh)
+            ## turnover
+            Uj, Ui, Dj = turnover(Di, Uj, Ui)
+            ## tip with Dh
+            Ui, Di = tip(Dh, Ui)
+            V[ih] = Uh
+            V[ii] = Ui
+            V[ij] = Uj
+            ## pass Di through
+            passthrough_phase!(Di, Vs, D)
+            ## Move Dh pass  Asc, if present
+            if i-n-1 > 0 && pv[i-n-1] == :right
+                passthrough_phase!(Dh, V, Vs, D, i-1, Val(:Asc))
+            else
+                passthrough_phase!(Dh, Vs, D)
+            end
+
+            ## Move Dj passed Des, if present
+
+            if i-n+2 <= length(pv)  && pv[i-n+2] == :left
+                passthrough_phase!(Dj, V, Vs, D, i+1, Val(:Des))
+            else
+                passthrough_phase!(Dj, Vs, D)
+            end
+        end
+
+    end
+
+    return nothing
 end

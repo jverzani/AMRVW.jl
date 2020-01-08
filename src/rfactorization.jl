@@ -39,8 +39,6 @@ end
 
 
 
-
-
 ## getindex
 
 function _w(B, j, k)
@@ -169,7 +167,8 @@ function passthrough!(Us::Vector, RF::AbstractRFactorization)
     end
 end
 
-
+passthrough!(RF::AbstractRFactorization, C::Union{AscendingChain, DescendingChain}) = passthrough!(RF, C.x)
+passthrough!(C::Union{AscendingChain, DescendingChain}, RF::AbstractRFactorization) = passthrough!(C.x, RF)
 
 ## An Identity R factorization
 ## used for generic purposes
@@ -185,5 +184,90 @@ passthrough!(RF::IdentityRFactorization, U::AbstractRotator) = U
 passthrough!(U::AbstractRotator, RF::IdentityRFactorization) = U
 passthrough!(RF::IdentityRFactorization, C::AbstractRotatorChain) = C
 passthrough!(C::AbstractRotatorChain,RF::IdentityRFactorization) = C
+passthrough!(::AMRVW.IdentityRFactorization, ::Union{AMRVW.AscendingChain, AMRVW.DescendingChain}) = nothing
+passthrough!(::Union{AMRVW.AscendingChain, AMRVW.DescendingChain},::AMRVW.IdentityRFactorization) = nothing
 simple_passthrough!(RF::IdentityRFactorization, U::AbstractRotator) = true
 simple_passthrough!(RF::IdentityRFactorization, U::AbstractRotator, V::AbstractRotator) = true
+
+
+##################################################
+## Just an upper triangular matrix
+abstract type AbstractRNoFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}} end
+simple_passthrough!(RF::AbstractRNoFactorization, U::AbstractRotator) = false
+function Base.getindex(RF::AbstractRNoFactorization, i, j)
+    if i > 0 && j > 0
+        RF.R[i,j]
+    else
+        zero(eltype(RF.R))
+    end
+end
+Base.Matrix(RF::AbstractRNoFactorization) = RF.R
+
+
+struct RNoFactorizationReal{T} <:  AbstractRNoFactorization{T, RealRotator{T}}
+  R::Array{T,2}
+end
+
+struct RNoFactorizationComplex{T} <:  AbstractRNoFactorization{T, ComplexRealRotator{T}}
+  R::Array{Complex{T},2}
+end
+
+function passthrough!(U::RealRotator, RF::RNoFactorizationReal{T}) where {T}
+
+    R = RF.R
+    i = idx(U)
+
+    R .= U * R
+
+    g2 = givens(R[i+1,i], R[i+1,i+1],1,2)[1]
+    c, s = g2.s, g2.c
+    V = RealRotator(c,s,i)
+    R .= R*V
+    V'
+end
+
+function passthrough!(RF::RNoFactorizationReal{T}, V::RealRotator) where {T}
+    R = RF.R
+    c,s = vals(V)
+    i = idx(V)
+
+    R .= R * V
+
+    g2 = givens(R[i+1,i], R[i,i],1,2)[1]
+    c, s = g2.s, g2.c
+
+    U = RealRotator(c,s,i)
+    R .= U * R
+    U'
+end
+
+
+function passthrough!(U::ComplexRealRotator, RF::RNoFactorizationComplex{T}) where {T}
+
+    R = RF.R
+    i = idx(U)
+
+    R .= U * R
+
+
+    g2 = givens(R[i+1,i], R[i+1,i+1],1,2)[1]
+    c, s = conj(g2.s), real(g2.c)
+    V = ComplexRealRotator(c,s,i)
+    R .= R*V
+
+    V'
+end
+
+function passthrough!(RF::RNoFactorizationComplex{T}, V::ComplexRealRotator) where {T}
+
+    R = RF.R
+    i = idx(V)
+
+    R .= R * V
+
+    g2 = givens(R[i+1,i], R[i,i],1,2)[1]
+    c, s = g2.s, real(g2.c)
+    U = ComplexRealRotator(c,s,i)
+    R .= U * R
+    U'
+end
