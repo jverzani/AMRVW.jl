@@ -76,15 +76,15 @@ passthrough!(D::IdentityDiagonal, U::Union{RealRotator, ComplexRealRotator})  = 
 passthrough!(U::Union{RealRotator, ComplexRealRotator}, D::IdentityDiagonal)  = U
 
 # Move a chain through a diagonal
-function passthrough!(D::SparseDiagonal, Asc::AscendingChain)
-    for i in 1:length(Asc) # pass  Asc through D
-        Asc[i] = passthrough!(D, Asc[i])
+function passthrough!(D::SparseDiagonal, Ch::Union{DescendingChain, AscendingChain})
+    for i in 1:length(Ch) # pass  ch through D
+        Ch[i] = passthrough!(D, Ch[i])
     end
 end
 
-function passthrough!(Des::DescendingChain, D::SparseDiagonal)
-    for i in length(Des):-1:1
-        Des[i] = passthrough!(Des[i],D)
+function passthrough!(Ch::Union{DescendingChain, AscendingChain}, D::SparseDiagonal)
+    for i in length(Ch):-1:1
+        Ch[i] = passthrough!(Ch[i],D)
     end
 end
 
