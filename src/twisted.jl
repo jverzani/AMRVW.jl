@@ -250,13 +250,61 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
 
     limb, limb_side = step_0!(m, ps, Ms, Des, Asc, D)
 
+    ## if limb_side == :left
+    ##     M1 = limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF)))))
+    ##     @show eigvals(M1)[1]
+    ## else
+    ##     M1 = Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF)))))
+    ##     @show eigvals(M1)[1]
+    ## end
 
     for k in 1:(n-m-2)
         limb_side = step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF)
+
+
     end
+
+    ## if limb_side == :left
+    ##     if psd[n-m-2] == :left
+    ##         Mkll = Decoupled * (limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mkll)[1]
+    ##     else
+    ##         Mklr = limb * (Des * (Ms * (Asc * (Decoupled * (Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mklr)[1]
+    ##     end
+    ## else
+    ##     if psd[n-m-2] == :left
+    ##         Mkrl = Decoupled * (Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mkrl)[1]
+    ##     else
+    ##         Mkrr = Des * (Ms * (Asc * (limb * (Decoupled *(Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mkrr)[1]
+    ##     end
+    ## end
+
 
     # use new choice
     limb_side = step_k!(n-m-1, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF)
+
+    ## if limb_side == :left
+    ##     if psd[n-m-1] == :left
+    ##         Mkll = Decoupled * (limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mkll)[1]
+    ##     else
+    ##         Mklr = limb * (Des * (Ms * (Asc * (Decoupled * (Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mklr)[1]
+    ##     end
+    ## else
+    ##     if psd[n-m-1] == :left
+    ##         Mkrl = Decoupled * (Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mkrl)[1]
+    ##     else
+    ##         Mkrr = Des * (Ms * (Asc * (limb * (Decoupled *(Matrix(D) * Matrix(RF))))))
+    ##         @show eigvals(Mkrr)[1]
+    ##     end
+    ## end
+
+
 
     # now knit in  limb, Des, Asc
     step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
@@ -448,33 +496,6 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF) 
 
 end
 
-function step_knit!X(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF) where {T}
-    # make bottom; fuse
-    # we have  to worry if decoupled is  on left side or right side
-    U = pop!(Des)
-    V = popfirst!(Asc)
-    bottom, Di = _fuse(U,V)
-
-    ## Decoupled too! Decoupled on right? as we augmented Ascending
-    ## Decoupled here is determined by position of end-m+1?
-    if limb_side == :right
-        if psd[end-m+1] == :right
-            passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled), limb), D)
-        else
-            passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
-        end
-    else
-        if psd[end-m+1] == :right
-            passthrough_phase!(Di, (AscendingChain(Asc),  TwistedChain(Decoupled)), D)
-        else
-            passthrough_phase!(Di, (AscendingChain(Asc),), D)
-        end
-    end
-
-
-
-end
-
 ## steps k=n-m to  n-2
 function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF) where {T}
 
@@ -503,7 +524,8 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
 
     for k in (n-m):(n-2)
         phatk = psd[k-1]
-        if k > 2 && psd[k-2] != phatk
+        ## @show k, psd
+        if k > (n-m) && psd[k-2] != phatk
             ## need to reposition V structure to other side
             if phatk == :left
                 passthrough!(RF, DescendingChain(Des))
@@ -622,6 +644,22 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
             pushfirst!(Decoupled, U)
         end
 
+        ## M = Matrix(D) * Matrix(RF)
+        ## @show limb_side, phatk
+        ## if limb_side == :left && phatk == :left
+        ##     Mnll = limb * (Decoupled * (Des * (Asc * M)))
+        ##     @show eigvals(Mnll)[1]
+        ## elseif limb_side == :left && phatk == :right
+        ##     Mnlr = limb * (Des * (Asc * (Decoupled * M)))
+        ##     @show eigvals(Mnlr)[1]
+        ## elseif limb_side == :right && phatk == :left
+        ##     Mnrl = Decoupled * (Des * (Asc * (limb * M)))
+        ##     @show eigvals(Mnrl)[1]
+        ## elseif limb_side == :right && phatk == :right
+        ##     Mnrr = Des * (Asc * (limb * (Decoupled * M)))
+        ##     @show eigvals(Mnrr)[1]
+        ## end
+
 
         U = pop!(Des)
         V = popfirst!(Asc)
@@ -644,8 +682,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
 
     end
 
-
-
+    # just the bottom left, but may be on wrong side
     if psd[end] == :left
         if psd[end-1] != psd[end]
             bottom = passthrough!(RF, bottom)  # move to other side
@@ -657,7 +694,6 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
             bottom = passthrough!(bottom, D)   # move bottom to other side
             bottom = passthrough!(bottom, RF)
        end
-
         pushfirst!(Decoupled, bottom)
     end
 
