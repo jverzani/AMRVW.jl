@@ -19,9 +19,8 @@
 
 ## get ascending part from Un ... U_{i-1}
 function iget(Ms::TwistedChain, i, ::Val{:Asc})
-    n = Ms.m[]
+    n, N = extrema(Ms)
     pv = Ms.pv
-    N = n + length(pv)
 
 
     inds = Int[]
@@ -45,9 +44,9 @@ end
 
 ## get descending part from U_{i+1} ... U_N
 function iget(Ms::TwistedChain, i, ::Val{:Des})
-    n = Ms.m[]
+    @show :iget
+    n, N = extrema(Ms)
     pv = Ms.pv
-    N = n + length(pv)
 
 
     inds = Int[]
@@ -57,14 +56,9 @@ function iget(Ms::TwistedChain, i, ::Val{:Des})
     while true
         if i  < N && (i < n || pv[i-n+1] == :left)
 
-            V = iget(Ms, i+1)
-            if V != nothing
-                j,U = V
-                push!(inds, j)
-                push!(Asc, U)
-            else
-                break
-            end
+            j, U = iget(Ms, i+1)
+            push!(inds, j)
+            push!(Asc, U)
 
         else
             break
@@ -250,34 +244,36 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
 
     limb, limb_side = step_0!(m, ps, Ms, Des, Asc, D)
 
-    ## if limb_side == :left
-    ##     M1 = limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF)))))
-    ##     @show eigvals(M1)[1]
-    ## else
-    ##     M1 = Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF)))))
-    ##     @show eigvals(M1)[1]
-    ## end
+
+
+## if limb_side == :left
+##     M1 = limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF)))))
+##     @show eigvals(M1)[1]
+## else
+##     M1 = Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF)))))
+##     @show eigvals(M1)[1]
+## end
 
     for k in 1:(n-m-2)
         limb_side = step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF)
-
-
     end
 
+    ## @show :step_k
+    ## _Decoupled = TwistedChain(Decoupled, psd[1:length(Decoupled)-1])
     ## if limb_side == :left
     ##     if psd[n-m-2] == :left
-    ##         Mkll = Decoupled * (limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))))
+    ##         Mkll = _Decoupled * (limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mkll)[1]
     ##     else
-    ##         Mklr = limb * (Des * (Ms * (Asc * (Decoupled * (Matrix(D) * Matrix(RF))))))
+    ##         Mklr = limb * (Des * (Ms * (Asc * (_Decoupled * (Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mklr)[1]
     ##     end
     ## else
     ##     if psd[n-m-2] == :left
-    ##         Mkrl = Decoupled * (Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF))))))
+    ##         Mkrl = _Decoupled * (Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mkrl)[1]
     ##     else
-    ##         Mkrr = Des * (Ms * (Asc * (limb * (Decoupled *(Matrix(D) * Matrix(RF))))))
+    ##         Mkrr = Des * (Ms * (Asc * (limb * (_Decoupled *(Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mkrr)[1]
     ##     end
     ## end
@@ -286,20 +282,21 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
     # use new choice
     limb_side = step_k!(n-m-1, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF)
 
+    ## _Decoupled = TwistedChain(Decoupled, psd[1:length(Decoupled)-1])
     ## if limb_side == :left
     ##     if psd[n-m-1] == :left
-    ##         Mkll = Decoupled * (limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))))
+    ##         Mkll = _Decoupled * (limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mkll)[1]
     ##     else
-    ##         Mklr = limb * (Des * (Ms * (Asc * (Decoupled * (Matrix(D) * Matrix(RF))))))
+    ##         Mklr = limb * (Des * (Ms * (Asc * (_Decoupled * (Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mklr)[1]
     ##     end
     ## else
     ##     if psd[n-m-1] == :left
-    ##         Mkrl = Decoupled * (Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF))))))
+    ##         Mkrl = _Decoupled * (Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mkrl)[1]
     ##     else
-    ##         Mkrr = Des * (Ms * (Asc * (limb * (Decoupled *(Matrix(D) * Matrix(RF))))))
+    ##         Mkrr = Des * (Ms * (Asc * (limb * (_Decoupled *(Matrix(D) * Matrix(RF))))))
     ##         @show eigvals(Mkrr)[1]
     ##     end
     ## end
@@ -307,13 +304,12 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
 
 
     # now knit in  limb, Des, Asc
-    step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
+    step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF)
 
     ## Decoupled is now Ms, assign and update position vector
     append!(Ms.x, Decoupled)
     empty!(Ms.pv)
-    append!(Ms.pv, psd) #position_vector(idx.(Ms.x)))
-    Ms.m[] = 1
+    append!(Ms.pv, psd)
 
     return nothing
 end
@@ -325,9 +321,9 @@ end
 
 
 function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
-
     has_limb = ifelse(m > 1, true, false)
 
+    ps = copy(Ms.pv) # XXX
 
     # grab limb, but keep order
     limb = _get_limb!(Ms, m)
@@ -346,8 +342,6 @@ function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
 
 
     U = iget!(Ms, m)
-    popfirst!(Ms.pv)
-    Ms.m[] += 1
 
     if ps[m] == :left
         Des[end], Di = _fuse(Des[end], U)  # fuse with descending; aka Ms[m]
@@ -387,24 +381,16 @@ end
 
 # limb is first m-1 rotators keeping their positions
 function _get_limb!(Ms::TwistedChain, m::Int)
-
-    if m > 1
-        pv = Ms.pv #position_vector(idx.(Ms))
-        Us =  iget!.(Ref(Ms,), (1:m-1))
-        limb = [popfirst!(Us)]
-        while length(Us) > 0
-            U = popfirst!(Us)
-            dir = popfirst!(pv)
-            dir == :left ? push!(limb, U) : pushfirst!(limb, U)
-        end
-        Ms.m[] = Ms.m[] + (m-1)
-        popfirst!(Ms.pv)
-    else
-        limb = eltype(Ms)[]
+    ## XXX for now, we shorten twisted chain
+    lx =  Ms.x[1:m-1]
+    for i in 1:m-1
+        popfirst!(Ms.x)
     end
-
-    TwistedChain(limb)
-
+    ps = m > 2 ? Ms.pv[1:m-2] : Symbol[]
+    for i in 1:(m-1)
+        !isempty(Ms.pv) && popfirst!(Ms.pv)
+    end
+    return TwistedChain(lx, ps)
 end
 
 function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF) where {T}
@@ -489,7 +475,8 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF) 
     if k == 1 || psd[k-1] == :left
         push!(Decoupled, U)
     else
-        pushfirst!(Decoupled, U)
+        push!(Decoupled, U)
+        #pushfirst!(Decoupled, U)
     end
 
     return limb_side
@@ -497,7 +484,7 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF) 
 end
 
 ## steps k=n-m to  n-2
-function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF) where {T}
+function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) where {T}
 
     # make bottom
     U = pop!(Des)
@@ -507,13 +494,13 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
     ## Decoupled too! Decoupled on right? as we augmented Ascending
     if limb_side == :right
         if psd[end-m+1] == :right
-            passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled), limb), D)
+            passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled, psd[1:length(Decoupled)-1]), limb), D)
         else
             passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
         end
     else
         if psd[end-m+1] == :right
-            passthrough_phase!(Di, (AscendingChain(Asc),  TwistedChain(Decoupled)), D)
+            passthrough_phase!(Di, (AscendingChain(Asc),  TwistedChain(Decoupled, psd[1:length(Decoupled)-1])), D)
         else
             passthrough_phase!(Di, (AscendingChain(Asc),), D)
         end
@@ -524,7 +511,6 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
 
     for k in (n-m):(n-2)
         phatk = psd[k-1]
-        ## @show k, psd
         if k > (n-m) && psd[k-2] != phatk
             ## need to reposition V structure to other side
             if phatk == :left
@@ -560,8 +546,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
 
         # remove bottom rotator from limb; keep track of if it is right or left
         lpk = length(limb.pv) > 0 ? limb.pv[end] : :nothing
-        L =  pop!(limb)
-
+        L, lpk =  pop!(limb)
         ## we have
         ## 4 cases in terms of limb_side and lpk:
         ## :l, :l -> fuse (Asc, Des), translate
@@ -641,7 +626,8 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
             push!(Decoupled, U)
         else
             U = pop!(Asc)
-            pushfirst!(Decoupled, U)
+            push!(Decoupled, U)
+            #pushfirst!(Decoupled, U)
         end
 
         ## M = Matrix(D) * Matrix(RF)
@@ -669,13 +655,13 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
             if phatk == :left
                 passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
             else
-                passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled), limb), D)
+                passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled, psd[1:length(Decoupled)-1]), limb), D)
             end
         else
             if phatk == :left
                 passthrough_phase!(Di, (AscendingChain(Asc),), D)
             else
-                passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled)), D)
+                passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled, psd[1:length(Decoupled)-1])), D)
             end
         end
 
@@ -693,12 +679,14 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, Ms, D, RF)
         if psd[end-1] != psd[end]
             bottom = passthrough!(bottom, D)   # move bottom to other side
             bottom = passthrough!(bottom, RF)
-       end
-        pushfirst!(Decoupled, bottom)
+        end
+        push!(Decoupled, bottom)
+        #pushfirst!(Decoupled, bottom)
     end
 
 
-    @assert all(TwistedChain(Decoupled).pv .== psd)
+
+    #@assert all(TwistedChain(Decoupled).pv .== psd)
     return nothing
 
 end
