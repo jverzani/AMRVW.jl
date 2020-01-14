@@ -420,6 +420,7 @@ end
 ## Pass chain (Des, Asc, Twisted) through a chain (Des, Asc)
 ## Move twisted through down R <- L
 function passthrough!(A::DescendingChain, B::TwistedChain)
+    length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
     @assert (m >= n && M < N)
@@ -429,6 +430,7 @@ function passthrough!(A::DescendingChain, B::TwistedChain)
 end
 
 function passthrough!(A::AscendingChain, B::TwistedChain)
+    length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
     @assert (m > n && M <= N)
@@ -438,6 +440,7 @@ function passthrough!(A::AscendingChain, B::TwistedChain)
 end
 
 function passthrough!(B::TwistedChain, A::DescendingChain)
+    length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
     @assert (m > n && M <= N)
@@ -447,6 +450,7 @@ function passthrough!(B::TwistedChain, A::DescendingChain)
 end
 
 function passthrough!(B::TwistedChain, A::AscendingChain)
+    length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
     @assert (m >= n && M < N)

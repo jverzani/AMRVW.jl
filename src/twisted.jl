@@ -44,7 +44,6 @@ end
 
 ## get descending part from U_{i+1} ... U_N
 function iget(Ms::TwistedChain, i, ::Val{:Des})
-    @show :iget
     n, N = extrema(Ms)
     pv = Ms.pv
 
@@ -236,14 +235,19 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
     end
 
 
+    ## M0a = Des * (Ms * (Matrix(D) * (Matrix(RF)* Asc)))
+    ## @show eigvals(M0a)[1]
+
     ## Must put AscendingChain into place
     ## py passing through RF and D <--
     passthrough!(RF, AscendingChain(Asc))
     passthrough!(D, AscendingChain(Asc))
 
+    ## M0 = Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))
+    ## @show eigvals(M0)[1]
+
 
     limb, limb_side = step_0!(m, ps, Ms, Des, Asc, D)
-
 
 
 ## if limb_side == :left
@@ -282,6 +286,7 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
     # use new choice
     limb_side = step_k!(n-m-1, n, m, psd, limb_side, limb, Des, Asc, Decoupled, Ms, D, RF)
 
+    ## @show :step_kk
     ## _Decoupled = TwistedChain(Decoupled, psd[1:length(Decoupled)-1])
     ## if limb_side == :left
     ##     if psd[n-m-1] == :left
@@ -345,11 +350,11 @@ function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
 
     if ps[m] == :left
         Des[end], Di = _fuse(Des[end], U)  # fuse with descending; aka Ms[m]
-
         ## need to passthrough Ms too now
         i = idx(Di)
 
         inds, MMs = iget(Ms, i, Val(:Des))
+
         if limb_side == :right
             passthrough_phase!(Di, DescendingChain(MMs),  (AscendingChain(Asc), limb), D)
         else
@@ -486,25 +491,43 @@ end
 ## steps k=n-m to  n-2
 function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) where {T}
 
+
     # make bottom
     U = pop!(Des)
     V = popfirst!(Asc)
     bottom, Di = _fuse(U,V)
 
     ## Decoupled too! Decoupled on right? as we augmented Ascending
-    if limb_side == :right
-        if psd[end-m+1] == :right
-            passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled, psd[1:length(Decoupled)-1]), limb), D)
+    if psd[end-m+1] == :right
+        _Decoupled = TwistedChain(Decoupled, psd[1:length(Decoupled)-1])
+        if limb_side == :right
+            passthrough_phase!(Di, (AscendingChain(Asc), _Decoupled, limb), D)
         else
-            passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
+            passthrough_phase!(Di, (AscendingChain(Asc),  _Decoupled), D)
         end
     else
-        if psd[end-m+1] == :right
-            passthrough_phase!(Di, (AscendingChain(Asc),  TwistedChain(Decoupled, psd[1:length(Decoupled)-1])), D)
+        if limb_side == :right
+            passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
         else
             passthrough_phase!(Di, (AscendingChain(Asc),), D)
         end
     end
+
+
+
+    ## if limb_side == :right
+    ##     if psd[end-m+1] == :right
+    ##         passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled, psd[1:length(Decoupled)-1]), limb), D)
+    ##     else
+    ##         passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
+    ##     end
+    ## else
+    ##     if psd[end-m+1] == :right
+    ##         passthrough_phase!(Di, (AscendingChain(Asc),  TwistedChain(Decoupled, psd[1:length(Decoupled)-1])), D)
+    ##     else
+    ##         passthrough_phase!(Di, (AscendingChain(Asc),), D)
+    ##     end
+    ## end
 
     ## Final Steps, knit in
     ## setps k=n-m to  n-2
@@ -651,42 +674,39 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) whe
         V = popfirst!(Asc)
         bottom, Di = _fuse(U,V)
 
-        if limb_side == :right
-            if phatk == :left
-                passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
+        if phatk == :right
+            _Decoupled =  TwistedChain(Decoupled, psd[1:length(Decoupled)-1])
+            if limb_side == :right
+                passthrough_phase!(Di, (AscendingChain(Asc), _Decoupled, limb), D)
             else
-                passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled, psd[1:length(Decoupled)-1]), limb), D)
+                passthrough_phase!(Di, (AscendingChain(Asc), _Decoupled), D)
             end
         else
-            if phatk == :left
-                passthrough_phase!(Di, (AscendingChain(Asc),), D)
+            if limb_side == :right
+                passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
             else
-                passthrough_phase!(Di, (AscendingChain(Asc), TwistedChain(Decoupled, psd[1:length(Decoupled)-1])), D)
+                passthrough_phase!(Di, (AscendingChain(Asc),), D)
             end
         end
 
-
     end
 
-    # just the bottom left, but may be on wrong side
+
+    # just the bottom left, but may be on wrong side if m > 1
     if psd[end] == :left
-        if psd[end-1] != psd[end]
+        if m > 1 && psd[end-1] != psd[end]
             bottom = passthrough!(RF, bottom)  # move to other side
             bottom = passthrough!(D, bottom)
         end
         push!(Decoupled, bottom)
     else
-        if psd[end-1] != psd[end]
+        if m > 1 && psd[end-1] != psd[end]
             bottom = passthrough!(bottom, D)   # move bottom to other side
             bottom = passthrough!(bottom, RF)
         end
         push!(Decoupled, bottom)
-        #pushfirst!(Decoupled, bottom)
     end
 
-
-
-    #@assert all(TwistedChain(Decoupled).pv .== psd)
     return nothing
 
 end

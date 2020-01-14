@@ -337,11 +337,25 @@ end
 
 function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D) where {T}
 
-    length(V.x) <= 2 && return passthrough_phase!(Di, Chain(V.x), Vs, D)
+    # Handle case where limb is small (length 0,1, or 2)
+    if length(V.x) == 0
+        return passthrough_phase!(Di, Vs, D)
+    elseif length(V.x) <= 2
+        if isempty(V.pv) || V.pv[1] == :left
+            return passthrough_phase!(Di, DescendingChain(V.x), Vs, D)
+        else
+            VV = reverse(V.x)
+            passthrough_phase!(Di, AscendingChain(VV), Vs, D)
+            V.x[1] = VV[2]
+            V.x[2] = VV[1]
+            return nothing
+        end
+    end
 
-    n = V.m[]
+
+    n, N = extrema(V)
     pv = V.pv
-    N = n + length(pv)
+
     i = idx(Di)  # pv[i-n+1] informs if Ui+1 is left or right of Ui
     if i < n - 1
         passthrough_phase!(Di, Vs, D) # misses chain
