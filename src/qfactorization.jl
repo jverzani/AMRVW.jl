@@ -13,9 +13,23 @@ Base.zero(QF::AbstractQFactorization) = zero(eltype(QF))
 Base.one(QF::AbstractQFactorization) = one(eltype(QF))
 
 
-struct QFactorization{T, Rt} <: AbstractQFactorization{T, Rt, Val{:not_twisted}}
+#struct QFactorization{T, Rt} <: AbstractQFactorization{T, Rt, Val{:not_twisted}}
+#  Q::DescendingChain{Rt}
+#  D::AbstractSparseDiagonalMatrix{T, Rt}
+#  W::Vector{Rt}
+#  end
+
+abstract type QFactorization{T, Rt} <: AbstractQFactorization{T, Rt, Val{:not_twisted}} end
+struct QFactorizationReal{T, Rt} <: QFactorization{T, Rt}
   Q::DescendingChain{Rt}
-  D::AbstractSparseDiagonalMatrix{T, Rt}
+  D::IdentityDiagonal{T}
+  W::Vector{Rt}
+end
+
+
+struct QFactorizationComplex{T, Rt} <: QFactorization{T, Rt}
+  Q::DescendingChain{Rt}
+  D::SparseDiagonal{T}
   W::Vector{Rt}
 end
 

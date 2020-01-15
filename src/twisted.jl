@@ -9,80 +9,14 @@
 ##
 ## TODO:
 ##
-## * Only works for unitary matrices (R an indentity!!!)
+## * Clean up allocations
+##
+## * store Decoupled and Ms in same space to avoid allocations
+##
 ## * get shifts by paper (m -> eigenvalues of mxm matrix, continue...)
 ##
 ## This algorithm encompasses those in CSS and RDS, but those are more efficient space wise
 ## This is more general and perhaps of interest as building blocks for experimentation
-
-
-
-## get ascending part from Un ... U_{i-1}
-function iget(Ms::TwistedChain, i, ::Val{:Asc})
-    n, N = extrema(Ms)
-    pv = Ms.pv
-
-
-    inds = Int[]
-    Asc = eltype(Ms)[]
-    ii = i - 1
-    (i <  n || i > N + 1) && return (inds, Asc)
-    while true
-        if ii >= n && (ii == N || pv[ii - n +  1] == :right)
-            j,U = iget(Ms, ii)
-            push!(inds, j)
-            push!(Asc, U)
-        else
-            break
-        end
-        ii -= 1
-    end
-
-    inds, Asc
-end
-
-
-## get descending part from U_{i+1} ... U_N
-function iget(Ms::TwistedChain, i, ::Val{:Des})
-    n, N = extrema(Ms)
-    pv = Ms.pv
-
-
-    inds = Int[]
-    Asc = eltype(Ms)[]
-    (i <  n - 1 || i >= N) && return (inds, Asc)
-
-    while true
-        if i  < N && (i < n || pv[i-n+1] == :left)
-
-            j, U = iget(Ms, i+1)
-            push!(inds, j)
-            push!(Asc, U)
-
-        else
-            break
-        end
-        i += 1
-    end
-
-    inds, Asc
-end
-
-
-
-
-
-
-## always return a diagonal rotator, perhaps an identity one
-## this makes the bulge step algorithm generic
-function _fuse(U::RealRotator{T}, V::RealRotator{T}) where {T}
-    D = IdentityDiagonalRotator{T}(idx(V))
-    fuse(U,V), D
-end
-
-function _fuse(U::ComplexRealRotator{T}, V::ComplexRealRotator{T}) where {T}
-    fuse(U,V)
-end
 
 ##################################################
 
@@ -196,6 +130,23 @@ end
 
 
 
+
+
+
+## always return a diagonal rotator, perhaps an identity one
+## this makes the bulge step algorithm generic
+function _fuse(U::RealRotator{T}, V::RealRotator{T}) where {T}
+    D = IdentityDiagonalRotator{T}(idx(V))
+    fuse(U,V), D
+end
+
+function _fuse(U::ComplexRealRotator{T}, V::ComplexRealRotator{T}) where {T}
+    fuse(U,V)
+end
+
+
+
+
 ## We use `bulge_step!` for more general usage; this is
 ## tied to AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
 function bulge_step(state::AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}})  where {T,S, Rt, QFt, RFt}
@@ -213,6 +164,11 @@ function bulge_step(state::AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:t
 end
 
 ## Can enter here for more general usage
+## Note: Ms is a Twisted Chain, but need not stay that way
+## We could reuse the storage space from Ms to hold the values stored in Decoupled
+## at the cost of keeping track of the respective boundaries (k in the case of Decoupled, and k+m)
+## for Ms. This could save some allocations, as this step allocates a new Decoupled vector
+## each pass through.
 function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choice = :left)
 
 
@@ -327,8 +283,6 @@ end
 
 function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
     has_limb = ifelse(m > 1, true, false)
-
-    ps = copy(Ms.pv) # XXX
 
     # grab limb, but keep order
     limb = _get_limb!(Ms, m)

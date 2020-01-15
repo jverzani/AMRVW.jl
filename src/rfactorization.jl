@@ -205,60 +205,33 @@ Base.Matrix(RF::AbstractRNoFactorization) = RF.R
 
 
 struct RNoFactorizationReal{T} <:  AbstractRNoFactorization{T, RealRotator{T}}
-  R::Array{T,2}
+   R::Array{T,2}
 end
 
 struct RNoFactorizationComplex{T} <:  AbstractRNoFactorization{T, ComplexRealRotator{T}}
   R::Array{Complex{T},2}
 end
 
-function passthrough!(U::RealRotator, RF::RNoFactorizationReal{T}) where {T}
+RNoFactorization(R::Array{T,2}) where {T <: Real} = RNoFactorizationReal{T}(R)
+RNoFactorization(R::Array{Complex{T},2}) where {T <: Real} = RNoFactorizationComplex{T}(R)
+
+function passthrough!(U::Rt, RF::AbstractRNoFactorization) where {Rt <: AbstractRotator}
 
     R = RF.R
     i = idx(U)
 
     R .= U * R
-
-    g2 = givens(R[i+1,i], R[i+1,i+1],1,2)[1]
-    c, s = g2.s, g2.c
-    V = RealRotator(c,s,i)
-    R .= R*V
-    V'
-end
-
-function passthrough!(RF::RNoFactorizationReal{T}, V::RealRotator) where {T}
-    R = RF.R
-    c,s = vals(V)
-    i = idx(V)
-
-    R .= R * V
-
-    g2 = givens(R[i+1,i], R[i,i],1,2)[1]
-    c, s = g2.s, g2.c
-
-    U = RealRotator(c,s,i)
-    R .= U * R
-    U'
-end
-
-
-function passthrough!(U::ComplexRealRotator, RF::RNoFactorizationComplex{T}) where {T}
-
-    R = RF.R
-    i = idx(U)
-
-    R .= U * R
-
 
     g2 = givens(R[i+1,i], R[i+1,i+1],1,2)[1]
     c, s = conj(g2.s), real(g2.c)
-    V = ComplexRealRotator(c,s,i)
+    V = Rt(c,s,i)
     R .= R*V
-
     V'
+
 end
 
-function passthrough!(RF::RNoFactorizationComplex{T}, V::ComplexRealRotator) where {T}
+
+function passthrough!(RF::AbstractRNoFactorization, V::Rt) where {Rt <: AbstractRotator}
 
     R = RF.R
     i = idx(V)
@@ -267,7 +240,7 @@ function passthrough!(RF::RNoFactorizationComplex{T}, V::ComplexRealRotator) whe
 
     g2 = givens(R[i+1,i], R[i,i],1,2)[1]
     c, s = g2.s, real(g2.c)
-    U = ComplexRealRotator(c,s,i)
+    U = Rt(c,s,i)
     R .= U * R
     U'
 end

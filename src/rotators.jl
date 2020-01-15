@@ -26,7 +26,7 @@ c::T
 s::T
 i::Int
 RealRotator(c::T, s::T, i::Int) where {T} = new{T}(c,s,i)
-RealRotator{T}() where {T} = new()
+RealRotator{T}(c,s,i) where {T} = new(convert(T,c),convert(T,s),i)
 end
 
 function adjoint(r::RealRotator)
@@ -44,6 +44,8 @@ struct ComplexRealRotator{T} <: AbstractRotator{T}
 c::Complex{T}
 s::T
 i::Int
+ComplexRealRotator(c::Complex{T}, s::T, i::Int) where {T} = new{T}(c,s,i)
+ComplexRealRotator{T}(c,s,i) where {T} = new(convert(Complex{T},c),convert(T,s),i)
 end
 
 function adjoint(r::ComplexRealRotator)

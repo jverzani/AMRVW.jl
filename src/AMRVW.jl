@@ -3,7 +3,7 @@ module AMRVW
 
 using LinearAlgebra
 import LinearAlgebra: eigvals
-import Base: adjoint
+import Base: adjoint, *
 
 # package code goes here
 include("utils.jl")

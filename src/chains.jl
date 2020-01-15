@@ -173,6 +173,7 @@ function Base.Vector(Tw::TwistedChain)
     end
     out
 end
+
 *(A::TwistedChain, M::Array) = Vector(A) * M
 
 ## Constructor of a chain
@@ -313,6 +314,61 @@ function iget!(Ms::TwistedChain,i)
  #    deleteat!(Ms, j)
 ## #    M
 end
+
+
+
+## get ascending part from Un ... U_{i-1}
+function iget(Ms::TwistedChain, i, ::Val{:Asc})
+    n, N = extrema(Ms)
+    pv = Ms.pv
+
+
+    inds = Int[]
+    Asc = eltype(Ms)[]
+    ii = i - 1
+    (i <  n || i > N + 1) && return (inds, Asc)
+    while true
+        if ii >= n && (ii == N || pv[ii - n +  1] == :right)
+            j,U = iget(Ms, ii)
+            push!(inds, j)
+            push!(Asc, U)
+        else
+            break
+        end
+        ii -= 1
+    end
+
+    inds, Asc
+end
+
+
+## get descending part from U_{i+1} ... U_N
+function iget(Ms::TwistedChain, i, ::Val{:Des})
+    n, N = extrema(Ms)
+    pv = Ms.pv
+
+
+    inds = Int[]
+    Asc = eltype(Ms)[]
+    (i <  n - 1 || i >= N) && return (inds, Asc)
+
+    while true
+        if i  < N && (i < n || pv[i-n+1] == :left)
+
+            j, U = iget(Ms, i+1)
+            push!(inds, j)
+            push!(Asc, U)
+
+        else
+            break
+        end
+        i += 1
+    end
+
+    inds, Asc
+end
+
+
 
 
 ##################################################

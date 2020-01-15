@@ -77,7 +77,8 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,ComplexRealRotator
     else
 
         # handle details of knitting in
-        U = passthrough!(QF.D, U)
+        D::SparseDiagonal{T} = QF.D
+        U = passthrough!(D, U)
         Di = fuse!(QF, U) # handles D bit
 
         return true

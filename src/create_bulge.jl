@@ -4,6 +4,7 @@
 ## Pencil or Twisted don't matter as they come out in diagonalblock.
 
 # ## The bulge is created by  (A-rho1) * (A - rho2) * e_1 where rho1 and rho2 are eigenvalue or random
+# ## for real case, we take the real part of this result
 function create_bulge(state::AbstractFactorizationState{T, S, RealRotator{T}, QFt, RFt, Twt}) where {T, S,Rt, QFt, RFt, Twt}
 
     if mod(state.ctrs.it_count, 15) == 0
