@@ -44,9 +44,11 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,RealRotator{T},
 
     U, V = state.UV[1], state.UV[2]
     j = idx(V)
-    N = length(state) # a parameter??
+
     RF = state.RF
+
     flag = false
+
     if  j <= state.ctrs.tr
         # this leverages Ct*B*U = I*U when Ct, B not touched
         # so V, U are not touched, but Ct, B are
@@ -81,7 +83,7 @@ function simple_passthrough!(RF::RFactorization{T, RealRotator{T}}, U, V) where 
     for k in -1:1
         a,b = vals(RF.B[j+k])
         jj = N+1-(j+k)
-        RF.Ct[jj] = Rotator(a, -b, j+k)  ## adjoint
+        RF.Ct[jj] = RealRotator(a, -b, j+k)  ## adjoint
     end
 
     true
@@ -99,6 +101,7 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
     QF = state.QF
     U, V, W = state.UV[1], state.UV[2],  QF.W[1]
     i = idx(U); j = i + 1
+
     if j < state.ctrs.stop_index
 
         V = passthrough!(QF, V)

@@ -34,7 +34,7 @@ Base.one(RF::AbstractRFactorization) = one(eltype(RF))
 struct RFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}}
   Ct::AscendingChain{Rt}
   B::DescendingChain{Rt}
-  D::AbstractSparseDiagonalMatrix{T,Rt}
+  D::AbstractSparseDiagonalMatrix{T, Rt}
 end
 
 
@@ -170,6 +170,7 @@ end
 passthrough!(RF::AbstractRFactorization, C::Union{AscendingChain, DescendingChain}) = passthrough!(RF, C.x)
 passthrough!(C::Union{AscendingChain, DescendingChain}, RF::AbstractRFactorization) = passthrough!(C.x, RF)
 
+##################################################
 ## An Identity R factorization
 ## used for generic purposes
 struct IdentityRFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}}
@@ -191,7 +192,7 @@ simple_passthrough!(RF::IdentityRFactorization, U::AbstractRotator, V::AbstractR
 
 
 ##################################################
-## Just an upper triangular matrix
+## Just an upper triangular matrix; no factorization
 abstract type AbstractRNoFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}} end
 simple_passthrough!(RF::AbstractRNoFactorization, U::AbstractRotator) = false
 function Base.getindex(RF::AbstractRNoFactorization, i, j)
@@ -204,6 +205,7 @@ end
 Base.Matrix(RF::AbstractRNoFactorization) = RF.R
 
 
+## Like DiagonalSparseMatrix, this needs cleaning up
 struct RNoFactorizationReal{T} <:  AbstractRNoFactorization{T, RealRotator{T}}
    R::Array{T,2}
 end

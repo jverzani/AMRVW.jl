@@ -14,28 +14,6 @@ printtp(x) = println(sprint(io -> show(io, "text/plain", x)))
 
 ## Multiplication of rotators
 ## This is useful for diagnostics
-import Base: *
-## XXX
-## this uses [c s; -conj(s) conj(c)] for rotator!
-function *(a::AbstractRotator, M::Matrix)
-    c, s = vals(a)
-    i = idx(a); j = i+1
-    N = copy(M)
-    N[i,  :]  =  c * M[i,:] + s * M[j,:]
-    N[j,:]  =   -conj(s) * M[i,:] + conj(c) * M[j,:]
-    N
-end
-
-function *(M::Matrix, a::AbstractRotator)
-    c, s = vals(a)
-    i = idx(a); j = i+1
-     N = copy(M)
-    N[:, i] = c * M[:,i] - conj(s) * M[:,j]
-    N[:, j] = s * M[:,i] +   conj(c)  * M[:,j]
-    N
-end
-*(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform} = foldr(*, Qs, init=M)
-*(M::Matrix, Qs::Vector{R}) where {R <: CoreTransform} = foldl(*, Qs, init=M)
 
 *(A::AbstractRotatorChain, M::Array) = A.x * M
 

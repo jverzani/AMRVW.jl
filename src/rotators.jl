@@ -16,6 +16,27 @@ abstract type AbstractRotator{T} <: CoreTransform{T} end
 Base.copy(a::AbstractRotator) = AbstractRotator(a.c, a.s, a.i)
 is_diagonal(r::AbstractRotator{T}) where {T} = norm(r.s) <= eps(T)
 
+## XXX
+## this uses [c s; -conj(s) conj(c)] for rotator!
+function *(a::AbstractRotator, M::Matrix)
+    c, s = vals(a)
+    i = idx(a); j = i+1
+    N = copy(M)
+    N[i,  :]  =  c * M[i,:] + s * M[j,:]
+    N[j,:]  =   -conj(s) * M[i,:] + conj(c) * M[j,:]
+    N
+end
+
+function *(M::Matrix, a::AbstractRotator)
+    c, s = vals(a)
+    i = idx(a); j = i+1
+     N = copy(M)
+    N[:, i] = c * M[:,i] - conj(s) * M[:,j]
+    N[:, j] = s * M[:,i] +   conj(c)  * M[:,j]
+    N
+end
+*(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform} = foldr(*, Qs, init=M)
+*(M::Matrix, Qs::Vector{R}) where {R <: CoreTransform} = foldl(*, Qs, init=M)
 
 #the index is superflous for now, and a bit of a hassle to keep immutable
 #but might be of help later if twisting is approached. Shouldn't effect speed, but does mean 3N storage (Q, Ct, B)

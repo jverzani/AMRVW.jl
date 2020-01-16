@@ -132,6 +132,7 @@ function q_factorization(xs::Vector{S}) where {S}
 
     D = sparse_diagonal(S, N)
     W = Rotator(zs, ot, 1)  # only needed for RealRotator case, when the limb has length 1
+    #return QFactorization(Q, D, [W])
     if S <: Real
         return QFactorizationReal(Q, D, [W])
     else

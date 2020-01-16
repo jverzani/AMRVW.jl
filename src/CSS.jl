@@ -17,10 +17,11 @@ end
 
 function passthrough_triu(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Twt}, dir::Val{:right}) where {T, S, QFt, RFt,Twt}
 
-    RF = state.RF
     U = state.UV[1]
-
     i = idx(U)
+
+    RF = state.RF
+
     flag = false
 
     if  i < state.ctrs.tr
@@ -37,22 +38,23 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,ComplexRealRota
 
      state.ctrs.tr -= 1
 
+    return nothing
 end
 
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
 function simple_passthrough!(RF::RFactorization{T, ComplexRealRotator{T}}, U) where {T}
-<
+
     i = idx(U)
     N = length(RF)
 
     _ = passthrough!(RF.B, U)
 
-    @inbounds for k in 0:1
+    for k in 0:1
 
         a,b = vals(RF.B[i+k])
         ii = N + 1 - (i + k)
-        RF.Ct[ii] = Rotator(conj(a), -b, i + k) # adjoint
+        RF.Ct[ii] = ComplexRealRotator(conj(a), -b, i + k) # adjoint
 
     end
 
@@ -72,12 +74,13 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,ComplexRealRotator
         U = passthrough!(QF, U)
 
         state.UV[1] = U
+
         return false
 
     else
 
         # handle details of knitting in
-        D::SparseDiagonal{T} = QF.D
+        D = QF.D
         U = passthrough!(D, U)
         Di = fuse!(QF, U) # handles D bit
 
@@ -116,6 +119,6 @@ function deflate(QF::QFactorization{T, ComplexRealRotator{T}}, k) where {T}
 
     # absorb Di into D
     Di =  DiagonalRotator(alpha, i)
-    passthrough!(Di,QF)
+    passthrough_phase!(Di,QF)
 
 end

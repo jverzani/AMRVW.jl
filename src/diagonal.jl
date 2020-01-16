@@ -5,7 +5,7 @@
 ## The factorization can have an identity diagonal or a real one.
 abstract type AbstractSparseDiagonalMatrix{T, Rt} end
 
-struct IdentityDiagonal{T} <: AbstractSparseDiagonalMatrix{T, RealRotator{T}}
+struct IdentityDiagonal{T} <: AbstractSparseDiagonalMatrix{T,RealRotator{T}}
 IdentityDiagonal{T}() where {T} = new()
 end
 
@@ -55,7 +55,9 @@ Base.@propagate_inbounds Base.setindex!(D::IdentityDiagonal, X, inds...) where {
 
     D[i] = beta
     D[i+1] = alpha
-    return Rotator(beta1 * c, s, i)
+
+    return ComplexRealRotator(beta1 * c, s, i)
+
 end
 
 ## U D -> D U
@@ -69,7 +71,7 @@ end
 
     D[i] *= conj(beta1)
     D[i+1] *= beta1
-    return Rotator(beta1 * c, s, i)
+    return ComplexRealRotator(beta1 * c, s, i)
 end
 
 passthrough!(D::IdentityDiagonal, U::Union{RealRotator, ComplexRealRotator})  = U

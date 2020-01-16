@@ -113,7 +113,7 @@ end
 
     c, s = polish_givens(c, s)
 
-    Rotator(c, s, i), DiagonalRotator(conj(alpha), i)
+    ComplexRealRotator(c, s, i), DiagonalRotator(conj(alpha), i)
 end
 
 ## Fuse for diagonal matrices
@@ -193,18 +193,18 @@ end
 ##
 ##  Turnover interface for rotators
 ##
-function turnover(Q1::AbstractRotator,
-                  Q2::AbstractRotator,
-                  Q3::AbstractRotator)
+function turnover(Q1::Rt,
+                  Q2::Rt,
+                  Q3::Rt) where {Rt}
 
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
     # @assert i == k && (abs(j-i) == 1)
 
     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
-    R1 = Rotator(c4, s4, j)
-    R2 = Rotator(c5, s5, i)
-    R3 = Rotator(c6, s6, j)
+    R1 = Rt(c4, s4, j)
+    R2 = Rt(c5, s5, i)
+    R3 = Rt(c6, s6, j)
 
     # we have Q1*Q2*Q3 = R1*R2*R3
     R1, R2, R3
@@ -215,16 +215,16 @@ end
 # as we want a  diagonal rotator to come o ut
 # This a  counter part.
 function turnover(Q1::DiagonalRotator{T},
-                  Q2::ComplexRealRotator,
-                  Q3::ComplexRealRotator) where {T}
+                  Q2::Rt,
+                  Q3::Rt) where {T, Rt}
 
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
     # @assert i == k && (abs(j-i) == 1)
 
     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
-    R1 = ComplexRealRotator(c4, s4, j)
-    R2 = ComplexRealRotator(c5, s5, i)
+    R1 = Rt(c4, s4, j)
+    R2 = Rt(c5, s5, i)
     R3 = DiagonalRotator(c6, j)
 
     # we have Q1*Q2*Q3 = R1*R2*R3
