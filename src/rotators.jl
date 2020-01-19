@@ -18,21 +18,21 @@ is_diagonal(r::AbstractRotator{T}) where {T} = norm(r.s) <= eps(T)
 
 ## XXX
 ## this uses [c s; -conj(s) conj(c)] for rotator!
-function *(a::AbstractRotator, M::Matrix)
+function *(a::AbstractRotator, M::AbstractArray)
     c, s = vals(a)
     i = idx(a); j = i+1
     N = copy(M)
-    N[i,  :]  =  c * M[i,:] + s * M[j,:]
-    N[j,:]  =   -conj(s) * M[i,:] + conj(c) * M[j,:]
+    N[i,:]  =  round.(c * M[i,:] + s * M[j,:], digits=16)
+    N[j,:]  =   round.(-conj(s) * M[i,:] + conj(c) * M[j,:], digits=16)
     N
 end
 
-function *(M::Matrix, a::AbstractRotator)
+function *(M::AbstractArray, a::AbstractRotator)
     c, s = vals(a)
     i = idx(a); j = i+1
      N = copy(M)
     N[:, i] = c * M[:,i] - conj(s) * M[:,j]
-    N[:, j] = s * M[:,i] +   conj(c)  * M[:,j]
+    N[:, j] = s * M[:,i] + conj(c) * M[:,j]
     N
 end
 *(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform} = foldr(*, Qs, init=M)

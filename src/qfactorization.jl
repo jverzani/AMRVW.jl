@@ -45,6 +45,16 @@ function Base.getindex(QF::AbstractQFactorization, j, k)
 end
 
 
+function Base.Matrix(QF::QFactorization{T, Rt}) where {T, Rt}
+    S = Rt == RealRotator{T} ? T : Complex{T}
+    n = length(QF) + 1
+    M = diagm(0 => ones(S, n))
+    D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
+    D = D*M
+    QF.Q * D
+end
+
+
 
 
 ##################################################

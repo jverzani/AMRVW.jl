@@ -15,14 +15,7 @@ printtp(x) = println(sprint(io -> show(io, "text/plain", x)))
 ## Multiplication of rotators
 ## This is useful for diagnostics
 
-*(A::AbstractRotatorChain, M::Array) = A.x * M
 
-
-*(D::SparseDiagonal, M::Matrix) = diagm(0=>D.x) * M
-*(M::Matrix, D::SparseDiagonal)  = M * diagm(0=>D.x)
-
-*(D::IdentityDiagonal, M::Matrix) = M
-*(M::Matrix, D::IdentityDiagonal) = M
 
 
 ### Random rotators are useful for testing
@@ -47,69 +40,11 @@ end
 
 tilde(A) = A[1:end-1, 1:end-1]
 
-Base.Matrix(IdentityRFactorization) = I
-
-function Base.Matrix(RF::RFactorization{T, Rt}) where {T, Rt}
-    S = Rt == RealRotator{T} ? T : Complex{T}
-
-    n = length(RF) + 1
-
-    M = diagm(0 => ones(S, n))
-    e1 = vcat(1, zeros(S, n-1))
-    en1 = vcat(zeros(S,n-1), 1)
-    en = vcat(zeros(S,n-2), 1, 0)
-
-    ## compute yt
-    Ct, B = RF.Ct, RF.B
-    D = isa(RF.D, IdentityDiagonal) ? I : diagm(0=>RF.D.x)
-    D = D * M
-    rho = (en1' * (Ct * M) * e1)
-    yt = -(1/rho * en1' * (Ct*(B*D)))
-
-    # Compute R
-    R =  tilde( (Ct * (B * D)) +  (Ct * (e1 * yt)) )
-end
-
-
-function Base.Matrix(RF::ZFactorization)
-    V = Matrix(RF.V)
-    W = Matrix(RF.W)
-    V * inv(W)
-end
-
-function Base.Matrix(QF::QFactorization{T, Rt}) where {T, Rt}
-    S = Rt == RealRotator{T} ? T : Complex{T}
-    n = length(QF) + 2  ## note 2
-    @show n
-    M = diagm(0 => ones(S, n))
-    D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
-    D = D*M
-    tilde( QF.Q * D )
-end
-
-
-function Base.Matrix(QF::QFactorizationTwisted{T, Rt}) where {T, Rt}
-
-    S = Rt == RealRotator{T} ? T : Complex{T}
-    n = length(QF) + 1
-    M = diagm(0 => ones(S, n))
-    D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
-    D = D*M
-    return QF.Q * D
-    tilde( QF.Q * D)
-
-end
 
 
 
-# return A
-function Base.Matrix(state::AbstractFactorizationState)
 
-    Q = Matrix(state.QF)
-    R = Matrix(state.RF)
-    return Q * R
 
-end
 
 # simple graphic to show march of algorithm
 function show_status(state)

@@ -37,6 +37,27 @@ struct RFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}}
   D::AbstractSparseDiagonalMatrix{T, Rt}
 end
 
+function Base.Matrix(RF::RFactorization{T, Rt}) where {T, Rt}
+    S = Rt == RealRotator{T} ? T : Complex{T}
+
+    n = length(RF) + 1
+
+    M = diagm(0 => ones(S, n))
+    e1 = vcat(1, zeros(S, n-1))
+    en1 = vcat(zeros(S,n-1), 1)
+    en = vcat(zeros(S,n-2), 1, 0)
+
+    ## compute yt
+    Ct, B = RF.Ct, RF.B
+    D = isa(RF.D, IdentityDiagonal) ? I : diagm(0=>RF.D.x)
+    D = D * M
+    rho = (en1' * (Ct * M) * e1)
+    yt = -(1/rho * en1' * (Ct*(B*D)))
+
+    # Compute R
+    R =   (Ct * (B * D)) +  (Ct * (e1 * yt))
+end
+
 
 
 ## getindex
@@ -180,6 +201,7 @@ end
 
 
 Base.getindex(RF::IdentityRFactorization, i, j) = i==j ? one(RF) : zero(RF)
+Base.Matrix(IdentityRFactorization) = I
 
 passthrough!(RF::IdentityRFactorization, U::AbstractRotator) = U
 passthrough!(U::AbstractRotator, RF::IdentityRFactorization) = U
@@ -194,7 +216,10 @@ simple_passthrough!(RF::IdentityRFactorization, U::AbstractRotator, V::AbstractR
 ##################################################
 ## Just an upper triangular matrix; no factorization
 abstract type AbstractRNoFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}} end
+
 simple_passthrough!(RF::AbstractRNoFactorization, U::AbstractRotator) = false
+simple_passthrough!(RF::AbstractRNoFactorization, U::AbstractRotator, V::AbstractRotator) = false
+
 function Base.getindex(RF::AbstractRNoFactorization, i, j)
     if i > 0 && j > 0
         RF.R[i,j]
@@ -220,14 +245,27 @@ RNoFactorization(R::Array{Complex{T},2}) where {T <: Real} = RNoFactorizationCom
 function passthrough!(U::Rt, RF::AbstractRNoFactorization) where {Rt <: AbstractRotator}
 
     R = RF.R
-    i = idx(U)
+    n = size(R)[2]
+    i = idx(U); j = i+1
 
-    R .= U * R
+#    R .= U * R
+    c,s = vals(U)
+    for k in i:n
+        rik, rjk =  R[i,k],  R[k,k]
+        R[i,k] = c * rik + s * rjk
+        R[j,k] = -conj(s) * rik + conj(c) * rjk
+    end
 
     g2 = givens(R[i+1,i], R[i+1,i+1],1,2)[1]
     c, s = conj(g2.s), real(g2.c)
     V = Rt(c,s,i)
-    R .= R*V
+#    R .= R*V
+    for k in 1:j
+        rki, rkj =  R[k,i], R[k,j]
+        R[k, i] = c * rki - conj(s) * rkj
+        R[k, j] = s * rki + conj(c) * rkj
+    end
+    R[j,i] = zero(eltype(R))
     V'
 
 end
@@ -236,13 +274,28 @@ end
 function passthrough!(RF::AbstractRNoFactorization, V::Rt) where {Rt <: AbstractRotator}
 
     R = RF.R
-    i = idx(V)
+    n = size(R)[2]
 
-    R .= R * V
+
+    #R .= R * V
+    c, s = vals(V)
+    i = idx(V); j = i+1
+    for k in 1:j
+        rki, rkj =  R[k,i], R[k,j]
+        R[k,i] = c * rki - conj(s) * rkj
+        R[k,j] = s * rki + conj(c) * rkj
+    end
+
 
     g2 = givens(R[i+1,i], R[i,i],1,2)[1]
     c, s = g2.s, real(g2.c)
     U = Rt(c,s,i)
-    R .= U * R
+    #R .= U * R
+    for k in i:n
+        rik, rjk = R[i,k], R[j,k]
+        R[i,k ]  = c * rik + s * rjk
+        R[j, k]  = -conj(s) * rik + conj(c) * rjk
+    end
+    R[j,i] = zero(eltype(R))
     U'
 end

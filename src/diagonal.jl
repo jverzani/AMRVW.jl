@@ -25,6 +25,16 @@ sparse_diagonal(::Type{S}, N) where {S} = SparseDiagonal{real(S)}(N)
 
 Base.@propagate_inbounds Base.setindex!(D::SparseDiagonal, X, inds...) = setindex!(D.x, X, inds...)
 
+
+
+
+*(D::SparseDiagonal, M::Matrix) = diagm(0=>D.x) * M
+*(M::Matrix, D::SparseDiagonal)  = M * diagm(0=>D.x)
+
+*(D::IdentityDiagonal, M::Matrix) = M
+*(M::Matrix, D::IdentityDiagonal) = M
+
+
 function fuse!(Di::DiagonalRotator, D::SparseDiagonal)
     i = idx(Di)
     alpha, _ = vals(Di)

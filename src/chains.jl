@@ -17,6 +17,9 @@ Base.deleteat!(A::AbstractRotatorChain, j) = deleteat!(A.x, j)
 
 Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
 Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
+*(A::AbstractRotatorChain, M::Array) = A.x * M
+*(M::Array, A::AbstractRotatorChain) = M * A.x
+
 
 struct DescendingChain{T} <: AbstractRotatorChain{T}
   x::Vector{T}
@@ -175,6 +178,7 @@ function Base.Vector(Tw::TwistedChain)
 end
 
 *(A::TwistedChain, M::Array) = Vector(A) * M
+*(M::Array, A::TwistedChain) = M * Vector(A)
 
 ## Constructor of a chain
 function Chain(xs::Vector{T}) where  {T}

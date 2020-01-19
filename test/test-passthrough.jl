@@ -113,12 +113,12 @@ end
 
     ## Twisted
     for i in 1:6
-        Ms = A.random_rotator.(Rt,  [2,3,4,5])
+        Ms = A.TwistedChain(A.random_rotator.(Rt,  [2,3,4,5]))
         D =  A.sparse_diagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * diagm(0 => D.x))
 
-        A.passthrough_phase!(Di, A.TwistedChain(Ms), (), D)
+        A.passthrough_phase!(Di, Ms, (), D)
 
         M2 = Ms * diagm(0 => D.x)
         @test M1 - M2 |> round5  .|> iszero |> all
@@ -126,12 +126,12 @@ end
 
     ##
     for i in 1:6
-        Ms = A.random_rotator.(Rt,  [5,4,3,2])
+        Ms = A.TwistedChain(A.random_rotator.(Rt,  [5,4,3,2]))
         D =  A.sparse_diagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * diagm(0 => D.x))
 
-        A.passthrough_phase!(Di, A.TwistedChain(Ms), (), D)
+        A.passthrough_phase!(Di, Ms, (), D)
 
         M2 = Ms * diagm(0 => D.x)
         @test M1 - M2 |> round5  .|> iszero |> all
@@ -139,13 +139,13 @@ end
 
     ## CMV
     for i in 1:6
-        Ms = A.random_rotator.(Rt,  [2,4,3,5]) # XX
+        Ms = A.TwistedChain(A.random_rotator.(Rt,  [2,4,3,5])) # XX
         Des = A.random_rotator.(Rt,  [1,2,3,4,5])
         D =  A.sparse_diagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * (Des *diagm(0 => D.x)))
 
-        A.passthrough_phase!(Di, A.TwistedChain(Ms), (A.DescendingChain(Des),), D)
+        A.passthrough_phase!(Di, Ms, (A.DescendingChain(Des),), D)
 
         M2 = Ms * (Des * diagm(0 => D.x))
         @test M1 - M2 |> round5  .|> iszero |> all
@@ -154,13 +154,13 @@ end
     ##
     for i in 1:6
 
-        Ms = A.random_rotator.(Rt,  [3,2,4,5]) # XXX 5 is issue
+        Ms = A.TwistedChain(A.random_rotator.(Rt,  [3,2,4,5])) # XXX 5 is issue
         Des = A.random_rotator.(Rt,  [1,2,3,4,5])
         D =  A.sparse_diagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * (Des * diagm(0 => D.x)))
 
-        A.passthrough_phase!(Di, A.TwistedChain(Ms), (A.DescendingChain(Des),), D)
+        A.passthrough_phase!(Di, Ms, (A.DescendingChain(Des),), D)
 
         M2 = Ms * (Des * diagm(0 => D.x))
         @test M1 - M2 |> round5  .|> iszero |> all

@@ -12,7 +12,7 @@ pc = [0.0 + 1.0im, -1.0 + 0.0im, 0.0 + 0.0im, 0.0 + 0.0im, 0.0 - 1.0im, 1.0 + 0.
 
 # could compare many ways
 
-compare_eigenvalues(M1, M2) = norm(prod(eigvaes(M1)) - prod(eigvals(M2))) <= sqrt(eps())
+compare_eigenvalues(M1, M2) = norm(prod(eigvals(M1)) - prod(eigvals(M2))) <= sqrt(eps())
 
 
 @testset "twisted-bulge-step-any-m" begin

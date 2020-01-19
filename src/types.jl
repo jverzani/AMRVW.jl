@@ -69,3 +69,26 @@ function qrfactorization(N,
 end
 
 Base.length(state::AbstractFactorizationState) = state.N
+
+
+# return A
+function Base.Matrix(state::AbstractFactorizationState)
+
+    Q = Matrix(state.QF)
+    R = Matrix(state.RF)
+
+    ## May have Q smaller than  R, so will pad in that case
+    if R != I
+        m,n =  size(Q)[1], size(R)[1]
+        if m < n
+            QQ = diagm(0 => ones(eltype(Q), n))
+            QQ[1:m, 1:m] .= Q
+            return  QQ  *  R
+        else
+            return Q * R
+        end
+    else
+        return Q
+    end
+
+end

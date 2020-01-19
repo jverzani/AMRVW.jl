@@ -38,6 +38,15 @@ function Base.getindex(QF::QFactorizationTwisted, j, k)
     QF.Q[j,k] * (k == 0 ? 0 : QF.D[k])
 end
 
+function Base.Matrix(QF::QFactorizationTwisted{T, Rt}) where {T, Rt}
+
+    S = Rt == RealRotator{T} ? T : Complex{T}
+    n = length(QF) + 1
+    M = diagm(0 => ones(S, n))
+    D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
+    D = D*M
+    return Vector(QF.Q) * D
+end
 
 
 ##################################################
@@ -82,10 +91,23 @@ function diagonal_block(state::QRFactorizationTwisted{T, S, Rt, QFt, RFt}, k) wh
     return nothing
 end
 
+# Identify m shifts by taking the eigenvalues of the lower  m x m matrix, where k specifies the bottom corner of this matrix
+# approximate=true only constructs an approximate  part of the m x m matrix using just the lower rotators
+function find_shifts(state::QRFactorizationTwisted{T, S, Rt, QFt, RFt}, m, k; approximate=true) where {T,  S, Rt, QFt,  RFt}
+end
+
+function _create_bulge(state, shifts)
+
+end
+
+
+
 function eigvals(state::QRFactorizationTwisted)
 
     new_state = AMRVW_algorithm(state)
-    complex.(new_state.REIGS, new_state.IEIGS)
+    es = complex.(new_state.REIGS, new_state.IEIGS)
+    LinearAlgebra.sorteig!(es)
+    es
 
 end
 
@@ -93,20 +115,19 @@ end
 ## We have the first n-m  steps through, a straightening out of the twisted factorization in QF,
 ## This should be  O(n^2) steps
 ## Then, once untwisted, we pass down to the more efficient O(n^2) algorithm (in time) to solve
-function AMRVW_algorithm(state::QRFactorizationTwisted{T, Rt}) where  {T, Rt}
+function AMRVW_algorithm(state::QRFactorizationTwisted{T, S, Rt, QFt, RFt}) where  {T, S, Rt, QFt, RFt}
 
     Ms = state.QF.Q.x # the vector
     pv = state.QF.Q.pv
     n = length(Ms)
     stop_ctr = n
-
-    m = isa(Rt, RealRotator{T})  ? 2 : 1
+    m = (T == S) ? 2 : 1
 
     N0 = findlast(x->x==:right, pv)
     N = N0 == nothing ? 1 : N0
 
 
-    for _ in 1:(N+2-m)
+    while N >= 0
 
         bulge_step(state)
 
@@ -115,14 +136,20 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, Rt}) where  {T, Rt}
         if abs(s) <= eps(T)
             state.ctrs.stop_index -= 1
         end
+
+        N -= m
     end
 
     # now untwisted, so we can change over
     QF = state.QF
     Ms = QF.Q.x
-    QF_new = QFactorization(DescendingChain(Ms), QF.D, Vector{eltype(Ms)}(undef, 1))
+    if (T == S)
+        QF_new = QFactorizationReal(DescendingChain(Ms), QF.D, Vector{eltype(Ms)}(undef, 1))
+    else
+        QF_new = QFactorizationComplex(DescendingChain(Ms), QF.D, Vector{eltype(Ms)}(undef, 1))
+    end
 
-    new_state = qrfactorization(state.N, QF_new, state.RF)
+    new_state = qrfactorization(state.N+1, QF_new, state.RF)
     AMRVW_algorithm(new_state)
     new_state
 

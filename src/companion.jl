@@ -134,7 +134,7 @@ function q_factorization(xs::Vector{S}) where {S}
     W = Rotator(zs, ot, 1)  # only needed for RealRotator case, when the limb has length 1
     #return QFactorization(Q, D, [W])
     if S <: Real
-        return QFactorizationReal(Q, D, [W])
+        return QFactorizationReal(Q, D, [W,W])
     else
         QFactorizationComplex(Q, D, [W])
     end
@@ -179,7 +179,7 @@ end
 
 Computes a sparse factorization of of the companion matrix of a polynomial specified througha  pencil decomposition.
 
-A pencil decomposition of a polynomial, is a specificaiton where
+A pencil decomposition of a polynomial, is a specification where
 if `p = a0 + a1x^1 + ... + xn x^n`
 then
 `vs[1] = a0`,
@@ -263,7 +263,9 @@ function roots(ps::Vector{S}) where {S}
         append!(state.IEIGS, ZS)
     end
 #@show "done"
-    complex.(state.REIGS, state.IEIGS)
+    rts = complex.(state.REIGS, state.IEIGS)
+    LinearAlgebra.sorteig!(rts)
+    rts
 end
 
 ## A Pencil algorithm

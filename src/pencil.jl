@@ -10,6 +10,12 @@ V::RFactorization{T, Rt}
 W::RFactorization{T, Rt}
 end
 
+function Base.Matrix(RF::ZFactorization)
+    V = Matrix(RF.V)
+    W = Matrix(RF.W)
+    V * inv(W)
+end
+
 ## VV = [Sym("v$i$j") for i in ("i","j","k"), j in ("i","j","k")] |> triu
 ## WW = [Sym("w$i$j") for i in ("i","j","k"), j in ("i","j","k")] |> triu
 ## VV * inv(WW)[:,3]

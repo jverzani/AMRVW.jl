@@ -74,7 +74,9 @@ end
 ## Find eigenvalues from factorization
 function LinearAlgebra.eigvals(state::QRFactorization, args...)
     AMRVW_algorithm(state)
-    complex.(state.REIGS, state.IEIGS)
+    es = complex.(state.REIGS, state.IEIGS)
+    LinearAlgebra.sorteig!(es)
+    es
 end
 
 

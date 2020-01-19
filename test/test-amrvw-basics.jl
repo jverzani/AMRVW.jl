@@ -148,7 +148,7 @@ end
             @test norm(y[2:end]) <= sqrt(eps(T))
 
             # Matrix gives correct eigenvalues
-            F = A.Matrix(state)
+            F = A.Matrix(state)[1:end-1,  1:end-1]
             rts = sort(eigvals(F))
             @test norm(sort(eigvals(F))  .- [1:d...] ) <= sqrt(eps(T))
 
@@ -194,7 +194,7 @@ end
             @test norm(y[2:end]) <= sqrt(eps(T))
 
             # Matrix gives correct eigenvalues
-            F = Matrix(state)
+            F = Matrix(state)[1:end-1, 1:end-1]
             rts = csort(eigvals(F))
             @test norm(csort(round2(eigvals(F)))  .- S[-1,-im,im,im,1] ) <= sqrt(eps(T))
 
@@ -217,14 +217,13 @@ end
             state = A.amrvw(p)
             A.bulge_step(state)
             d = length(p)-1
-            F = A.Matrix(state)
+            F = A.Matrix(state)[1:end-1, 1:end-1]
             rts = sort(eigvals(F))
             @test norm(sort(eigvals(F))  .- [1:d...] ) <= 100sqrt(eps(T))
 
             A.bulge_step(state)
             allocs = @allocated A.bulge_step(state)
-            @show allocs
-#            @test allocs == 0
+            @test allocs == 0
         end
     end
 
@@ -234,8 +233,7 @@ end
             state = A.amrvw(p)
             A.bulge_step(state)
             allocs = @allocated A.bulge_step(state)
-            @show allocs
-#            @test allocs == 0
+            @test allocs == 0
         end
     end
 end
