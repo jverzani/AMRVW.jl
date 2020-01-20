@@ -225,7 +225,7 @@ The `AMRVW.jl` package allows some other applications, though the exact interfac
 If we take rotators $Q_1, Q_2, \dots, Q_k$ their product will be upper Hessenberg:
 
 ```
-Qs = A.random_rotator.(A.RealRotator{Float64}, [1,2,3,4])
+Qs = A.random_rotator.(Float64, [1,2,3,4])
 ```
 
 ```
@@ -243,13 +243,12 @@ But the sparse representation can be used to also find such eigenvalues:
 
 ```
 T = Float64
-Rt = A.RealRotator{Float64}
 N = 5
-D = A.sparse_diagonal(T, N)
-QF = A.QFactorizationReal(A.DescendingChain(Qs), D, Qs[1:2])
+D = A.SparseDiagonal(T, N)
+QF = A.QFactorization(A.DescendingChain(Qs), D)
 
-RF = A.IdentityRFactorization{T,Rt}()
-state = A.qrfactorization(N, QF, RF)
+RF = A.RFactorizationIdentity{T,T}()
+state = A.QRFactorization(QF, RF)
 Matrix(state) |> round2 # same as F
 ```
 
@@ -272,7 +271,7 @@ F = triu(rand(5,5), -1)  # upper Hessenberg
 
 ```
 c,s,r = A.givensrot(F[1,1], F[2,1])
-U1 = A.RealRotator(c,s,1)
+U1 = A.Rotator(c,s,1)
 U1 * F |> round2
 ```
 
@@ -287,7 +286,7 @@ Us = Any[]
 G = copy(F)
 for i in 1:4
   c,s,r = A.givensrot(G[i,i], G[i+1,i])
-  Ui =  A.RealRotator(c,s,i)
+  Ui =  A.Rotator(c,s,i)
   pushfirst!(Us, Ui)
   G .= Ui * G
 end
@@ -299,12 +298,12 @@ With this, we can do the following:
 
 ```
 N = 5
-D = A.sparse_diagonal(T, N)
-QF = A.QFactorizationReal(A.DescendingChain(Qs), D, Qs[1:2])
+D = A.SparseDiagonal(T, N)
+QF = A.QFactorization(A.DescendingChain(Qs), D)
 
-RF = A.RNoFactorization(R)
-state = A.qrfactorization(N, QF, RF)
-Matrix(state)  -F |> round2# same as F
+RF = A.RFactorizationUpperTriangular(R)
+state = A.QRFactorization(QF, RF)
+Matrix(state)  - F |> round2# same as F
 ```
 
 And
@@ -321,13 +320,12 @@ With this patttern, we might provide an `eigvals` for `Hessenberg` matrices:
 function LinearAlgebra.eigvals(H::Hessenberg)
 R = Matrix(H.H) # need this for R
 S = eltype(R)
-Rt = S <: Complex ? A.ComplexRealRotator{Real(S)} : A.RealRotator{S}
 T = real(S)
 N = size(R)[1]
-Qs = Vector{Rt}(undef, N-1)
+Qs = Vector{A.Rotator{T,S}}(undef, N-1)
 for i in 1:N-1
   c,s,r = A.givensrot(R[i,i], R[i+1,i])
-  Ui =  Rt(c,s,i)
+  Ui =  A.Rotator(c,s,i)
   Qs[i] = Ui'
   for k in i:N
     rik, rjk =  R[i,k],  R[i+1,k] # non-allocating multiplication Ui*R
@@ -335,10 +333,10 @@ for i in 1:N-1
     R[i+1,k]  = -conj(s) * rik + conj(c) * rjk
 	end
 end
-D = A.sparse_diagonal(S, N)
-QF = A.QFactorizationReal(A.DescendingChain(Qs), D, Qs[1:2])
-RF = A.RNoFactorization(R)
-state = A.qrfactorization(N, QF, RF)
+D = A.SparseDiagonal(S, N)
+QF = A.QFactorization(A.DescendingChain(Qs), D)
+RF = A.RFactorizationUpperTriangular(R)
+state = A.QRFactorization(QF, RF)
 eigvals(state)
 end
 ```
@@ -357,12 +355,12 @@ The product of a descending chain of rotators is upper Hessenberg and the produc
 
 ```
 N = 4
-T = Float64; S = Complex{T}
+T = Float64; S = T # real case here
 M = diagm(0 => ones(N+1))
 Qs = A.random_rotator.(T, [4,3,2,1])
 F = Qs * M
 
-D = A.SparseDiagonal(T,N)
+D = A.SparseDiagonal(T,N+1)
 QF = A.QFactorizationTwisted(A.TwistedChain(Qs), D)
 RF = A.RFactorizationIdentity{T,S}()
 state = A.QRFactorization(QF, RF)
@@ -375,13 +373,13 @@ Here is another example with a CMV pattern to the twisted
 ```
 N = 5
 M = diagm(0 => ones(N+1))
-Qs = A.random_rotator.(Rt, [1,3,5,2,4])
+Qs = A.random_rotator.(T, [1,3,5,2,4])
 F = Qs * M
 
-D = A.sparse_diagonal(T,N)
+D = A.SparseDiagonal(T,N)
 QF = A.QFactorizationTwisted(A.TwistedChain(Qs), D)
-RF = A.IdentityRFactorization{T,Rt}()
-state = A.qrfactorization(N, QF, RF)
+RF = A.RFactorizationIdentity{T, S}()
+state = A.QRFactorization(QF, RF)
 
 [eigvals(state) eigvals(F)]
 ```
