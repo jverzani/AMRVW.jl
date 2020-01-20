@@ -27,7 +27,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
         a,b = rand(T, 2)
         c,s,r = A.givensrot(a,b)
         M =  diagm(0 => ones(T, 2))
-        Rx = (A.RealRotator(c,s,1)*M) * [a,b]
+        Rx = (A.Rotator(c,s,1)*M) * [a,b]
         @test abs(Rx[2]) <= sqrt(eps(T))
     end
 
@@ -35,7 +35,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     for T in Ts
         M = diagm(0 => ones(T, 4))
         for i in 1:10
-            U,V,W  = A.random_rotator.(A.RealRotator{T}, [2,3,2])
+            U,V,W  = A.random_rotator.(T, [2,3,2])
             U1, V1, W1 = A.turnover(U,V,W)
             @test all(isapprox.([U1,V1,W1]*M , [U,V,W]*M, atol=4eps(T)))
         end
@@ -44,9 +44,9 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
 
     ## fuse
     for T in Ts
-        U,V  = A.random_rotator.(A.RealRotator{T}, [2,2])
+        U,V  = A.random_rotator.(T, [2,2])
         M = diagm(0 => ones(T, 4))
-        UV = A.fuse(U,V)
+        UV, Di = A.fuse(U,V)
         @test all(isapprox.(UV*M, [U,V]*M, atol=2eps(T)))
     end
 
@@ -57,7 +57,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
         a,b = rand(Complex{T}, 2)
         c,s,r = A.givensrot(a,b)
         M =  diagm(0 => ones(Complex{T}, 2))
-        Rx = (A.ComplexRealRotator(c,s,1)*M) * [a,b]
+        Rx = (A.Rotator(c,s,1)*M) * [a,b]
         @test abs(Rx[2]) <= sqrt(eps(T))
     end
 
@@ -65,11 +65,11 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     ### a special case that had caused issues
     T = Float64
     S = Complex{T}
-    U = A.ComplexRealRotator{T}(-0.9990813749617048 + 0.042846941864777804im,
+    U = A.Rotator(-0.9990813749617048 + 0.042846941864777804im,
                                    -0.0007387675316362891, 2)
-    V = A.ComplexRealRotator{T}(0.20398474677465908 - 0.08295034712193844im,
+    V = A.Rotator(0.20398474677465908 - 0.08295034712193844im,
                                          -0.9754534653153004, 1)
-    W = A.ComplexRealRotator{T}(0.03541646337113308 + 0.28843087042807297im,
+    W = A.Rotator(0.03541646337113308 + 0.28843087042807297im,
                                    -0.9568454980331911, 2)
 
     M = diagm(0 => ones(Complex{T}, 4))
@@ -79,7 +79,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     for T in Ts
         M = diagm(0 => ones(Complex{T}, 4))
         for i in 1:10
-            U,V,W  = A.random_rotator.(A.ComplexRealRotator{T}, [2,3,2])
+            U,V,W  = A.random_rotator.(T, [2,3,2])
             U1, V1, W1 = A.turnover(U,V,W)
             @test norm([U,V,W]*M - [U1,V1,W1]*M) <= sqrt(eps(T))
         end
@@ -87,9 +87,10 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
 
     ## when terms are 0
     for T in Ts
-        M = diagm(0 => ones(Complex{T}, 3))
+        S = Complex{T}
+        M = diagm(0 => ones(S, 3))
 
-        V,W = A.random_rotator.(A.ComplexRealRotator{T}, [2,1])
+        V,W = A.random_rotator.(S, [2,1])
         a,b =  sincos(T(pi/4))
         U = A.Rotator(complex(a,b), zero(T), 1)
 
@@ -97,7 +98,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
         U1, V1, W1 = A.turnover(U,V,W)
         @test all(isapprox.([U1,V1,W1]*M , [U,V,W]*M, atol=4eps(T)))
 
-        U,W  = A.random_rotator.(A.ComplexRealRotator{T}, [1,1])
+        U,W  = A.random_rotator.(S, [1,1])
         a,b =  sincos(T(pi/4))
         V = A.Rotator(complex(a,b), zero(T), 2)
 
@@ -105,7 +106,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
         U1, V1, W1 = A.turnover(U,V,W)
         @test all(isapprox.([U1,V1,W1]*M , [U,V,W]*M, atol=4eps(T)))
 
-        U,V = A.random_rotator.(A.ComplexRealRotator{T}, [1,2])
+        U,V = A.random_rotator.(S, [1,2])
         a,b =  sincos(T(pi/4))
         W = A.Rotator(complex(a,b), zero(T), 1)
 
@@ -117,8 +118,9 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
 
     ## fuse
     for T in Ts
-        U,V  = A.random_rotator.(A.ComplexRealRotator{T}, [2,2])
-        M = diagm(0 => ones(Complex{T}, 4))
+        S = Complex{T}
+        U,V  = A.random_rotator.(S, [2,2])
+        M = diagm(0 => ones(S, 4))
         UV,Di = A.fuse(U,V)
         alpha = Di.c
         D = diagm(0 => [1, alpha, conj(alpha), 1])

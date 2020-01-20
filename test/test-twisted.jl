@@ -22,17 +22,17 @@ compare_eigenvalues(M1, M2) = norm(prod(eigvals(M1)) - prod(eigvals(M2))) <= sqr
 
     ## Real first
     T = Float64
-    S = T; Rt = A.RealRotator{T}
-    D = A.IdentityDiagonal{T}()
+    S = T;
+    D = A.SparseDiagonal(T, 0)
 
     for m in 1:N-1
         @assert 0 < m < N
 
         ps = randperm(N)
-        Ms = A.TwistedChain(A.random_rotator.(Rt, ps))
-        Asc = A.random_rotator.(Rt, m:-1:1)
+        Ms = A.TwistedChain(A.random_rotator.(T, ps))
+        Asc = A.random_rotator.(T, m:-1:1)
 
-        RF = A.IdentityRFactorization{T, Rt}()
+        RF = A.RFactorizationIdentity{T, S}()
         M = diagm(0 => ones(S, N+1))
         M1 = Ms * M
         A.bulge_step!(Ms, D, RF, Asc)
@@ -44,15 +44,14 @@ compare_eigenvalues(M1, M2) = norm(prod(eigvals(M1)) - prod(eigvals(M2))) <= sqr
 
     ## complex
     S = Complex{T}
-    Rt = A.ComplexRealRotator{T}
-    D =  A.sparse_diagonal(S,N+1)
+    D =  A.SparseDiagonal(S,N+1)
 
     for m in 1:N-1
         ps = randperm(N)
-        Ms = A.TwistedChain(A.random_rotator.(Rt, ps))
-        Asc = A.random_rotator.(Rt, m:-1:1)
+        Ms = A.TwistedChain(A.random_rotator.(S, ps))
+        Asc = A.random_rotator.(S, m:-1:1)
 
-        RF = A.IdentityRFactorization{T, Rt}()
+        RF = A.RFactorizationIdentity{T, S}()
         M = diagm(0 => ones(S, N+1))
         M1 = Ms * M
 
@@ -74,7 +73,7 @@ end
     N = length(Q)
     Q.x[randperm(N)] = Q.x[:]
     QF = A.QFactorizationTwisted(A.TwistedChain(Q.x), D)
-    state = A.qrfactorization(length(p6)-1, QF, RF)
+    state = A.QRFactorization(QF, RF)
     es = eigvals(state)
     LinearAlgebra.sorteig!(es)
     ### maximum(norm.(es - eigvals(Q.x * Matrix(RF)))) < sqrt(eps())

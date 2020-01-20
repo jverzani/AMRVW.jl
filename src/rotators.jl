@@ -27,8 +27,8 @@ function *(a::AbstractRotator, M::AbstractArray)
     c, s = vals(a)
     i = idx(a); j = i+1
     N = copy(M)
-    N[i,:]  =  round.(c * M[i,:] + s * M[j,:], digits=16)
-    N[j,:]  =   round.(-conj(s) * M[i,:] + conj(c) * M[j,:], digits=16)
+    N[i,:]  =  c * M[i,:] + s * M[j,:]
+    N[j,:]  =  -conj(s) * M[i,:] + conj(c) * M[j,:]
     N
 end
 

@@ -31,7 +31,7 @@ end
 # passthrough Us -> R
 function passthrough!(Us::Union{AscendingChain, DescendingChain}, RF::AbstractRFactorization)
     for i in length(Us.x):-1:1
-         U.x[i] =  passthrough!(Us.x[i], RF)
+         Us.x[i] =  passthrough!(Us.x[i], RF)
     end
 end
 

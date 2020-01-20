@@ -7,22 +7,22 @@ using LinearAlgebra
 
     T = Float64
     S = Complex{T}
-    Rt = A.ComplexRealRotator{T}
+
 
     # check passthorugh! with Desc; Asc; and Twisted
     N = 10
-    Des = A.random_rotator.(Rt, 1:N) |> A.DescendingChain
-    Asc = A.random_rotator.(Rt, N:-1:1) |> A.AscendingChain
-    #Tw = A.random_rotator.(Rt, 0 .+ reverse([1,3,2,4,7,6,5 ])) |> A.TwistedChain
-    Tw = A.random_rotator.(Rt, 0 .+ reverse([3,4,7,6,5 ])) |> A.TwistedChain
+    Des = A.random_rotator.(S, 1:N) |> A.DescendingChain
+    Asc = A.random_rotator.(S, N:-1:1) |> A.AscendingChain
+    #Tw = A.random_rotator.(S, 0 .+ reverse([1,3,2,4,7,6,5 ])) |> A.TwistedChain
+    Tw = A.random_rotator.(S, 0 .+ reverse([3,4,7,6,5 ])) |> A.TwistedChain
 
     M = diagm(0 => ones(S, N+1))
 
     ## We have Ascending, Descending, and Twisted to check
     N = 10
-    Des = A.random_rotator.(Rt, 1:N) |> A.DescendingChain
-    Asc = A.random_rotator.(Rt, N-1:-1:1) |> A.AscendingChain
-    Tw = A.random_rotator.(Rt, 0 .+ reverse([3,4,7,6,5 ])) |> A.TwistedChain
+    Des = A.random_rotator.(S, 1:N) |> A.DescendingChain
+    Asc = A.random_rotator.(S, N-1:-1:1) |> A.AscendingChain
+    Tw = A.random_rotator.(S, 0 .+ reverse([3,4,7,6,5 ])) |> A.TwistedChain
 
     # <--
     M1 = Des * (Tw * M)
@@ -55,22 +55,22 @@ using LinearAlgebra
     M2 = Asc * (Des * M)
     @test M1 - M2 .|> round5 .|> iszero |> all
 
-    Des = A.random_rotator.(Rt, 1:N-1) |> A.DescendingChain
-    Asc = A.random_rotator.(Rt, N:-1:1) |> A.AscendingChain
+    Des = A.random_rotator.(S, 1:N-1) |> A.DescendingChain
+    Asc = A.random_rotator.(S, N:-1:1) |> A.AscendingChain
     M1 = Des * (Asc * M)
     A.passthrough!(Des, Asc)
     M2 = Asc * (Des * M)
     @test M1 - M2 .|> round5 .|> iszero |> all
 
-    Des = A.random_rotator.(Rt, 1:N) |> A.DescendingChain
-    Asc = A.random_rotator.(Rt, N:-1:2) |> A.AscendingChain
+    Des = A.random_rotator.(S, 1:N) |> A.DescendingChain
+    Asc = A.random_rotator.(S, N:-1:2) |> A.AscendingChain
     M1 = Asc * (Des * M)
     A.passthrough!(Asc, Des)
     M2 = Des * (Asc * M)
     @test M1 - M2 .|> round5 .|> iszero |> all
 
-    Des = A.random_rotator.(Rt, 2:N) |> A.DescendingChain
-    Asc = A.random_rotator.(Rt, N:-1:1) |> A.AscendingChain
+    Des = A.random_rotator.(S, 2:N) |> A.DescendingChain
+    Asc = A.random_rotator.(S, N:-1:1) |> A.AscendingChain
     M1 = Asc * (Des * M)
     A.passthrough!(Asc, Des)
     M2 = Des * (Asc * M)
@@ -80,14 +80,14 @@ end
 @testset "passthrough_phase!"  begin
 
     # test passthrough_phase!
-    T = Float64; S = Complex{T}; Rt = A.ComplexRealRotator{T}
+    T = Float64; S = Complex{T};
     n = 4
 
     ## Descending
     for i in 1:6
-        Ms = A.random_rotator.(Rt,  [2,3,4])
-        Des = A.random_rotator.(Rt,  [1,2,3,4,5])
-        D =  A.sparse_diagonal(S,6+1)
+        Ms = A.random_rotator.(S,  [2,3,4])
+        Des = A.random_rotator.(S,  [1,2,3,4,5])
+        D =  A.SparseDiagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * (Des *diagm(0 => D.x)))
 
@@ -99,9 +99,9 @@ end
 
     ## Ascending
     for i in 1:6
-        Ms = A.random_rotator.(Rt,  [4,3,2])
-        Des = A.random_rotator.(Rt,  [1,2,3,4,5])
-        D =  A.sparse_diagonal(S,6+1)
+        Ms = A.random_rotator.(S,  [4,3,2])
+        Des = A.random_rotator.(S,  [1,2,3,4,5])
+        D =  A.SparseDiagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * (Des *diagm(0 => D.x)))
 
@@ -113,8 +113,8 @@ end
 
     ## Twisted
     for i in 1:6
-        Ms = A.TwistedChain(A.random_rotator.(Rt,  [2,3,4,5]))
-        D =  A.sparse_diagonal(S,6+1)
+        Ms = A.TwistedChain(A.random_rotator.(S,  [2,3,4,5]))
+        D =  A.SparseDiagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * diagm(0 => D.x))
 
@@ -126,8 +126,8 @@ end
 
     ##
     for i in 1:6
-        Ms = A.TwistedChain(A.random_rotator.(Rt,  [5,4,3,2]))
-        D =  A.sparse_diagonal(S,6+1)
+        Ms = A.TwistedChain(A.random_rotator.(S,  [5,4,3,2]))
+        D =  A.SparseDiagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * diagm(0 => D.x))
 
@@ -139,9 +139,9 @@ end
 
     ## CMV
     for i in 1:6
-        Ms = A.TwistedChain(A.random_rotator.(Rt,  [2,4,3,5])) # XX
-        Des = A.random_rotator.(Rt,  [1,2,3,4,5])
-        D =  A.sparse_diagonal(S,6+1)
+        Ms = A.TwistedChain(A.random_rotator.(S,  [2,4,3,5])) # XX
+        Des = A.random_rotator.(S,  [1,2,3,4,5])
+        D =  A.SparseDiagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * (Des *diagm(0 => D.x)))
 
@@ -154,9 +154,9 @@ end
     ##
     for i in 1:6
 
-        Ms = A.TwistedChain(A.random_rotator.(Rt,  [3,2,4,5])) # XXX 5 is issue
-        Des = A.random_rotator.(Rt,  [1,2,3,4,5])
-        D =  A.sparse_diagonal(S,6+1)
+        Ms = A.TwistedChain(A.random_rotator.(S,  [3,2,4,5])) # XXX 5 is issue
+        Des = A.random_rotator.(S,  [1,2,3,4,5])
+        D =  A.SparseDiagonal(S,6+1)
         Di = A.DiagonalRotator(complex(sincos(rand())...), i)
         M1 = Di * (Ms * (Des * diagm(0 => D.x)))
 
