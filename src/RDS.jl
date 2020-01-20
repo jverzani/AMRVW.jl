@@ -11,7 +11,7 @@
 ## Ut * Vt * A * V * U in the DoubleShift Case
 ## This combines the Ut with A (or Ut, Vt, A into W,A)
 
-function absorb_Ut(state::AbstractFactorizationState{T,S, RealRotator{T}, QFt, RFt, Val{:not_twisted}}) where {T,S, QFt, RFt}
+function absorb_Ut(state::QRFactorization{T,S}) where {T,S <: Real}
 
     QF = state.QF
 
@@ -23,7 +23,7 @@ function absorb_Ut(state::AbstractFactorizationState{T,S, RealRotator{T}, QFt, R
 
     W = QF.Q[i]
 
-    p = i == 1 ? one(T) : get_parity(QF,i-1)
+    p = i == 1 ? one(S) : get_parity(QF,i-1)
 
     W = dflip(W, p)
     W, Ut, Vt = turnover(Ut, Vt, W)
@@ -31,7 +31,7 @@ function absorb_Ut(state::AbstractFactorizationState{T,S, RealRotator{T}, QFt, R
     Ut  = dflip(Ut, p)
 
     QF.Q[i] = Ut
-    QF.W[1] = W
+    state.W[1] = W
 
     return nothing
 end
@@ -40,7 +40,7 @@ end
 
 
 ## For double shift we have V then U
-function passthrough_triu(state::AbstractFactorizationState{T, S,RealRotator{T}, QFt, RFt, Twt}, dir::Val{:right}) where {T, S, QFt, RFt, Twt}
+function passthrough_triu(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Real}
 
     U, V = state.UV[1], state.UV[2]
     j = idx(V)
@@ -72,7 +72,7 @@ function passthrough_triu(state::AbstractFactorizationState{T, S,RealRotator{T},
 end
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
-function simple_passthrough!(RF::RFactorization{T, RealRotator{T}}, U, V) where {T}
+function simple_passthrough!(RF::RFactorizationRankOne{T, S}, U, V) where {T, S <: Real}
 
     j = idx(V)
     N = length(RF)
@@ -83,7 +83,7 @@ function simple_passthrough!(RF::RFactorization{T, RealRotator{T}}, U, V) where 
     for k in -1:1
         a,b = vals(RF.B[j+k])
         jj = N+1-(j+k)
-        RF.Ct[jj] = RealRotator(a, -b, j+k)  ## adjoint
+        RF.Ct[jj] = Rotator(a, -b, j+k)  ## adjoint
     end
 
     true
@@ -96,19 +96,17 @@ end
 ##
 ## If we update indices and use a unitary transform, return false (not absorbed)
 ## else return true (was absorved)
-function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QFt, RFt, Twt}, dir::Val{:right}) where {T, S, QFt, RFt, Twt}
+function passthrough_Q(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Real}
 
     QF = state.QF
-    U, V, W = state.UV[1], state.UV[2],  QF.W[1]
+    U, V, W = state.UV[1], state.UV[2],  state.W[1]
     i = idx(U); j = i + 1
 
     if j < state.ctrs.stop_index
-
         V = passthrough!(QF, V)
         U = passthrough!(QF, U)
         V, U, W = turnover(W, V, U)
-
-        state.UV[1], state.UV[2],  QF.W[1] = U, V, W
+        state.UV[1], state.UV[2],  state.W[1] = U, V, W
 
         return false
 
@@ -121,7 +119,7 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
         # now turnover U, merge with W, unitary over, pass through, and fuse
         U = passthrough!(QF.Q, U)
         i += 1 # after turnover, U moves down
-        U = fuse(W, U)
+        U, Di = fuse(W, U)
 
         # pass U through triangle then fuse
         U = passthrough!(state.RF, U)
@@ -136,7 +134,7 @@ function passthrough_Q(state::AbstractFactorizationState{T, S,RealRotator{T}, QF
 end
 
 ##################################################
-function deflate(QF::AbstractQFactorization{T, RealRotator{T}}, k) where {T}
+function deflate(QF::AbstractQFactorization{T, S}, k) where {T,S <: Real}
 
     c,s = vals(QF.Q[k])
     i = idx(QF.Q[k])
@@ -147,11 +145,11 @@ end
 
 ## The zero_index and stop_index+1 point at diagonal rotators [1 0; 0 1] or [-1 0; 0 -1]
 ## this recoves 1 or -1
-function get_parity(QF::QFactorization{T, RealRotator{T}}, k) where {T}
+function get_parity(QF::QFactorization{T, S}, k) where {T, S <: Real}
     if k > length(QF)
-        return one(QF)
+        return one(S)
     else
-        c, s = vals(QF.Q[k])
+        c::S, s::T = vals(QF.Q[k])
         ## @assert iszero(s)
         sign(c)
     end
@@ -170,8 +168,8 @@ end
 ## U = [1 0 0; 0 c s; 0 -s c]
 ## U1 = [1 0 0; 0 c -s; 0 s c]
 ## D*U - U1*D
-function dflip(a::RealRotator{T}, d=one(T)) where {T}
-    c, s = vals(a)
+function dflip(a::Rotator{T,S}, d=one(T)) where {T, S<:Real}
+    c::S, s::T = vals(a)
     p = sign(d)
     i = idx(a)
     return Rotator(c, p*s, i)

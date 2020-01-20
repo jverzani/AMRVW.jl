@@ -1,11 +1,11 @@
-## ComplexReal case
+## complex-real case
 
 
 ##################################################
 
 # after a quick fuse
 # we must passthrough the diagonal rotator through the rest of Q
-function absorb_Ut(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Val{:not_twisted}}) where {T, S, QFt, RFt}
+function absorb_Ut(state::QRFactorization{T, S}) where {T, S <: Complex}
 
     QF = state.QF
     Ut = state.UV[1]'
@@ -15,7 +15,7 @@ function absorb_Ut(state::AbstractFactorizationState{T, S,ComplexRealRotator{T},
 end
 
 
-function passthrough_triu(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Twt}, dir::Val{:right}) where {T, S, QFt, RFt,Twt}
+function passthrough_triu(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Complex}
 
     U = state.UV[1]
     i = idx(U)
@@ -43,7 +43,7 @@ end
 
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
-function simple_passthrough!(RF::RFactorization{T, ComplexRealRotator{T}}, U) where {T}
+function simple_passthrough!(RF::RFactorizationRankOne{T, S}, U) where {T, S <: Complex}
 
     i = idx(U)
     N = length(RF)
@@ -54,7 +54,7 @@ function simple_passthrough!(RF::RFactorization{T, ComplexRealRotator{T}}, U) wh
 
         a,b = vals(RF.B[i+k])
         ii = N + 1 - (i + k)
-        RF.Ct[ii] = ComplexRealRotator(conj(a), -b, i + k) # adjoint
+        RF.Ct[ii] = Rotator(conj(a), -b, i + k) # adjoint
 
     end
 
@@ -62,7 +62,7 @@ function simple_passthrough!(RF::RFactorization{T, ComplexRealRotator{T}}, U) wh
 end
 
 
-function passthrough_Q(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Twt}, dir::Val{:right}) where {T, S, QFt, RFt, Twt}
+function passthrough_Q(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Complex}
 
     QF = state.QF
     U = state.UV[1]
@@ -97,7 +97,7 @@ end
 # deflate a term
 # deflation for ComplexReal is different, as
 # we replace Qi with I and move diagonal part into D
-function deflate(QF::QFactorization{T, ComplexRealRotator{T}}, k) where {T}
+function deflate(QF::QFactorization{T, S}, k) where {T, S <: Complex}
 
     # when we deflate here we want to leave Q[k] = I and
 

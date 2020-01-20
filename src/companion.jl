@@ -62,13 +62,14 @@ end
 ## Constructor for Real coefficients; no pencil
 function r_factorization(xs::Vector{S}) where {S}
     N = length(xs) - 1
-    Ct = AscendingChain(Vector{RotatorType(S)}(undef, N))
-    B =  DescendingChain(Vector{RotatorType(S)}(undef, N))
-    D = sparse_diagonal(S, N+1)
+    T = S <: Real ? S : real(S)
+    Ct = AscendingChain(Vector{Rotator{T,S}}(undef, N))
+    B =  DescendingChain(Vector{Rotator{T,S}}(undef, N))
+    D = SparseDiagonal(S, N+1)
 
     _r_factorization(xs, Ct, B, D)
 
-    RFactorization(Ct, B, D)
+    RFactorizationRankOne(Ct, B, D)
 end
 
 
@@ -92,9 +93,8 @@ end
 
 
 # constructor populating Ct, B, D for Complex Case (phase is impt)
-function _r_factorization(xs::Vector{Complex{T}}, Ct, B, D) where {T <: Real}
+function _r_factorization(xs::Vector{S}, Ct, B, D) where {S <: Complex}
     N = length(xs) - 1
-    S = Complex{T}
 
     c, s, tmp = givensrot(xs[N], -one(S))
 
@@ -122,22 +122,18 @@ end
 
 function q_factorization(xs::Vector{S}) where {S}
     N = length(xs) - 1
+    T = S <: Real ? S : real(S)
 
-    Q =  DescendingChain(Vector{RotatorType(S)}(undef, N-1))
+    Q =  DescendingChain(Vector{Rotator{T,S}}(undef, N-1))
     zt,ot,zs,os = _zero_one(xs)
 
     @inbounds for ii = 1:(N-1)
-        Q[ii] = Rotator(zs, ot, ii)
+        Q[ii] = Rotator(zero(S), one(T), ii)
     end
 
-    D = sparse_diagonal(S, N)
-    W = Rotator(zs, ot, 1)  # only needed for RealRotator case, when the limb has length 1
-    #return QFactorization(Q, D, [W])
-    if S <: Real
-        return QFactorizationReal(Q, D, [W,W])
-    else
-        QFactorizationComplex(Q, D, [W])
-    end
+    D = SparseDiagonal(S, N)
+
+    return QFactorization(Q, D)
 
 end
 
@@ -154,13 +150,12 @@ For a polynomial specified by `ps` computes a sparse factorization of its compan
 """
 function amrvw(ps::Vector{S}) where {S}
 
-    N = length(ps) - 1
     xs = basic_decompose(ps)
 
     QF = q_factorization(xs)
     RF = r_factorization(xs)
 
-    qrfactorization(N, QF, RF)
+    QRFactorization(QF, RF)
 
 end
 
@@ -193,9 +188,9 @@ function amrvw(vs::Vector{S}, ws::Vector{S}) where {S}
 
     ps, qs = adjust_pencil(vs, ws)
     QF = q_factorization(Vector{S}(undef, N+1))
-    ZF = z_factorization(ps, qs)
+    ZF = pencil_factorization(ps, qs)
 
-    qrfactorization(N, QF, ZF)
+    QRFactorization(QF, ZF)
 
 end
 

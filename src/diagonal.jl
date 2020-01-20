@@ -1,54 +1,42 @@
 ##################################################
 
-## For the ComplexRealRotator case we need a diagonal matrix to store the phase
+## For the complex-real rotator case we need a diagonal matrix to store the phase
 ## This is a  means to make this generic with respect to rotator type
 ## The factorization can have an identity diagonal or a real one.
-abstract type AbstractSparseDiagonalMatrix{T, Rt} end
+abstract type AbstractSparseDiagonalMatrix{S} end
 
-struct IdentityDiagonal{T} <: AbstractSparseDiagonalMatrix{T,RealRotator{T}}
-IdentityDiagonal{T}() where {T} = new()
+
+struct SparseDiagonal{S} <: AbstractSparseDiagonalMatrix{S}
+x::Vector{S}
+SparseDiagonal{S}(n) where {S} = new(ones(S, n))
+SparseDiagonal(::Type{T}, n) where {T <: Real} = SparseDiagonal{T}(0)
+SparseDiagonal(::Type{S}, n) where {S} = SparseDiagonal{S}(n)
 end
 
-struct SparseDiagonal{T} <:  AbstractSparseDiagonalMatrix{T, ComplexRealRotator{T}}
-x::Vector{Complex{T}}
-SparseDiagonal{T}(x::Vector) where {T} = new(x)
-SparseDiagonal{T}(N::Int) where {T} = new(ones(Complex{T}, N))
-end
-
-Base.Matrix(D::SparseDiagonal) = diagm(0=>D.x)
-
-sparse_diagonal(::Type{T}, N) where {T <: Real} = IdentityDiagonal{T}()
-sparse_diagonal(::Type{S}, N) where {S} = SparseDiagonal{real(S)}(N)
-
-# complex case
-@inbounds Base.getindex(D::SparseDiagonal, k) = D.x[k]
-
+Base.getindex(D::SparseDiagonal{T}, k) where {T <: Real} = one(T)
+@inbounds Base.getindex(D::SparseDiagonal, k)  = D.x[k]
+Base.@propagate_inbounds Base.setindex!(D::SparseDiagonal{T}, X, inds...) where {T <: Real} = X
 Base.@propagate_inbounds Base.setindex!(D::SparseDiagonal, X, inds...) = setindex!(D.x, X, inds...)
 
+Base.Matrix(D::SparseDiagonal{T}) where {T <: Real} = I
+Base.Matrix(D::SparseDiagonal{S}) where {S} = diagm(0 => D.x)
 
-
-
+*(D::SparseDiagonal{T}, M::Matrix) where {T <: Real} = M
 *(D::SparseDiagonal, M::Matrix) = diagm(0=>D.x) * M
 *(M::Matrix, D::SparseDiagonal)  = M * diagm(0=>D.x)
 
-*(D::IdentityDiagonal, M::Matrix) = M
-*(M::Matrix, D::IdentityDiagonal) = M
 
 
-function fuse!(Di::DiagonalRotator, D::SparseDiagonal)
+
+function fuse!(Di::DiagonalRotator, D::SparseDiagonal{S}) where {S <: Complex}
     i = idx(Di)
     alpha, _ = vals(Di)
     D[i] *= alpha
     D[i+1] *= conj(alpha)
     return nothing
 end
-fuse!(Di::DiagonalRotator, D::IdentityDiagonal) = nothing
+fuse!(Di::DiagonalRotator, D::SparseDiagonal{T}) where {T} = nothing
 
-
-# real case is a series of noops
-@inbounds Base.getindex(D::IdentityDiagonal{T}, k) where {T}= one(T)
-
-Base.@propagate_inbounds Base.setindex!(D::IdentityDiagonal, X, inds...) where {T} = X
 
 ## passthrough
 ## Pass a rotator through a diagonal matrix with phase shifts
@@ -56,7 +44,7 @@ Base.@propagate_inbounds Base.setindex!(D::IdentityDiagonal, X, inds...) where {
 ## U D -> D' U' (left)
 
 
-@inline function passthrough!(D::SparseDiagonal, U::ComplexRealRotator{T}) where {T}
+@inline function passthrough!(D::SparseDiagonal{S}, U::Rotator) where {S <: Complex}
     i = idx(U)
     c,s = vals(U)
 
@@ -66,12 +54,13 @@ Base.@propagate_inbounds Base.setindex!(D::IdentityDiagonal, X, inds...) where {
     D[i] = beta
     D[i+1] = alpha
 
-    return ComplexRealRotator(beta1 * c, s, i)
+    return Rotator(beta1 * c, s, i)
 
 end
 
+
 ## U D -> D U
-@inline function passthrough!(U::ComplexRealRotator{T}, D::SparseDiagonal) where {T}
+@inline function passthrough!(U::Rotator, D::SparseDiagonal{S}) where {S <: Complex}
     return passthrough!(D, U)
     i = idx(U)
     c,s = vals(U)
@@ -81,11 +70,12 @@ end
 
     D[i] *= conj(beta1)
     D[i+1] *= beta1
-    return ComplexRealRotator(beta1 * c, s, i)
+    return Rotator(beta1 * c, s, i)
 end
 
-passthrough!(D::IdentityDiagonal, U::Union{RealRotator, ComplexRealRotator})  = U
-passthrough!(U::Union{RealRotator, ComplexRealRotator}, D::IdentityDiagonal)  = U
+passthrough!(D::SparseDiagonal{T}, U::Rotator) where {T <: Real} = U
+passthrough!(U::Rotator, D::SparseDiagonal{T}) where {T <: Real}  = U
+
 
 # Move a chain through a diagonal
 function passthrough!(D::SparseDiagonal, Ch::Union{DescendingChain, AscendingChain})
@@ -102,12 +92,12 @@ end
 
 ## could do two others...
 
-## noop when Identity Diagonal
-passthrough!(D::IdentityDiagonal, C::AbstractRotatorChain) =  nothing
-passthrough!(C::AbstractRotatorChain, D::IdentityDiagonal) =  nothing
+## noop when Identity Diagonal Matrix
+passthrough!(D::SparseDiagonal{T}, C::AbstractRotatorChain) where {T <: Real} =  nothing
+passthrough!(C::AbstractRotatorChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
 
 ## Di U = U' Di'
-passthrough!(D::IdentityDiagonal, U::AbstractRotator) = (U,D)
+passthrough!(D::IdentityRotator, U::AbstractRotator) = (U,D)
 function passthrough!(Di::DiagonalRotator, U::AbstractRotator)
     @assert idx(Di) == idx(U)
     i = idx(Di)
@@ -116,7 +106,7 @@ function passthrough!(Di::DiagonalRotator, U::AbstractRotator)
     Rotator(c * alpha/conj(alpha), s, i), DiagonalRotator(conj(alpha), i)
 end
 
-passthrough!(U::AbstractRotator, D::IdentityDiagonal) = (U,D)
+passthrough!(U::AbstractRotator, D::IdentityRotator) = (U,D)
 function passthrough!(U::AbstractRotator, Di::DiagonalRotator)
     @assert idx(Di) == idx(U)
     i = idx(Di)
@@ -142,8 +132,8 @@ function tip(Uj::AbstractRotator, Di::DiagonalRotator)
     c,s =  vals(Uj)
     Rotator(c*conj(alpha), s, j), DiagonalRotator(alpha, j)
 end
-tip(Di::IdentityDiagonal,  Uj::AbstractRotator) = (Uj, Di)
-tip(Uj::AbstractRotator, Di::IdentityDiagonal) = (Di, Uj)
+tip(Di::IdentityRotator,  Uj::AbstractRotator) = (Uj, Di)
+tip(Uj::AbstractRotator, Di::IdentityRotator) = (Di, Uj)
 
 ##################################################
 ##
@@ -187,10 +177,10 @@ end
 
 # pass a diagonal rotator from a fuse operation through one or more rotator chains
 # merge with D a diagonal matrix
-passthrough_phase!(Di, Vs::Tuple, D::IdentityDiagonal) = nothing
-passthrough_phase!(Di, C::AbstractRotatorChain, Vs::Tuple, D::IdentityDiagonal) = nothing
+passthrough_phase!(Di, Vs::Tuple, D::SparseDiagonal{T}) where {T <: Real} = nothing
+passthrough_phase!(Di, C::AbstractRotatorChain, Vs::Tuple, D::SparseDiagonal{T}) where {T <: Real} = nothing
 
-function passthrough_phase!(Di::DiagonalRotator{T}, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator, Vs::Tuple, D)
     if length(Vs) > 0
         Vhead, Vtail = Vs[1], Vs[2:end]
         passthrough_phase!(Di, Vhead, Vtail, D)
@@ -201,7 +191,7 @@ function passthrough_phase!(Di::DiagonalRotator{T}, Vs::Tuple, D) where {T}
 end
 
 # peeled one off
-function passthrough_phase!(Di::DiagonalRotator{T}, V::DescendingChain, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator, V::DescendingChain, Vs::Tuple, D)
 
     i = idx(Di)
     alpha, _ = vals(Di)
@@ -269,7 +259,7 @@ end
 
 
 
-function passthrough_phase!(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator, V::AscendingChain, Vs::Tuple, D)
 
     i = idx(Di)
     alpha, _ = vals(Di)
@@ -331,7 +321,7 @@ function passthrough_phase!(Di::DiagonalRotator{T}, V::AscendingChain, Vs::Tuple
 end
 
 # two special functions useful to simplify the below:
-function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Des}) where {T}
+function passthrough_phase!(Di::DiagonalRotator, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Des})
     inds, Des = iget(V, j, Val(:Des))
     passthrough_phase!(Di, DescendingChain(Des), Vs, D)
     for (i,j) in enumerate(inds)
@@ -339,7 +329,7 @@ function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, 
     end
 end
 
-function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Asc}) where {T}
+function passthrough_phase!(Di::DiagonalRotator, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Asc})
     inds, Asc = iget(V, j, Val(:Asc))
     passthrough_phase!(Di, AscendingChain(Asc), Vs, D)
     for (i,j) in enumerate(inds)
@@ -347,7 +337,7 @@ function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, 
     end
 end
 
-function passthrough_phase!(Di::DiagonalRotator{T}, V::TwistedChain, Vs::Tuple, D) where {T}
+function passthrough_phase!(Di::DiagonalRotator, V::TwistedChain, Vs::Tuple, D)
 
     # Handle case where limb is small (length 0,1, or 2)
     if length(V.x) == 0

@@ -75,8 +75,8 @@ end
 ##################################################
 ## Fuse
 ## fuse combines two rotations, a and b, into one,
-## For general rotation, we have no phase consideration
-@inline function fuse(a::AbstractRotator{T}, b::AbstractRotator{T}) where {T}
+## For general rotation, we have no phase consideration, so return an identity rotator
+@inline function fuse(a::AbstractRotator{T,S}, b::AbstractRotator{T,S}) where {T,S <: Real}
     #    idx(a) == idx(b) || error("can't fuse")
     i = idx(a)
 
@@ -87,7 +87,7 @@ end
     v = c1 * s2 + s1 * conj(c2)
 
     u,v = polish_givens(u,v)
-    return Rotator(u,v,i)
+    return Rotator(u,v,i), IdentityRotator{T, S}(i)
 
 end
 
@@ -97,7 +97,7 @@ end
 ## we output by rotating by alpha.
 ## We have U*V = (UV) * D
 ## To get D * (UV) a flip is needed
-@inline function fuse(a::ComplexRealRotator{T}, b::ComplexRealRotator{T}) where {T}
+@inline function fuse(a::Rotator{T,S}, b::Rotator{T,S}) where {T, S <: Complex{T}}
 
     i = idx(a)
     #    idx(a) == idx(b) || error("can't fuse")
@@ -113,12 +113,12 @@ end
 
     c, s = polish_givens(c, s)
 
-    ComplexRealRotator(c, s, i), DiagonalRotator(conj(alpha), i)
+    Rotator(c, s, i), DiagonalRotator(conj(alpha), i)
 end
 
 ## Fuse for diagonal matrices
-fuse(D::IdentityDiagonalRotator, U) = U
-function fuse(D::DiagonalRotator{T}, U) where {T}
+fuse(D::IdentityRotator, U) = U, D
+function fuse(D::DiagonalRotator, U)
     alpha,_ = vals(D)
     i = idx(D)
     @assert i == idx(U)

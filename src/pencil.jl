@@ -5,12 +5,12 @@
 
 # Pencil is made up of two factorizations
 # algorithm is QZ algorithm, so we use Z factorization fir bane
-struct ZFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:pencil}}
-V::RFactorization{T, Rt}
-W::RFactorization{T, Rt}
+struct RFactorizationPencil{T, S} <: AbstractRFactorization{T, S}
+V::RFactorizationRankOne{T, S}
+W::RFactorizationRankOne{T, S}
 end
 
-function Base.Matrix(RF::ZFactorization)
+function Base.Matrix(RF::RFactorizationPencil)
     V = Matrix(RF.V)
     W = Matrix(RF.W)
     V * inv(W)
@@ -19,7 +19,7 @@ end
 ## VV = [Sym("v$i$j") for i in ("i","j","k"), j in ("i","j","k")] |> triu
 ## WW = [Sym("w$i$j") for i in ("i","j","k"), j in ("i","j","k")] |> triu
 ## VV * inv(WW)[:,3]
-function Base.getindex(RF::ZFactorization, l, k)
+function Base.getindex(RF::RFactorizationPencil, l, k)
     Δ = k - l
     #@assert 0 <= Δ <= 2
     V, W = RF.V, RF.W
@@ -43,17 +43,17 @@ end
 
 ## Constructor for Real coefficients; with pencil
 
-function z_factorization(vs, ws)
+function pencil_factorization(vs, ws)
 
     V = r_factorization(vs)
     W = r_factorization(ws)
-    ZFactorization(V,W)
+    RFactorizationPencil(V,W)
 
 end
 
 
 ## Pass a rotator through Rfactorization with Pencil from left or right
-function passthrough!(RF::ZFactorization{T, St}, U::AbstractRotator) where {T, St}
+function passthrough!(RF::RFactorizationPencil, U::AbstractRotator)
 
     ## Pass Ut -> W (not W^{-1} <- U
     ## Then  passthrough V
@@ -63,7 +63,7 @@ function passthrough!(RF::ZFactorization{T, St}, U::AbstractRotator) where {T, S
     U
 end
 
-function passthrough!(U::AbstractRotator, RF::ZFactorization{T, St}) where {T, St}
+function passthrough!(U::AbstractRotator, RF::RFactorizationPencil)
 
     U = passthrough!(U, RF.V)
     Ut = passthrough!(RF.W, U')
@@ -75,10 +75,10 @@ end
 
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
-function simple_passthrough!(RF::ZFactorization{T, Rt}, U, V) where {T, Rt}
+function simple_passthrough!(RF::RFactorizationPencil, U, V)
     false  # might have room for improvement here; o/w consolidate methods
 end
 
-function simple_passthrough!(RF::ZFactorization{T, Rt}, U) where {T, Rt}
+function simple_passthrough!(RF::RFactorizationPencil, U)
     false  # might have room for improvement here
 end

@@ -5,7 +5,7 @@
 
 # ## The bulge is created by  (A-rho1) * (A - rho2) * e_1 where rho1 and rho2 are eigenvalue or random
 # ## for real case, we take the real part of this result
-function create_bulge(state::AbstractFactorizationState{T, S, RealRotator{T}, QFt, RFt, Twt}) where {T, S,Rt, QFt, RFt, Twt}
+function create_bulge(state::QRFactorization{T, S}) where {T, S <: Real}
 
     if mod(state.ctrs.it_count, 15) == 0
 
@@ -56,7 +56,7 @@ function create_bulge(state::AbstractFactorizationState{T, S, RealRotator{T}, QF
 end
 
 ## CSS case
-function create_bulge(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Twt}) where {T, S, Rt, QFt, RFt, Twt}
+function create_bulge(state::QRFactorization{T, S}) where {T, S <: Complex}
 
     ray = true  # state.ray?
 

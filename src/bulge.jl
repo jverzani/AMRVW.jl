@@ -8,7 +8,7 @@
 ## * absorb the left side -- absorb_Ut
 ## * chase the right side down until it is absorbed -- absorb_U
 ##
-function bulge_step(state::AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:not_twisted}}) where {T, S,Rt, QFt, RFt}
+function bulge_step(state::QRFactorization{T, S}) where {T, S}
 
     create_bulge(state)
     absorb_Ut(state) # see CSS or RDS
@@ -33,7 +33,7 @@ end
 ## * passthrough_Q passes through chain and return false, until fusion when
 ## it returns true
 ##
-function absorb_U(state::AbstractFactorizationState{T, S,Rt, QFt, RFt, Val{:not_twisted}}) where {T, S,Rt, QFt, RFt}
+function absorb_U(state::QRFactorization{T, S}) where {T, S}
 
     flag = false
     while !flag

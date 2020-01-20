@@ -3,16 +3,13 @@
 
 #### Group rotators
 
-abstract type AbstractRotatorChain{T} end
+abstract type AbstractRotatorChain{T,S} end
 
 Base.eltype(A::AbstractRotatorChain) = eltype(A.x)
-
 Base.length(A::AbstractRotatorChain) = length(A.x)
 
 Base.@propagate_inbounds Base.getindex(A::AbstractRotatorChain, i::Int) = getindex(A.x, i)
 Base.@propagate_inbounds Base.setindex!(A::AbstractRotatorChain, X, inds...) = setindex!(A.x, X, inds...)
-
-
 Base.deleteat!(A::AbstractRotatorChain, j) = deleteat!(A.x, j)
 
 Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
@@ -20,31 +17,52 @@ Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
 *(A::AbstractRotatorChain, M::Array) = A.x * M
 *(M::Array, A::AbstractRotatorChain) = M * A.x
 
-
-struct DescendingChain{T} <: AbstractRotatorChain{T}
-  x::Vector{T}
-end
-
-struct AscendingChain{T} <: AbstractRotatorChain{T}
-  x::Vector{T}
-end
-
-
 function Base.size(C::AbstractRotatorChain)
     n, N = extrema(C)
     (N+1, N+1)
 end
 
-Base.extrema(C::AbstractRotatorChain) = extrema(idx.(C.x))
-
-Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
-Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
+Base.extrema(C::AbstractRotatorChain) = extrema(idx.((C.x[1], C.x[end])))
 
 function Base.Matrix(C::AbstractRotatorChain)
     S =  eltype(first(C.x).c)
     M = diagm(0 => ones(S, size(C)[2]))
     C * M
 end
+
+## Types of chains
+## FIX ME so that
+#struct DescendingChain{T, S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
+#  x::V
+#end
+
+
+#struct AscendingChain{T,S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
+#  x::V
+#end
+
+
+struct DescendingChain{T, S} <: AbstractRotatorChain{T,S}
+  x::Vector{Rotator{T,S}}
+end
+
+struct AscendingChain{T,S} <: AbstractRotatorChain{T,S}
+    x::Vector{Rotator{T,S}}
+end
+
+## Structure to hold a twisted represenation
+## pv is the position vector of length  n-1
+## m is lowest index of rotators
+struct TwistedChain{T,S, V <: AbstractVector{Rotator{T,S}}, PVt <: AbstractVector{Symbol}} <: AbstractRotatorChain{T,S}
+x::V
+pv::PVt
+end
+
+
+
+Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
+Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
+
 
 
 function Base.getindex(A::AscendingChain{T}, i, j) where {T}
@@ -143,18 +161,9 @@ function Base.getindex(A::DescendingChain, i, j)
 end
 
 
-
-
-## Structure to hold a twisted represenation
-## pv is thee position vector of length  n-1
-## m is lowest index of rotators
-struct TwistedChain{T} <: AbstractRotatorChain{T}
-  x::Vector{T}  # in order m, m+1, ..., M
-  pv::Vector{Symbol}
-end
-
-## Constructor
-function TwistedChain(xs::Vector{T}) where {T}
+## Twisted Chains requires a bit more effort
+## Constructor from a twisted vector of rotators
+function TwistedChain(xs::Vector{Rotator{T,S}}) where {T,S}
     if length(xs) > 0
         sigma = idx.(xs)
         ps = position_vector(sigma)
@@ -165,7 +174,6 @@ function TwistedChain(xs::Vector{T}) where {T}
 end
 
 
-Base.extrema(Ch::TwistedChain) = (idx(Ch.x[1]), idx(Ch.x[end]))
 
 function Base.Vector(Tw::TwistedChain)
     isempty(Tw.x) &&  return eltype(Tw.x)[]
@@ -181,7 +189,7 @@ end
 *(M::Array, A::TwistedChain) = M * Vector(A)
 
 ## Constructor of a chain
-function Chain(xs::Vector{T}) where  {T}
+function Chain(xs::Vector)
     if length(xs)  <=  1
         return DescendingChain(xs)
     else
@@ -192,7 +200,7 @@ function Chain(xs::Vector{T}) where  {T}
         elseif all(pv .== :right)
             return AscendingChain(xs)
         else
-            return TwistedChain(xs,  pv, minimum(inds))
+            return TwistedChain(xs,  pv)
         end
     end
 end
@@ -232,7 +240,8 @@ function position_vector(sigma)
     ps
 end
 
-Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(A.x)))
+## note this is expensive
+Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(Vector(A))))
 
 ## Get i,j entry of twisted chain
 ## XXX This is not correct XXX
@@ -291,7 +300,7 @@ function iterate_lr(pv)
 end
 
 
-
+## XXX get rid of this
 ## # Fish out of M the rotator with idx i
 function iget(Ms::TwistedChain, i)
     m,M = extrema(Ms)
@@ -320,7 +329,7 @@ function iget!(Ms::TwistedChain,i)
 end
 
 
-
+## XXX return range of indices only
 ## get ascending part from Un ... U_{i-1}
 function iget(Ms::TwistedChain, i, ::Val{:Asc})
     n, N = extrema(Ms)
@@ -345,7 +354,7 @@ function iget(Ms::TwistedChain, i, ::Val{:Asc})
     inds, Asc
 end
 
-
+## XXX return range of indices only
 ## get descending part from U_{i+1} ... U_N
 function iget(Ms::TwistedChain, i, ::Val{:Des})
     n, N = extrema(Ms)

@@ -1,10 +1,10 @@
 ## A factorization type for upper diagonal matrices
-## T is floating point type
-## S is T or Complex{T}
-## Rt is rotator type, e.g. RealRotator{T}
-## Pt is pencil type: Val(:no_pencil) or Val(:pencil)
-abstract type AbstractRFactorization{T, Rt, Pt} end
+## RankOne{T,S}
+## Z{T,S}, pencil
+## UpperTriangular{T,S}
+## Identity{T,S}
 
+abstract type AbstractRFactorization{T, S} end
 
 # Basic interface for an RFactorization:
 #
@@ -14,50 +14,37 @@ abstract type AbstractRFactorization{T, Rt, Pt} end
 # we also might need:
 # length
 # eltype
-# Matrix (in diagonostics)
+# Matrix
 # zero(RF{T, Rt}) to give 0
 # one(RF{T, Rt}) to give 1
-
-Base.length(RF::AbstractRFactorization) = length(RF.Ct)
-
-Base.eltype(RF::AbstractRFactorization{T, RealRotator{T},Pt}) where {T,Pt} = T
-Base.eltype(RF::AbstractRFactorization{T, ComplexRealRotator{T},Pt}) where {T,Pt} = Complex{T}
-
+Base.eltype(RF::AbstractRFactorization{T, S}) where {T,S} = S
 Base.zero(RF::AbstractRFactorization) = zero(eltype(RF))
 Base.one(RF::AbstractRFactorization) = one(eltype(RF))
 
-
-## R factorization can include just R or VW' [sp]
-## depending if the factorization is pencil type or not
-
-## A factorization of a non pencil type
-struct RFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}}
-  Ct::AscendingChain{Rt}
-  B::DescendingChain{Rt}
-  D::AbstractSparseDiagonalMatrix{T, Rt}
+function passthrough!(RF::AbstractRFactorization, Us::Union{AscendingChain, DescendingChain})
+    for i in  eachindex(Us.x)
+        Us.x[i] =  passthrough!(RF, Us.x[i])
+    end
 end
 
-function Base.Matrix(RF::RFactorization{T, Rt}) where {T, Rt}
-    S = Rt == RealRotator{T} ? T : Complex{T}
 
-    n = length(RF) + 1
-
-    M = diagm(0 => ones(S, n))
-    e1 = vcat(1, zeros(S, n-1))
-    en1 = vcat(zeros(S,n-1), 1)
-    en = vcat(zeros(S,n-2), 1, 0)
-
-    ## compute yt
-    Ct, B = RF.Ct, RF.B
-    D = isa(RF.D, IdentityDiagonal) ? I : diagm(0=>RF.D.x)
-    D = D * M
-    rho = (en1' * (Ct * M) * e1)
-    yt = -(1/rho * en1' * (Ct*(B*D)))
-
-    # Compute R
-    R =   (Ct * (B * D)) +  (Ct * (e1 * yt))
+# passthrough Us -> R
+function passthrough!(Us::Union{AscendingChain, DescendingChain}, RF::AbstractRFactorization)
+    for i in length(Us.x):-1:1
+         U.x[i] =  passthrough!(Us.x[i], RF)
+    end
 end
 
+##################################################
+
+## Rank one decomposition for amrvw algorithm to find eigenvalues of companion matrix
+struct RFactorizationRankOne{T,S} <: AbstractRFactorization{T, S}
+  Ct::AscendingChain{T,S}
+  B::DescendingChain{T,S}
+  D::AbstractSparseDiagonalMatrix{S}
+end
+
+Base.length(RF::RFactorizationRankOne) = length(RF.Ct)
 
 
 ## getindex
@@ -118,7 +105,7 @@ end
 
 ## u = rotm(cc_k, cs_k, 5,6) * rotm(cc_j, cs_j, 4,6) * rotm(cc_i, cs_i,3, 6)*rotm(cc_h, cs_h, 2,6) *  rotm(cc_g, cs_g, 1,6) * [what, wh, wi, wj, wk, wl]
 ## kk_4 = u[1](what => solve(u[6], what)[1]) |> simplify
-function Base.getindex(RF::RFactorization, j, k)
+function Base.getindex(RF::RFactorizationRankOne, j, k)
     # neeed to compute Cts and Ws(B,D)
     Ct = RF.Ct
     B = RF.B
@@ -151,13 +138,32 @@ function Base.getindex(RF::RFactorization, j, k)
     tot
 end
 
+function Base.Matrix(RF::RFactorizationRankOne{T,S}) where {T,S}
+
+    n = length(RF) + 1
+
+    M = diagm(0 => ones(S, n))
+    e1 = vcat(1, zeros(S, n-1))
+    en1 = vcat(zeros(S,n-1), 1)
+    en = vcat(zeros(S,n-2), 1, 0)
+
+    ## compute yt
+    Ct, B = RF.Ct, RF.B
+    D = Matrix(RF.D)
+    D = D * M
+    rho = (en1' * (Ct * M) * e1)
+    yt = -(1/rho * en1' * (Ct*(B*D)))
+
+    # Compute R
+    R =   (Ct * (B * D)) +  (Ct * (e1 * yt))
+end
 
 
 
 
 
 ## Pass a rotator through Rfactorization from left or right
-function passthrough!(RF::RFactorization{T, St}, U::AbstractRotator) where {T, St}
+function passthrough!(RF::RFactorizationRankOne, U::AbstractRotator)
     U = passthrough!(RF.D, U)
     U = passthrough!(RF.B, U)
     U = passthrough!(RF.Ct, U)
@@ -165,7 +171,7 @@ function passthrough!(RF::RFactorization{T, St}, U::AbstractRotator) where {T, S
     U
 end
 
-function passthrough!(U::AbstractRotator, RF::RFactorization{T, St}) where {T, St}
+function passthrough!(U::AbstractRotator, RF::RFactorizationRankOne)
 
     U = passthrough!(U, RF.Ct)
     U = passthrough!(U, RF.B)
@@ -174,75 +180,29 @@ function passthrough!(U::AbstractRotator, RF::RFactorization{T, St}) where {T, S
     U
 end
 
-# pass thorugh  R <- Us
-function passthrough!(RF::AbstractRFactorization, Us::Vector)
-    for i in  eachindex(Us)
-        Us[i] =  passthrough!(RF, Us[i])
-    end
-end
 
-# passthrough Us -> R
-function passthrough!(Us::Vector, RF::AbstractRFactorization)
-    for i in length(Us):-1:1
-         Us[i] =  passthrough!(Us[i], RF)
-    end
-end
-
-passthrough!(RF::AbstractRFactorization, C::Union{AscendingChain, DescendingChain}) = passthrough!(RF, C.x)
-passthrough!(C::Union{AscendingChain, DescendingChain}, RF::AbstractRFactorization) = passthrough!(C.x, RF)
-
-##################################################
-## An Identity R factorization
-## used for generic purposes
-struct IdentityRFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}}
-IdentityRFactorization{T, Rt}() where {T, Rt} = new()
-end
-
-
-
-Base.getindex(RF::IdentityRFactorization, i, j) = i==j ? one(RF) : zero(RF)
-Base.Matrix(IdentityRFactorization) = I
-
-passthrough!(RF::IdentityRFactorization, U::AbstractRotator) = U
-passthrough!(U::AbstractRotator, RF::IdentityRFactorization) = U
-passthrough!(RF::IdentityRFactorization, C::AbstractRotatorChain) = C
-passthrough!(C::AbstractRotatorChain,RF::IdentityRFactorization) = C
-passthrough!(::AMRVW.IdentityRFactorization, ::Union{AMRVW.AscendingChain, AMRVW.DescendingChain}) = nothing
-passthrough!(::Union{AMRVW.AscendingChain, AMRVW.DescendingChain},::AMRVW.IdentityRFactorization) = nothing
-simple_passthrough!(RF::IdentityRFactorization, U::AbstractRotator) = true
-simple_passthrough!(RF::IdentityRFactorization, U::AbstractRotator, V::AbstractRotator) = true
 
 
 ##################################################
-## Just an upper triangular matrix; no factorization
-abstract type AbstractRNoFactorization{T, Rt} <: AbstractRFactorization{T, Rt, Val{:no_pencil}} end
 
-simple_passthrough!(RF::AbstractRNoFactorization, U::AbstractRotator) = false
-simple_passthrough!(RF::AbstractRNoFactorization, U::AbstractRotator, V::AbstractRotator) = false
+# hold upper triangular matrix as full matrix
+struct RFactorizationUpperTriangular{T, S, Rt <: AbstractArray{S,2}} <: AbstractRFactorization{T, S}
+R::Rt
+RFactorizationUpperTriangular{T, S, Rt}(M) where {T, S, Rt}= new(M)
+RFactorizationUpperTriangular(M::AbstractArray{S}) where {S} = RFactorizationUpperTriangular{real(S), S, typeof(M)}(M)
+end
 
-function Base.getindex(RF::AbstractRNoFactorization, i, j)
+Base.length(RF::RFactorizationUpperTriangular) = size(RF.R)[1]
+function Base.getindex(RF::RFactorizationUpperTriangular, i, j)
     if i > 0 && j > 0
         RF.R[i,j]
     else
         zero(eltype(RF.R))
     end
 end
-Base.Matrix(RF::AbstractRNoFactorization) = RF.R
+Base.Matrix(RF::RFactorizationUpperTriangular) = RF.R
 
-
-## Like DiagonalSparseMatrix, this needs cleaning up
-struct RNoFactorizationReal{T} <:  AbstractRNoFactorization{T, RealRotator{T}}
-   R::Array{T,2}
-end
-
-struct RNoFactorizationComplex{T} <:  AbstractRNoFactorization{T, ComplexRealRotator{T}}
-  R::Array{Complex{T},2}
-end
-
-RNoFactorization(R::Array{T,2}) where {T <: Real} = RNoFactorizationReal{T}(R)
-RNoFactorization(R::Array{Complex{T},2}) where {T <: Real} = RNoFactorizationComplex{T}(R)
-
-function passthrough!(U::Rt, RF::AbstractRNoFactorization) where {Rt <: AbstractRotator}
+function passthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: AbstractRotator}
 
     R = RF.R
     n = size(R)[2]
@@ -271,7 +231,7 @@ function passthrough!(U::Rt, RF::AbstractRNoFactorization) where {Rt <: Abstract
 end
 
 
-function passthrough!(RF::AbstractRNoFactorization, V::Rt) where {Rt <: AbstractRotator}
+function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: AbstractRotator}
 
     R = RF.R
     n = size(R)[2]
@@ -299,3 +259,23 @@ function passthrough!(RF::AbstractRNoFactorization, V::Rt) where {Rt <: Abstract
     R[j,i] = zero(eltype(R))
     U'
 end
+
+
+simple_passthrough!(RF::RFactorizationUpperTriangular, U::AbstractRotator) = false
+simple_passthrough!(RF::RFactorizationUpperTriangular, U::AbstractRotator, V::AbstractRotator) = false
+
+
+##################################################
+# Wrapper for I
+struct RFactorizationIdentity{T, S} <: AbstractRFactorization{T, S}
+RFactorizationIdentity{T, S}() where {T, S}= new()
+end
+
+Base.length(RF::RFactorizationIdentity) = error("No dimension known")
+passthrough!(RF::RFactorizationIdentity, U::AbstractRotator) = U
+passthrough!(U::AbstractRotator, RF::RFactorizationIdentity) = U
+passthrough!(RF::RFactorizationIdentity, C::AbstractRotatorChain) = nothing
+passthrough!(C::AbstractRotatorChain,RF::RFactorizationIdentity) = nothing
+
+simple_passthrough!(RF::RFactorizationIdentity, U::AbstractRotator) = true
+simple_passthrough!(RF::RFactorizationIdentity, U::AbstractRotator, V::AbstractRotator) = true

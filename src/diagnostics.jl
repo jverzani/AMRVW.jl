@@ -20,18 +20,18 @@ printtp(x) = println(sprint(io -> show(io, "text/plain", x)))
 
 ### Random rotators are useful for testing
 random_rotator(R::AbstractRotator, i) = random_rotator(typeof(R), i)
-function random_rotator(::Type{RealRotator{T}}, i) where {T}
+function random_rotator(t::Type{T}, i) where {T <: Real}
     a,b = rand(T, 2)
     c,s,_ = givensrot(a,b)
-    RealRotator(c,s,i)
+    Rotator(c,s,i)
 end
 
-function random_rotator(::Type{ComplexRealRotator{T}}, i) where {T}
-    a,b = rand(Complex{T}, 2)
+function random_rotator(s::Type{S}, i) where {S <: Complex}
+    a,b = rand(S, 2)
     c,s,_ = givensrot(a,b)
     ns = norm(s)
     alpha = conj(s)/ns
-    ComplexRealRotator(c*alpha,ns,i)
+    Rotator(c*alpha,ns,i)
 end
 
 

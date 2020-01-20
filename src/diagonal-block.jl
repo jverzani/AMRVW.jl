@@ -3,7 +3,7 @@
 ## with 2x2 view of full matrix; A[k-1:k, k-1:k]
 ## For QRFactorization, we exploit fact that QF is Hessenberg and
 ## R  is upper  triangular to simplify the matrix multiplication:
-function diagonal_block(state::QRFactorization{T, S, Rt, QFt, RFt}, k) where {T,  S, Rt, QFt,  RFt}
+function diagonal_block(state::QRFactorization{T, S}, k) where {T,  S}
 
     A  = state.A
     QF,  RF =  state.QF, state.RF
@@ -35,7 +35,7 @@ end
 
 # [a11 - l a12; a21 a22] -> l^2 -2 * (tr(A)/2) l + det(A)
 # so we use b = tr(A)/2 for qdrtc routing
-function eigen_values(state::AbstractFactorizationState{T,S,RealRotator{T}, QFt, RFt, Twt}) where {T,S,QFt, RFt, Twt}
+function eigen_values(state::AbstractFactorizationState{T,S, Twt}) where {T,S <: Real, Twt}
 
     # this allocates:
     # e1, e2 = eigvals(state.A)
@@ -53,7 +53,7 @@ function eigen_values(state::AbstractFactorizationState{T,S,RealRotator{T}, QFt,
 end
 
 # from `modified_quadratic.f90`
-function eigen_values(state::AbstractFactorizationState{T,S,ComplexRealRotator{T}, QFt, RFt, Twt}) where {T,S,QFt, RFt, Twt}
+function eigen_values(state::AbstractFactorizationState{T,S, Twt}) where {T,S <: Complex, Twt}
 
     a11, a12 = state.A[1,1], state.A[1,2]
     a21, a22 = state.A[2,1], state.A[2,2]

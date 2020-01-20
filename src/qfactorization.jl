@@ -1,57 +1,51 @@
 ##################################################
 
 ## Q Factorization
-abstract type AbstractQFactorization{T, Rt, Twt} end
-
+abstract type AbstractQFactorization{T, S} end
 # implement Array interface
 Base.length(QF::AbstractQFactorization) = length(QF.Q)
-
-Base.eltype(QF::AbstractQFactorization{T, RealRotator{T},Twt}) where {T,Twt} = T
-Base.eltype(QF::AbstractQFactorization{T, ComplexRealRotator{T},Twt}) where {T,Twt} = Complex{T}
+Base.eltype(QF::AbstractQFactorization{T, S}) where {T,S} = S
 
 Base.zero(QF::AbstractQFactorization) = zero(eltype(QF))
 Base.one(QF::AbstractQFactorization) = one(eltype(QF))
 
 
-## XXX this should be DRYed up
-#struct QFactorization{T, Rt} <: AbstractQFactorization{T, Rt, Val{:not_twisted}}
-#  Q::DescendingChain{Rt}
-#  D::AbstractSparseDiagonalMatrix{T, Rt}
-#  W::Vector{Rt}
-#  end
-
-abstract type QFactorization{T, Rt} <: AbstractQFactorization{T, Rt, Val{:not_twisted}} end
-struct QFactorizationReal{T, Rt} <: QFactorization{T, Rt}
-  Q::DescendingChain{Rt}
-  D::IdentityDiagonal{T}
-  W::Vector{Rt}
+struct QFactorization{T, S} <: AbstractQFactorization{T, S}
+  Q::DescendingChain{T,S}
+  D::SparseDiagonal{S}
 end
 
 
-struct QFactorizationComplex{T, Rt} <: QFactorization{T, Rt}
-  Q::DescendingChain{Rt}
-  D::SparseDiagonal{T}
-  W::Vector{Rt}
+# constructor
+function q_factorization(Qs::AbstractArray{T,S}) where {T, S}
+    N = length(Qs)
+    D = SparseDiagonal(S, N+1)
+    QFactorization{T,S}(DescendingChain(Qs), D)
 end
+
+function q_factorization(Qs::AbstractArray{T,S}, pv::Vector) where {T, S}
+    N = length(Qs)
+    D = SparseDiagonal(S, N+1)
+    QFactorization{T,S}(TwistedChain(Qs, pv), D)
+end
+
+
 
 ## Find Q[j,k] from its factored form
 ## QFactorization is Hessenber
 ## We will only need near  diagonal elements, as we multiply by
 ## an  upper triangular matrix
 
-function Base.getindex(QF::AbstractQFactorization, j, k)
+function Base.getindex(QF::QFactorization, j, k)
     (j <= 0 || k <= 0) && return zero(QF)
     QF.Q[j,k] * QF.D[k]
 end
 
 
-function Base.Matrix(QF::QFactorization{T, Rt}) where {T, Rt}
-    S = Rt == RealRotator{T} ? T : Complex{T}
+function Base.Matrix(QF::QFactorization{T, S}) where {T, S}
     n = length(QF) + 1
     M = diagm(0 => ones(S, n))
-    D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
-    D = D*M
-    QF.Q * D
+    QF.Q * (Matrix(QF.D) * M)
 end
 
 
@@ -63,8 +57,9 @@ end
 ##
 function passthrough!(QF::QFactorization, U::AbstractRotator)
 
-    U = passthrough!(QF.D, U)
-    passthrough!(QF.Q, U)
+    UU = passthrough!(QF.D, U)
+    UUU = passthrough!(QF.Q, UU)
+    UUU
 
 end
 
@@ -81,17 +76,17 @@ function passthrough_phase!(Di::DiagonalRotator, QF::QFactorization)
 end
 
 ## fuse! modifies QF and returns Di is needed.
-function fuse!(QF::QFactorization{T, RealRotator{T}}, U::AbstractRotator) where {T}
+function fuse!(QF::QFactorization{T, S}, U::AbstractRotator) where {T, S <: Real}
     i = idx(U)
-    QF.Q[i] = fuse(QF.Q[i], U)
+    QF.Q[i], Di = fuse(QF.Q[i], U)
 end
 
-function fuse!(U::AbstractRotator, QF::QFactorization{T,RealRotator{T}}) where {T}
+function fuse!(U::AbstractRotator, QF::QFactorization{T,S}) where {T, S <: Real}
     i = idx(U)
-    QF.Q[i] = fuse(U, QF.Q[i])
+    QF.Q[i], Di = fuse(U, QF.Q[i])
 end
 
-function fuse!(QF::QFactorization{T, ComplexRealRotator{T}}, U::AbstractRotator) where {T}
+function fuse!(QF::QFactorization{T, S}, U::AbstractRotator) where {T, S <: Complex}
     i = idx(U)
     QF.Q[i], Di = fuse(QF.Q[i], U)
     Di
@@ -103,7 +98,7 @@ function fuse!(QF::QFactorization{T, ComplexRealRotator{T}}, U::AbstractRotator)
     return nothing
 end
 
-function fuse!(U::AbstractRotator, QF::QFactorization{T, ComplexRealRotator{T}}) where {T}
+function fuse!(U::AbstractRotator, QF::QFactorization{T,S}) where {T, S <: Complex}
     i = idx(U)
     QF.Q[i], Di = fuse(U, QF.Q[i])
     passthrough_phase!(Di, QF)

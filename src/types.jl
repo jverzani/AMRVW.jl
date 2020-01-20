@@ -11,61 +11,39 @@ end
 
 
 ##################################################
-## Factorization Types ##
-##################################################
-## A type to hold our factorization state (Q, R, temp storage)
-## T is floating point type
-## S is T or Complex{T}
-## Rt is rotator type, e.g. RealRotator{T}
-## Pt is pencil type: Val(:no_pencil) or Val(:pencil)
-## Twt is twist type: Val(:twisted) or Val(:not_twisted)
-abstract type AbstractFactorizationState{T, S, Rt, QFt, RFt, Twt} end
 
-# Factorization for No_Pencil and Not Twisted
-# N size of poly
-# QF, RF factorizations
-# UV reusable storage for U and [V] in real cose
-# A reusable storage for pieces of the full matrix
-# REIGS, IEIGS storage for eigen values
-struct QRFactorization{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:not_twisted}}
+
+abstract type AbstractFactorizationState{T, S, Twt} end
+
+struct QRFactorization{T, S,  Qt<:QFactorization{T,S}, Rt<:AbstractRFactorization{T,S}} <: AbstractFactorizationState{T, S, Val{:not_twisted}}
   N::Int
-  QF::QFt
-  RF::RFt
-  UV::Vector{Rt}    # temp storage for U[V] Vector{Rt}, ,
+  QF::Qt
+  RF::Rt
+  UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
+  W::Vector{Rotator{T,S}}     # the limb when m > 1
   A::Matrix{S}
   REIGS::Vector{T}
   IEIGS::Vector{T}
   ctrs::AMRVW_Counter
+  QRFactorization{T,S,Qt, Rt}(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, Qt, Rt} = new(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs)
+  QRFactorization(N::Int, QF::QFactorization{T,S}, RF::Rt, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, Rt} = QRFactorization{T, S, QFactorization{T,S}, Rt}(N,QF,RF, UV, W, A, REIGS, IEIGS, ctrs)
 end
 
 
 
 # constructor for either case
-function qrfactorization(N,
-                         QF::AbstractQFactorization{T, Rt, Twt},
-                         RF::AbstractRFactorization) where {T, Rt, Twt}
+function QRFactorization(QF::QFactorization{T, S},
+                         RF::AbstractRFactorization) where {T, S}
 
-
-    if Rt == ComplexRealRotator{T}
-        S = Complex{T}
-        UV = Vector{ComplexRealRotator{T}}(undef, 1)
-    else
-        S = T
-        UV = Vector{RealRotator{T}}(undef, 2)
-    end
-
+    N = length(QF) + 1
     A = zeros(S, 2, 2)
     reigs = zeros(T, N)
     ieigs = zeros(T, N)
     ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
-
-    if Twt == Val{:not_twisted}
-        state = QRFactorization(N, QF, RF, UV, A, reigs, ieigs, ctr)
-    else
-        state = QRFactorizationTwisted(N, QF, RF, UV, A, reigs, ieigs, ctr)
-    end
-
-    return state
+    m = S == T ? 2 : 1
+    UV = Vector{Rotator{T, S}}(undef, m)
+    W = Vector{Rotator{T, S}}(undef, m-1)
+    QRFactorization(N, QF, RF, UV, W, A, reigs, ieigs, ctr)
 end
 
 Base.length(state::AbstractFactorizationState) = state.N

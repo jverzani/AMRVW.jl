@@ -24,9 +24,9 @@
 ##
 ## Twisted refers to the QFactorization
 ##
-struct QFactorizationTwisted{T, Rt} <: AbstractQFactorization{T, Rt, Val{:twisted}}
-  Q::TwistedChain{Rt}
-  D::AbstractSparseDiagonalMatrix{T, Rt}
+struct QFactorizationTwisted{T, S} <: AbstractQFactorization{T, S}
+  Q::TwistedChain{T,S} ## Twisted
+  D::SparseDiagonal{S}
 end
 
 
@@ -52,16 +52,47 @@ end
 ##################################################
 # Twisting *would* require a different bulge chasing algorithm, so
 # we hold it in the type for dispatch
-struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
+## XXX This is likely not what we want...
+struct QRFactorizationTwisted{T, S,  Qt<:QFactorizationTwisted{T,S}, Rt<:AbstractRFactorization{T,S}} <: AbstractFactorizationState{T, S, Val{:twisted}}
   N::Int
-  QF::QFt
-  RF::RFt
-  UV::Vector{Rt}    # temp storage for U[V] Vector{Rt}, ,
+  QF::Qt
+  RF::Rt
+  UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
+  W::Vector{Rotator{T,S}}     # the limb when m > 1, a twisted chain
   A::Matrix{S}
   REIGS::Vector{T}
   IEIGS::Vector{T}
   ctrs::AMRVW_Counter
+  QRFactorizationTwisted{T,S,Qt, Rt}(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Qt, Rt} = new(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs)
+  QRFactorizationTwisted(N::Int, QF::QFactorizationTwisted{T,S}, RF::Rt, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Rt} = QRFactorizationTwisted{T, S, QFactorizationTwisted{T,S}, Rt}(N,QF,RF, UV,W, A, REIGS, IEIGS, ctrs)
 end
+
+
+function QRFactorization(
+                         QF::QFactorizationTwisted{T, S},
+                         RF::AbstractRFactorization) where {T, S}
+
+    A = zeros(S, 2, 2)
+    reigs = zeros(T, N)
+    ieigs = zeros(T, N)
+    ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
+    m = S == T ? 2 : 1
+    UV = Vector{Rotator{T, S}}(undef, m)
+    W = Vector{Rotator{T, S}}(undef, m-1)
+    QRFactorizationTwisted(length(QF), QF, RF, UV, W, A, reigs, ieigs, ctr)
+end
+
+
+## struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
+##   N::Int
+##   QF::QFt
+##   RF::RFt
+##   UV::Vector{Rt}    # temp storage for U[V] Vector{Rt}, ,
+##   A::Matrix{S}
+##   REIGS::Vector{T}
+##   IEIGS::Vector{T}
+##   ctrs::AMRVW_Counter
+## end
 
 ## This is not correct!
 ## This should be matrix multiplication
@@ -160,16 +191,16 @@ end
 
 
 
-## always return a diagonal rotator, perhaps an identity one
-## this makes the bulge step algorithm generic
-function _fuse(U::RealRotator{T}, V::RealRotator{T}) where {T}
-    D = IdentityDiagonalRotator{T}(idx(V))
-    fuse(U,V), D
-end
+## ## always return a diagonal rotator, perhaps an identity one
+## ## this makes the bulge step algorithm generic
+## function _fuse(U::RealRotator{T}, V::RealRotator{T}) where {T}
+##     D = IdentityRotator{T}(idx(V))
+##     fuse(U,V), D
+## end
 
-function _fuse(U::ComplexRealRotator{T}, V::ComplexRealRotator{T}) where {T}
-    fuse(U,V)
-end
+## function _fuse(U::ComplexRealRotator{T}, V::ComplexRealRotator{T}) where {T}
+##     fuse(U,V)
+## end
 
 
 
@@ -330,7 +361,7 @@ function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
     U = iget!(Ms, m)
 
     if ps[m] == :left
-        Des[end], Di = _fuse(Des[end], U)  # fuse with descending; aka Ms[m]
+        Des[end], Di = fuse(Des[end], U)  # fuse with descending; aka Ms[m]
         ## need to passthrough Ms too now
         i = idx(Di)
 
@@ -349,7 +380,7 @@ function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
     else
 
         AA = popfirst!(Asc)
-        AA, Di = _fuse(U, AA)
+        AA, Di = fuse(U, AA)
 
         if limb_side == :right
             passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
@@ -476,7 +507,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) whe
     # make bottom
     U = pop!(Des)
     V = popfirst!(Asc)
-    bottom, Di = _fuse(U,V)
+    bottom, Di = fuse(U,V)
 
     ## Decoupled too! Decoupled on right? as we augmented Ascending
     if psd[end-m+1] == :right
@@ -561,7 +592,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) whe
             if lpk == :left || lpk == :nothing
 
                 # fuse then translate
-                Asc[1], Di = _fuse(L, Asc[1])
+                Asc[1], Di = fuse(L, Asc[1])
                 if length(Asc) > 1
                     AA = Asc[2:end]
                     passthrough_phase!(Di, (AscendingChain(AA), DescendingChain(Des)), D)
@@ -579,7 +610,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) whe
                 length(limb) > 0 && passthrough!(limb, AscendingChain(Asc))
 
                 # then fuse
-                Asc[1], Di = _fuse(L, Asc[1])
+                Asc[1], Di = fuse(L, Asc[1])
                 if length(Asc) > 1
                     AA = Asc[2:end]
                     passthrough_phase!(Di, (AscendingChain(AA), limb, DescendingChain(Des)), D)
@@ -597,11 +628,11 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) whe
                 # translate then fuse
                 length(limb) > 0 && passthrough!(DescendingChain(Des), limb)
 
-                Des[end], Di = _fuse(Des[end], L)
+                Des[end], Di = fuse(Des[end], L)
                 passthrough_phase!(Di, (), D)
             else
                 # fuse  then translate
-                Des[end], Di = _fuse(Des[end], L)
+                Des[end], Di = fuse(Des[end], L)
                 passthrough_phase!(Di, limb, (), D)
 
                 length(limb) > 0 && passthrough!(DescendingChain(Des), limb)
@@ -653,7 +684,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Decoupled, D, RF) whe
 
         U = pop!(Des)
         V = popfirst!(Asc)
-        bottom, Di = _fuse(U,V)
+        bottom, Di = fuse(U,V)
 
         if phatk == :right
             _Decoupled =  TwistedChain(Decoupled, psd[1:length(Decoupled)-1])

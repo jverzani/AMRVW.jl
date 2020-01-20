@@ -84,7 +84,7 @@ end
 ## Deflation
 ## when a Q[k] matrix becomes a diagonal matrix, we deflate.
 ## This is checked by the sine term being basically 0.
-function check_deflation(state::AbstractFactorizationState{T,S,Rt, Pt, Twt}, tol=eps(T)) where {T, S,Rt, Pt, Twt}
+function check_deflation(state::AbstractFactorizationState{T,S,Twt}, tol=eps(T)) where {T, S,Twt}
     QF = state.QF
     for k in state.ctrs.stop_index:-1:state.ctrs.start_index
         c, s = vals(QF.Q[k])
