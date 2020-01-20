@@ -271,11 +271,17 @@ struct RFactorizationIdentity{T, S} <: AbstractRFactorization{T, S}
 RFactorizationIdentity{T, S}() where {T, S}= new()
 end
 
+Base.getindex(RF::RFactorizationIdentity{T, S}, i, j) where {T, S} = i == j ? one(S) : zero(S)
+Base.Matrix(::RFactorizationIdentity) = I
 Base.length(RF::RFactorizationIdentity) = error("No dimension known")
 passthrough!(RF::RFactorizationIdentity, U::AbstractRotator) = U
 passthrough!(U::AbstractRotator, RF::RFactorizationIdentity) = U
-passthrough!(RF::RFactorizationIdentity, C::AbstractRotatorChain) = nothing
-passthrough!(C::AbstractRotatorChain,RF::RFactorizationIdentity) = nothing
+passthrough!(RF::RFactorizationIdentity, C::DescendingChain) = nothing
+passthrough!(RF::RFactorizationIdentity, C::AscendingChain) = nothing
+passthrough!(RF::RFactorizationIdentity, C::TwistedChain) = nothing
+passthrough!(C::DescendingChain,RF::RFactorizationIdentity) = nothing
+passthrough!(C::AscendingChain,RF::RFactorizationIdentity) = nothing
+passthrough!(C::TwistedChain,RF::RFactorizationIdentity) = nothing
 
 simple_passthrough!(RF::RFactorizationIdentity, U::AbstractRotator) = true
 simple_passthrough!(RF::RFactorizationIdentity, U::AbstractRotator, V::AbstractRotator) = true

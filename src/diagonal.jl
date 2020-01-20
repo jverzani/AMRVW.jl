@@ -78,13 +78,13 @@ passthrough!(U::Rotator, D::SparseDiagonal{T}) where {T <: Real}  = U
 
 
 # Move a chain through a diagonal
-function passthrough!(D::SparseDiagonal, Ch::Union{DescendingChain, AscendingChain})
+function passthrough!(D::SparseDiagonal{S}, Ch::Union{DescendingChain, AscendingChain}) where {S <: Complex}
     for i in 1:length(Ch) # pass  ch through D
         Ch[i] = passthrough!(D, Ch[i])
     end
 end
 
-function passthrough!(Ch::Union{DescendingChain, AscendingChain}, D::SparseDiagonal)
+function passthrough!(Ch::Union{DescendingChain, AscendingChain}, D::SparseDiagonal{S}) where {S <: Complex}
     for i in length(Ch):-1:1
         Ch[i] = passthrough!(Ch[i],D)
     end
@@ -93,8 +93,12 @@ end
 ## could do two others...
 
 ## noop when Identity Diagonal Matrix
-passthrough!(D::SparseDiagonal{T}, C::AbstractRotatorChain) where {T <: Real} =  nothing
-passthrough!(C::AbstractRotatorChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
+passthrough!(D::SparseDiagonal{T}, C::DescendingChain) where {T <: Real} =  nothing
+passthrough!(D::SparseDiagonal{T}, C::AscendingChain) where {T <: Real} =  nothing
+passthrough!(D::SparseDiagonal{T}, C::TwistedChain) where {T <: Real} =  nothing
+passthrough!(C::DescendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
+passthrough!(C::AscendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
+passthrough!(C::TwistedChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
 
 ## Di U = U' Di'
 passthrough!(D::IdentityRotator, U::AbstractRotator) = (U,D)

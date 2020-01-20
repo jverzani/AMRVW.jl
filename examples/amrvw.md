@@ -357,14 +357,15 @@ The product of a descending chain of rotators is upper Hessenberg and the produc
 
 ```
 N = 4
+T = Float64; S = Complex{T}
 M = diagm(0 => ones(N+1))
-Qs = A.random_rotator.(Rt, [4,3,2,1])
+Qs = A.random_rotator.(T, [4,3,2,1])
 F = Qs * M
 
-D = A.sparse_diagonal(T,N)
+D = A.SparseDiagonal(T,N)
 QF = A.QFactorizationTwisted(A.TwistedChain(Qs), D)
-RF = A.IdentityRFactorization{T,Rt}()
-state = A.qrfactorization(N, QF, RF)
+RF = A.RFactorizationIdentity{T,S}()
+state = A.QRFactorization(QF, RF)
 
 [eigvals(state) eigvals(F)]
 ```

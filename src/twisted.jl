@@ -38,13 +38,11 @@ function Base.getindex(QF::QFactorizationTwisted, j, k)
     QF.Q[j,k] * (k == 0 ? 0 : QF.D[k])
 end
 
-function Base.Matrix(QF::QFactorizationTwisted{T, Rt}) where {T, Rt}
+function Base.Matrix(QF::QFactorizationTwisted{T, S}) where {T, S}
 
-    S = Rt == RealRotator{T} ? T : Complex{T}
     n = length(QF) + 1
     M = diagm(0 => ones(S, n))
-    D = isa(QF.D, IdentityDiagonal) ? I : diagm(0=>QF.D.x)
-    D = D*M
+    D = Matrix(QF.D) * M
     return Vector(QF.Q) * D
 end
 
@@ -67,12 +65,15 @@ struct QRFactorizationTwisted{T, S,  Qt<:QFactorizationTwisted{T,S}, Rt<:Abstrac
   QRFactorizationTwisted(N::Int, QF::QFactorizationTwisted{T,S}, RF::Rt, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Rt} = QRFactorizationTwisted{T, S, QFactorizationTwisted{T,S}, Rt}(N,QF,RF, UV,W, A, REIGS, IEIGS, ctrs)
 end
 
-
+# XXX should pass in m, so that A=m x m matrix
 function QRFactorization(
                          QF::QFactorizationTwisted{T, S},
-                         RF::AbstractRFactorization) where {T, S}
+                         RF::AbstractRFactorization{T, S},
+                         m = 2
+                         ) where {T, S}
 
-    A = zeros(S, 2, 2)
+    N = length(QF) + 1
+    A = zeros(S, m, m)
     reigs = zeros(T, N)
     ieigs = zeros(T, N)
     ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
@@ -97,7 +98,7 @@ end
 ## This is not correct!
 ## This should be matrix multiplication
 ## as Twisted Q is no long Hessenberg
-function diagonal_block(state::QRFactorizationTwisted{T, S, Rt, QFt, RFt}, k) where {T,  S, Rt, QFt,  RFt}
+function diagonal_block(state::QRFactorizationTwisted{T, S}, k) where {T,  S}
 
     A  = state.A
     QF,  RF =  state.QF, state.RF
@@ -124,14 +125,14 @@ end
 
 # Identify m shifts by taking the eigenvalues of the lower  m x m matrix, where k specifies the bottom corner of this matrix
 # approximate=true only constructs an approximate  part of the m x m matrix using just the lower rotators
-function find_shifts(state::QRFactorizationTwisted{T, S, Rt, QFt, RFt}, m, k; approximate=true) where {T,  S, Rt, QFt,  RFt}
+function find_shifts(state::QRFactorizationTwisted{T, S}, m, k; approximate=true) where {T,  S}
 end
 
 function _create_bulge(state, shifts)
 
 end
 
-
+##################################################
 
 function eigvals(state::QRFactorizationTwisted)
 
@@ -146,7 +147,7 @@ end
 ## We have the first n-m  steps through, a straightening out of the twisted factorization in QF,
 ## This should be  O(n^2) steps
 ## Then, once untwisted, we pass down to the more efficient O(n^2) algorithm (in time) to solve
-function AMRVW_algorithm(state::QRFactorizationTwisted{T, S, Rt, QFt, RFt}) where  {T, S, Rt, QFt, RFt}
+function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
 
     Ms = state.QF.Q.x # the vector
     pv = state.QF.Q.pv
@@ -174,13 +175,8 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S, Rt, QFt, RFt}) wher
     # now untwisted, so we can change over
     QF = state.QF
     Ms = QF.Q.x
-    if (T == S)
-        QF_new = QFactorizationReal(DescendingChain(Ms), QF.D, Vector{eltype(Ms)}(undef, 1))
-    else
-        QF_new = QFactorizationComplex(DescendingChain(Ms), QF.D, Vector{eltype(Ms)}(undef, 1))
-    end
-
-    new_state = qrfactorization(state.N+1, QF_new, state.RF)
+    QF_new = QFactorization(DescendingChain(Ms), QF.D)
+    new_state = QRFactorization(QF_new, state.RF)
     AMRVW_algorithm(new_state)
     new_state
 
@@ -189,25 +185,9 @@ end
 
 
 
-
-
-## ## always return a diagonal rotator, perhaps an identity one
-## ## this makes the bulge step algorithm generic
-## function _fuse(U::RealRotator{T}, V::RealRotator{T}) where {T}
-##     D = IdentityRotator{T}(idx(V))
-##     fuse(U,V), D
-## end
-
-## function _fuse(U::ComplexRealRotator{T}, V::ComplexRealRotator{T}) where {T}
-##     fuse(U,V)
-## end
-
-
-
-
 ## We use `bulge_step!` for more general usage; this is
 ## tied to AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
-function bulge_step(state::AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}})  where {T,S, Rt, QFt, RFt}
+function bulge_step(state::QRFactorizationTwisted{T, S})  where {T,S}
 
     # create bulge is only right when  all rotators in QFt are straightened out,
     # but  this should step in the correct direction.
