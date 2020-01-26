@@ -212,12 +212,12 @@ A.create_bulge(state)   # finds shifts and creates V_0
 (V0 = state.UV[1] * M) |> round2</pre>
 <pre class="output">
 6×6 Array{Complex{Float64},2}:
- -0.6 + 0.37im  -0.71 + 0.0im   -0.0 + 0.0im  -0.0 + 0.0im  -0.0 + 0.0im  -0.0 + 0.0im
- 0.71 + 0.0im    -0.6 - 0.37im   0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
-  0.0 + 0.0im     0.0 + 0.0im    1.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
-  0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
-  0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im
-  0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im   1.0 + 0.0im</pre>
+ -0.67 + 0.21im  -0.71 + 0.0im   -0.0 + 0.0im  -0.0 + 0.0im  -0.0 + 0.0im  -0.0 + 0.0im
+  0.71 + 0.0im   -0.67 - 0.21im   0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
+   0.0 + 0.0im     0.0 + 0.0im    1.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
+   0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
+   0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im
+   0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im   1.0 + 0.0im</pre>
 
 <p>Up to rounding, $V_0$ is unitary:</p><pre class="sourceCode julia">isapprox(V0 * V0', M, atol=1e-8)</pre>
 <pre class="output">
@@ -226,9 +226,9 @@ true</pre>
 <p>The matrix $V_0' F V_0$ has a bulge below the subdiagonal (the <code>&#91;3,1&#93;</code> position):</p><pre class="sourceCode julia">V0' * F * V0 |> round2</pre>
 <pre class="output">
 6×6 Array{Complex{Float64},2}:
-  0.42 - 0.26im    0.5 + 0.0im    0.0 + 0.0im   0.0 - 0.0im  -1.08 + 0.6im    0.6 + 0.37im
- -0.22 + 0.45im  -0.42 + 0.26im   0.0 + 0.0im   0.0 + 0.0im    0.6 + 0.33im  0.71 - 0.0im 
- -0.71 + 0.0im     0.6 + 0.37im   0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im    0.0 + 0.0im 
+  0.48 - 0.15im    0.5 + 0.0im    0.0 + 0.0im   0.0 - 0.0im  -0.92 + 0.67im  0.67 + 0.21im
+ -0.41 + 0.29im  -0.48 + 0.15im   0.0 + 0.0im   0.0 + 0.0im   0.67 + 0.49im  0.71 - 0.0im 
+ -0.71 + 0.0im    0.67 + 0.21im   0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im    0.0 + 0.0im 
    0.0 + 0.0im     0.0 + 0.0im   -1.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im    0.0 + 0.0im 
    0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im  -1.0 + 0.0im    0.0 + 1.0im   -0.0 + 0.0im 
    0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   -0.0 + 0.0im    0.0 + 0.0im </pre>
@@ -240,8 +240,8 @@ A.passthrough_Q(state, Val(:right))
 <pre class="output">
 6×6 Array{Complex{Float64},2}:
  1.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im   0.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
- 0.0 + 0.0im  0.26 - 0.52im  -0.82 + 0.0im   0.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
- 0.0 + 0.0im  0.82 + 0.0im    0.26 + 0.52im  0.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
+ 0.0 + 0.0im  0.47 - 0.33im  -0.82 + 0.0im   0.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
+ 0.0 + 0.0im  0.82 + 0.0im    0.47 + 0.33im  0.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
  0.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im   1.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
  0.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im   0.0 + 0.0im  1.0 + 0.0im  0.0 + 0.0im
  0.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im   0.0 + 0.0im  0.0 + 0.0im  1.0 + 0.0im</pre>
@@ -249,10 +249,10 @@ A.passthrough_Q(state, Val(:right))
 <p>And this produce will have a bulge in <code>&#91;4,2&#93;</code> position:</p><pre class="sourceCode julia">V1' * (V0' * F * V0) * V1 |> round2</pre>
 <pre class="output">
 6×6 Array{Complex{Float64},2}:
-  0.42 - 0.26im   0.13 - 0.26im  -0.41 + 0.0im    0.0 - 0.0im  -1.08 + 0.6im     0.6 + 0.37im
- -0.87 - 0.0im    0.14 - 0.09im   -0.2 - 0.12im  -0.0 + 0.0im  -0.02 + 0.4im    0.18 + 0.37im
-   0.0 - 0.0im   -0.05 - 0.47im  -0.57 + 0.35im  -0.0 - 0.0im  -0.49 - 0.27im  -0.58 + 0.0im 
-   0.0 + 0.0im   -0.82 + 0.0im   -0.26 - 0.52im   0.0 + 0.0im    0.0 + 0.0im     0.0 + 0.0im 
+  0.48 - 0.15im   0.24 - 0.17im  -0.41 + 0.0im    0.0 - 0.0im  -0.92 + 0.67im   0.67 + 0.21im
+ -0.87 - 0.0im    0.16 - 0.05im  -0.22 - 0.07im  -0.0 + 0.0im   0.15 + 0.46im   0.33 + 0.24im
+  -0.0 + 0.0im    0.28 - 0.38im  -0.64 + 0.2im   -0.0 - 0.0im  -0.55 - 0.4im   -0.58 + 0.0im 
+   0.0 + 0.0im   -0.82 + 0.0im   -0.47 - 0.33im   0.0 + 0.0im    0.0 + 0.0im     0.0 + 0.0im 
    0.0 + 0.0im     0.0 + 0.0im     0.0 + 0.0im   -1.0 + 0.0im    0.0 + 1.0im    -0.0 + 0.0im 
    0.0 + 0.0im     0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   -0.0 + 0.0im     0.0 + 0.0im </pre>
 
@@ -261,28 +261,28 @@ A.passthrough_Q(state, Val(:right))
 (V2 = state.UV[1] * M) |> round2</pre>
 <pre class="output">
 6×6 Array{Complex{Float64},2}:
- 1.0 + 0.0im  0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
- 0.0 + 0.0im  1.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
- 0.0 + 0.0im  0.0 + 0.0im  0.05 + 0.5im  -0.87 + 0.0im  0.0 + 0.0im  0.0 + 0.0im
- 0.0 + 0.0im  0.0 + 0.0im  0.87 + 0.0im   0.05 - 0.5im  0.0 + 0.0im  0.0 + 0.0im
- 0.0 + 0.0im  0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im  1.0 + 0.0im  0.0 + 0.0im
- 0.0 + 0.0im  0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im  0.0 + 0.0im  1.0 + 0.0im</pre>
+  1.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
+  0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
+ -0.0 + 0.0im  -0.0 + 0.0im  -0.3 + 0.4im  -0.87 + 0.0im  -0.0 + 0.0im  -0.0 + 0.0im
+  0.0 + 0.0im   0.0 + 0.0im  0.87 + 0.0im   -0.3 - 0.4im   0.0 + 0.0im   0.0 + 0.0im
+  0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im
+  0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   1.0 + 0.0im</pre>
 
 <pre class="sourceCode julia">V2' * (V1' * (V0' * F * V0) * V1) * V2 |> round2</pre>
 <pre class="output">
 6×6 Array{Complex{Float64},2}:
-  0.42 - 0.26im   0.13 - 0.26im  -0.02 - 0.2im    0.35 - 0.0im   -1.08 + 0.6im     0.6 + 0.37im
- -0.87 - 0.0im    0.14 - 0.09im   0.05 - 0.11im   0.17 + 0.11im  -0.02 + 0.4im    0.18 + 0.37im
-  -0.0 - 0.0im   -0.94 + 0.0im    0.07 - 0.04im   0.06 + 0.13im  -0.16 + 0.23im  -0.03 + 0.29im
-  -0.0 + 0.0im     0.0 - 0.0im    0.26 + 0.34im  -0.64 + 0.4im    0.42 + 0.24im    0.5 - 0.0im 
-   0.0 + 0.0im     0.0 + 0.0im   -0.87 + 0.0im   -0.05 + 0.5im     0.0 + 1.0im    -0.0 + 0.0im 
-   0.0 + 0.0im     0.0 + 0.0im     0.0 + 0.0im     0.0 + 0.0im    -0.0 + 0.0im     0.0 + 0.0im </pre>
+  0.48 - 0.15im   0.24 - 0.17im   0.12 - 0.16im   0.35 + 0.0im   -0.92 + 0.67im  0.67 + 0.21im
+ -0.87 - 0.0im    0.16 - 0.05im    0.1 - 0.07im   0.19 + 0.06im   0.15 + 0.46im  0.33 + 0.24im
+   0.0 - 0.0im   -0.94 + 0.0im    0.08 - 0.03im   0.12 + 0.08im    0.0 + 0.34im  0.17 + 0.23im
+   0.0 - 0.0im    -0.0 + 0.0im   -0.14 + 0.41im  -0.71 + 0.23im   0.48 + 0.35im   0.5 - 0.0im 
+   0.0 + 0.0im     0.0 + 0.0im   -0.87 + 0.0im     0.3 + 0.4im     0.0 + 1.0im   -0.0 + 0.0im 
+   0.0 + 0.0im     0.0 + 0.0im     0.0 + 0.0im     0.0 + 0.0im    -0.0 + 0.0im    0.0 + 0.0im </pre>
 
 <p>Once pushed to the bottom, the bulge is absorbed into the matrix, leaving an upper Hessenberg form.</p><p>If the shifts are appropriately chosen, after a few iterations this resulting matrix can have an eigenvalue immediately read off and after deflation subsequent eigenvalues can be found.</p><h3>Shifts</h3><p>XXX 1,2,m</p><h2>The AMRVW decomposition of the companion matrix</h2><p>The main result of the two papers on "Fast and Backward Stable Computation of Roots of Polynomials" is a proof of backward stability of a method that utilizes a sparse factorization of both the <code>Q</code> and <code>R</code> parts of the QR decomposition of a companion matrix.</p><p>Returning to the real case, and digging into some structures, we can illustrate:</p><pre class="sourceCode julia">ps = [24.0, -50.0, 35.0, -10.0, 1.0]
 state = A.amrvw(ps)
 state.QF.Q</pre>
 <pre class="output">
-AMRVW.DescendingChain{Float64,Float64}(AMRVW.Rotator{Float64,Float64}[AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 1), AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 2), AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 3)])</pre>
+AMRVW.DescendingChain{Float64,Float64,Array{AMRVW.Rotator{Float64,Float64},1}}(AMRVW.Rotator{Float64,Float64}[AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 1), AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 2), AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 3)])</pre>
 
 <p>To explain, this is a "chain" of real rotators. A rotator is a matrix which is identical to the identity matrix except in the <code>&#91;i,i&#43;1&#93; × &#91;i, i&#43;1&#93;</code> block, in which case it takes the form of a rotator: <code>&#91;c s; -s c&#93;</code>. (Our rotators are in the different direction than those in the papers.) Here <code>c</code> and <code>s</code> are the cosine and sine of some angle. These rotators are indexed by <code>i</code> and we use the notation $U_i$ to indicate a rotator of this form for a given $i$. In the above, we  can see  with inspection that there are 3 rotators with $i$ being 1, 2, and 3. This set of rotators is "descending" due to their order (1 then 2 then 3); ascending would be 3 then 2 then 1. The product of descending rotators will be upper Hessenberg:</p><pre class="sourceCode julia">M = diagm(0 => ones(Float64, 4))
 state.QF.Q * M</pre>
@@ -296,7 +296,7 @@ state.QF.Q * M</pre>
 <p>A rotator at level $i$ will commute with a rotator at level $j$ unless $|i-j| \leq 1$. In the case where $i-j = \pm 1$, a key computation is the "turnover", which represents $U_i V_j W_i$ as $VV_j WW_i UU_j$. With the turnover, we can easily pass a rotator through an ascending or descending chain without disturbing those patterns.</p><p>In the  above illustration of Francis's  algorithm, the matrices  $V_0$, $V_1$,  etc. can be seen to be  rotators of this type. More generally, a unitary matrix with $m$ shifts can be viewed as a product of $m$  such rotators.</p><p>The $R$ decomposition  is trickier.  In the initial QR decomposition, $R$ has a simple structure plus a rank one part (coming from the coefficients). The  decomposition has two chains, an ascending one and a descending one,</p><pre class="sourceCode julia">Ct = state.RF.Ct
 B = state.RF.B</pre>
 <pre class="output">
-AMRVW.DescendingChain{Float64,Float64}(AMRVW.Rotator{Float64,Float64}[AMRVW.Rotator{Float64,Float64}(-0.7536071065605803, 0.6573251318346122, 1), AMRVW.Rotator{Float64,Float64}(-0.8025327939615967, 0.5966080075025758, 2), AMRVW.Rotator{Float64,Float64}(-0.3843312210120439, 0.9231952732523013, 3), AMRVW.Rotator{Float64,Float64}(-0.04163054471218133, -0.999133073092352, 4)])</pre>
+AMRVW.DescendingChain{Float64,Float64,Array{AMRVW.Rotator{Float64,Float64},1}}(AMRVW.Rotator{Float64,Float64}[AMRVW.Rotator{Float64,Float64}(-0.7536071065605803, 0.6573251318346122, 1), AMRVW.Rotator{Float64,Float64}(-0.8025327939615967, 0.5966080075025758, 2), AMRVW.Rotator{Float64,Float64}(-0.3843312210120439, 0.9231952732523013, 3), AMRVW.Rotator{Float64,Float64}(-0.04163054471218133, -0.999133073092352, 4)])</pre>
 
 <p>These almost begin as inverses:</p><pre class="sourceCode julia">M = diagm(0 => ones(5))
 (Z = Ct * (B * M)) |> round2</pre>
@@ -346,29 +346,29 @@ A.roots(vs, ws)</pre>
 <h2>Other uses</h2><p>The <code>AMRVW.jl</code> package allows some other applications, though the exact interface needs to be settled on.</p><p>If we take rotators $Q_1, Q_2, \dots, Q_k$ their product will be upper Hessenberg:</p><pre class="sourceCode julia">Qs = A.random_rotator.(Float64, [1,2,3,4])</pre>
 <pre class="output">
 4-element Array{AMRVW.Rotator{Float64,Float64},1}:
- AMRVW.Rotator{Float64,Float64}(0.5501910323842034, 0.8350388181899117, 1) 
- AMRVW.Rotator{Float64,Float64}(0.9943015153881749, 0.10660439248351301, 2)
- AMRVW.Rotator{Float64,Float64}(0.9996342732523193, 0.02704292401548329, 3)
- AMRVW.Rotator{Float64,Float64}(0.43425608200499477, 0.9007894622172661, 4)</pre>
+ AMRVW.Rotator{Float64,Float64}(0.9870261479605963, 0.16055959405176343, 1) 
+ AMRVW.Rotator{Float64,Float64}(0.9032764744754023, 0.4290589827276523, 2)  
+ AMRVW.Rotator{Float64,Float64}(0.49194953238117867, 0.87062371756686, 3)   
+ AMRVW.Rotator{Float64,Float64}(0.9982312443813864, 0.059450674855621166, 4)</pre>
 
 <pre class="sourceCode julia">M = diagm(0 => ones(5))
 (F = Qs * M) |> round2</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
-  0.55   0.83   0.09   0.0   0.0 
- -0.84   0.55   0.06   0.0   0.0 
-  0.0   -0.11   0.99   0.01  0.02
-  0.0    0.0   -0.03   0.43  0.9 
-  0.0    0.0    0.0   -0.9   0.43</pre>
+  0.99   0.15   0.03   0.06  0.0 
+ -0.16   0.89   0.21   0.37  0.02
+  0.0   -0.43   0.44   0.79  0.05
+  0.0    0.0   -0.87   0.49  0.03
+  0.0    0.0    0.0   -0.06  1.0 </pre>
 
 <p>Their eigenvalues can be found:</p><pre class="sourceCode julia">eigvals(F)</pre>
 <pre class="output">
 5-element Array{Complex{Float64},1}:
- 0.43398044277656866 - 0.9009222914810431im
- 0.43398044277656866 + 0.9009222914810431im
-  0.5457885708789295 - 0.8379229295692622im
-  0.5457885708789295 + 0.8379229295692622im
-  0.9999999999999998 + 0.0im               </pre>
+ 0.41713901342556314 - 0.9088426945727999im
+ 0.41713901342556314 + 0.9088426945727999im
+  0.9889913488732699 - 0.1479733484578589im
+  0.9889913488732699 + 0.1479733484578589im
+                 1.0 + 0.0im               </pre>
 
 <p>But the sparse representation can be used to also find such eigenvalues:</p><pre class="sourceCode julia">T = Float64
 N = 5
@@ -380,40 +380,40 @@ state = A.QRFactorization(QF, RF)
 Matrix(state) |> round2 # same as F</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
-  0.55   0.83   0.09   0.0   0.0 
- -0.84   0.55   0.06   0.0   0.0 
-  0.0   -0.11   0.99   0.01  0.02
-  0.0    0.0   -0.03   0.43  0.9 
-  0.0    0.0    0.0   -0.9   0.43</pre>
+  0.99   0.15   0.03   0.06  0.0 
+ -0.16   0.89   0.21   0.37  0.02
+  0.0   -0.43   0.44   0.79  0.05
+  0.0    0.0   -0.87   0.49  0.03
+  0.0    0.0    0.0   -0.06  1.0 </pre>
 
 <pre class="sourceCode julia">eigvals(state)</pre>
 <pre class="output">
 5-element Array{Complex{Float64},1}:
- 0.43398044277656855 - 0.9009222914810431im
- 0.43398044277656855 + 0.9009222914810431im
-  0.5457885708789294 - 0.8379229295692627im
-  0.5457885708789294 + 0.8379229295692627im
-                 1.0 + 0.0im               </pre>
+ 0.41713901342556314 - 0.9088426945728im    
+ 0.41713901342556314 + 0.9088426945728im    
+  0.9889913488732694 - 0.14797334845785876im
+  0.9889913488732694 + 0.14797334845785876im
+                 1.0 + 0.0im                </pre>
 
 <hr /><p>Not all upper Hessenberg matrices can he expressed as a descending chain of rotators, as the latter is unitary. However, any upper Hessenberg matrix can easily be seen to be represented as a descending chain of rotators times an upper triangular matrix.</p><p>The Givens rotation is a rotator, $U$, chosen so that if $x= [a,b]$, then $Ux = [r,0]$. This allows, for example, the following:</p><pre class="sourceCode julia">F = triu(rand(5,5), -1)  # upper Hessenberg</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
- 0.582825176139278    0.9502568236093647    0.22716608773781433  0.4732120892831819  0.8136215594446503
- 0.25105576191027623  0.5213086443873567    0.9753696960148797   0.784138090986157   0.4161777738374084
- 0.0                  0.060139847150643355  0.5508340959222247   0.9852879462498059  0.208054508541051 
- 0.0                  0.0                   0.24237084111434526  0.0841109236407378  0.9008596261492232
- 0.0                  0.0                   0.0                  0.9312309445955675  0.7527997213320172</pre>
+ 0.7042264322260421    0.5531237727696068  0.9953128322371749   0.6655611401006314   0.937964029187226   
+ 0.001064008470823996  0.6192916548452985  0.4674640679178137   0.4471532039251105   0.9032762723472039  
+ 0.0                   0.2676199259747034  0.45520668759405547  0.4701895425382818   0.5187875149372114  
+ 0.0                   0.0                 0.5995888461786654   0.19352000303393946  0.000953161884555076
+ 0.0                   0.0                 0.0                  0.1257372986325933   0.6433776946727543  </pre>
 
 <pre class="sourceCode julia">c,s,r = A.givensrot(F[1,1], F[2,1])
 U1 = A.Rotator(c,s,1)
 U1 * F |> round2</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
-  0.63  1.08  0.59  0.74  0.91
- -0.0   0.1   0.81  0.53  0.06
-  0.0   0.06  0.55  0.99  0.21
-  0.0   0.0   0.24  0.08  0.9 
-  0.0   0.0   0.0   0.93  0.75</pre>
+ 0.7  0.55  1.0   0.67  0.94
+ 0.0  0.62  0.47  0.45  0.9 
+ 0.0  0.27  0.46  0.47  0.52
+ 0.0  0.0   0.6   0.19  0.0 
+ 0.0  0.0   0.0   0.13  0.64</pre>
 
 <p>That is the subdiagonal in column 1 is 0 Similarly, a <code>U2</code> could then be found so that subdiagonal in column 2 is 0, etc. That is a choice of rotators is available for $U_k U_{k-1} U_{k-2} \cdots U_2 U_1 F = R$. Setting $V_i = U_i'$, we have then $F = V_1 V_2 \cdots V_k R = QR$, where $Q$ is unitary and  in decomposed form, and $R$ is upper triangular.</p><p>For example:</p><pre class="sourceCode julia">Us = Any[]
 G = copy(F)
@@ -427,10 +427,10 @@ R = G
 Qs = reverse(adjoint.(Us))</pre>
 <pre class="output">
 4-element Array{AMRVW.Rotator{Float64,Float64},1}:
- AMRVW.Rotator{Float64,Float64}(0.9184168474940801, -0.3956140723470737, 1)  
- AMRVW.Rotator{Float64,Float64}(0.8632388024534556, -0.5047957705238069, 2)  
- AMRVW.Rotator{Float64,Float64}(0.2726086774015069, -0.9621249965599071, 3)  
- AMRVW.Rotator{Float64,Float64}(-0.49923526437859617, -0.8664664741355163, 4)</pre>
+ AMRVW.Rotator{Float64,Float64}(0.9999988586080943, -0.001510887986709104, 1)
+ AMRVW.Rotator{Float64,Float64}(0.917759793613584, -0.3971359480409094, 2)   
+ AMRVW.Rotator{Float64,Float64}(0.36183518957590766, -0.9322420799258994, 3) 
+ AMRVW.Rotator{Float64,Float64}(-0.7990251776789198, -0.6012975681267727, 4) </pre>
 
 <p>With this, we can do the following:</p><pre class="sourceCode julia">N = 5
 D = A.SparseDiagonal(T, N)
@@ -441,20 +441,20 @@ state = A.QRFactorization(QF, RF)
 Matrix(state)  - F |> round2# same as F</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
-  0.0   0.0  -0.0   0.0  0.0
-  0.0   0.0   0.0   0.0  0.0
-  0.0   0.0   0.0   0.0  0.0
- -0.0  -0.0   0.0  -0.0  0.0
- -0.0   0.0   0.0   0.0  0.0</pre>
+ -0.0   0.0  -0.0  -0.0   0.0
+ -0.0   0.0   0.0  -0.0   0.0
+  0.0   0.0   0.0   0.0   0.0
+  0.0  -0.0   0.0  -0.0  -0.0
+  0.0  -0.0   0.0   0.0   0.0</pre>
 
 <p>And</p><pre class="sourceCode julia">[eigvals(state) eigvals(F)]</pre>
 <pre class="output">
 5×2 Array{Complex{Float64},2}:
-  -0.6736446110529649 + 0.0im   -0.6736446110529652 + 0.0im
- 0.015613702702140556 + 0.0im  0.015613702702140388 + 0.0im
-   0.5543831318134121 + 0.0im    0.5543831318134124 + 0.0im
-   1.0645603665988048 + 0.0im     1.064560366598805 + 0.0im
-    1.530965971360223 + 0.0im    1.5309659713602222 + 0.0im</pre>
+ -0.1721229489615138 + 0.0im                  -0.1721229489615137 + 0.0im                 
+ 0.44151597288538535 - 0.04073724527185879im   0.4415159728853849 - 0.040737245271858964im
+ 0.44151597288538535 + 0.04073724527185879im   0.4415159728853849 + 0.040737245271858964im
+  0.7039908005093054 + 0.0im                   0.7039908005093056 + 0.0im                 
+  1.2007226750535278 + 0.0im                   1.2007226750535291 + 0.0im                 </pre>
 
 <p>With this patttern, we might provide an <code>eigvals</code> for <code>Hessenberg</code> matrices:</p><pre class="sourceCode julia">function LinearAlgebra.eigvals(H::Hessenberg)
 R = Matrix(H.H) # need this for R
@@ -482,11 +482,11 @@ end</pre>
 [eigvals(H) eigvals(Matrix(H.H))]</pre>
 <pre class="output">
 5×2 Array{Complex{Float64},2}:
- -0.34140797938600814 - 0.061491755834612im   -0.341407979386008 - 0.06149175583461259im
- -0.34140797938600814 + 0.061491755834612im   -0.341407979386008 + 0.06149175583461259im
-  0.19250720573599245 + 0.0im                0.19250720573599264 + 0.0im                
-   0.6201571270113652 + 0.0im                 0.6201571270113644 + 0.0im                
-    2.436635055340145 + 0.0im                  2.436635055340144 + 0.0im                </pre>
+ -0.23646265361537472 - 0.5597346533965604im  -0.23646265361537477 - 0.5597346533965606im
+ -0.23646265361537472 + 0.5597346533965604im  -0.23646265361537477 + 0.5597346533965606im
+ -0.08491165813167828 + 0.0im                 -0.08491165813167832 + 0.0im               
+  0.14610878511463918 + 0.0im                   0.1461087851146392 + 0.0im               
+   2.6505168294557864 + 0.0im                   2.6505168294557917 + 0.0im               </pre>
 
 <p>Sadly this is not competitive performance-wise with <code>eigvals&#40;Matrix&#40;H.H&#41;&#41;</code>, as the <code>R</code> part is not factored. Though, this approach can be made to work with other floating point types, such as <code>BigFloat</code>, that <code>LinearAlgebra.eigvals</code> can not currently handle.</p><hr /><p>The product of a descending chain of rotators is upper Hessenberg and the product of an  ascending chain or rotators is lower Hessenberg. With modifications, described in "A generalization of the multishift QR algorithm" a related algorithm can be employed. A "twisted chain" is one where a descending chain of rotators is permuted, an ascending chain being one possible twisting among many others.</p><pre class="sourceCode julia">N = 4
 T = Float64; S = T # real case here
@@ -502,11 +502,11 @@ state = A.QRFactorization(QF, RF)
 [eigvals(state) eigvals(F)]</pre>
 <pre class="output">
 5×2 Array{Complex{Float64},2}:
- 0.7066273256494617 - 0.7075859118478048im  0.7066273256494613 - 0.7075859118478045im
- 0.7066273256494617 + 0.7075859118478048im  0.7066273256494613 + 0.7075859118478045im
- 0.8306831957055637 - 0.5567453891792836im  0.8306831957055643 - 0.5567453891792836im
- 0.8306831957055637 + 0.5567453891792836im  0.8306831957055643 + 0.5567453891792836im
-                1.0 + 0.0im                 0.9999999999999992 + 0.0im               </pre>
+ -0.1721229489615138 + 0.0im                  -0.20657564002029577 - 0.9784306336936742im
+ 0.44151597288538535 - 0.04073724527185879im  -0.20657564002029577 + 0.9784306336936742im
+ 0.44151597288538535 + 0.04073724527185879im    0.2782115965638038 - 0.9605198111113689im
+  0.7039908005093054 + 0.0im                    0.2782115965638038 + 0.9605198111113689im
+  1.2007226750535278 + 0.0im                    0.9999999999999997 + 0.0im               </pre>
 
 <p>Here is another example with a CMV pattern to the twisted</p><pre class="sourceCode julia">N = 5
 M = diagm(0 => ones(N+1))
@@ -520,13 +520,8 @@ state = A.QRFactorization(QF, RF)
 
 [eigvals(state) eigvals(F)]</pre>
 <pre class="output">
-6×2 Array{Complex{Float64},2}:
- 0.1031795972792461 - 0.9946627421921928im  0.10317959727924592 - 0.9946627421921934im 
- 0.1031795972792461 + 0.9946627421921928im  0.10317959727924592 + 0.9946627421921934im 
- 0.7539720833848295 - 0.6569064602181499im   0.7539720833848294 - 0.6569064602181501im 
- 0.7539720833848295 + 0.6569064602181499im   0.7539720833848294 + 0.6569064602181501im 
- 0.9906518353250453 - 0.136414592940489im    0.9906518353250455 - 0.13641459294048935im
- 0.9906518353250453 + 0.136414592940489im    0.9906518353250455 + 0.13641459294048935im</pre>
+DimensionMismatch("vectors must have same lengths")
+</pre>
 
 <p>The implementation for twisted chains is not nealy as efficient as that  for descending chains.</p>
   </div>

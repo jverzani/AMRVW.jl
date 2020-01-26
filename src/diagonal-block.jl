@@ -35,7 +35,7 @@ end
 
 # [a11 - l a12; a21 a22] -> l^2 -2 * (tr(A)/2) l + det(A)
 # so we use b = tr(A)/2 for qdrtc routing
-function eigen_values(state::AbstractFactorizationState{T,S, Twt}) where {T,S <: Real, Twt}
+function eigen_values(state::AbstractQRFactorizationState{T,S, Val{:not_twisted}}) where {T,S}
 
     # this allocates:
     # e1, e2 = eigvals(state.A)
@@ -44,6 +44,11 @@ function eigen_values(state::AbstractFactorizationState{T,S, Twt}) where {T,S <:
     a11, a12 = state.A[1,1], state.A[1,2]
     a21, a22 = state.A[2,1], state.A[2,2]
 
+    eigen_values(a11, a12, a21, a22)
+end
+
+
+function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
     b = (a11 + a22) / 2
     c = a11 * a22 - a12 * a21
 
@@ -53,10 +58,7 @@ function eigen_values(state::AbstractFactorizationState{T,S, Twt}) where {T,S <:
 end
 
 # from `modified_quadratic.f90`
-function eigen_values(state::AbstractFactorizationState{T,S, Twt}) where {T,S <: Complex, Twt}
-
-    a11, a12 = state.A[1,1], state.A[1,2]
-    a21, a22 = state.A[2,1], state.A[2,2]
+function  eigen_values(a11::S, a12::S, a21::S, a22::S) where {S <: Complex}
 
     tr = a11 + a22
     detm = a11 * a22 - a21 * a12

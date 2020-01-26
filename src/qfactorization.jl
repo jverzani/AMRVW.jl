@@ -4,14 +4,15 @@
 abstract type AbstractQFactorization{T, S} end
 # implement Array interface
 Base.length(QF::AbstractQFactorization) = length(QF.Q)
+Base.size(QF::AbstractQFactorization) = (length(QF)+1, length(QF)+1)
 Base.eltype(QF::AbstractQFactorization{T, S}) where {T,S} = S
 
 Base.zero(QF::AbstractQFactorization) = zero(eltype(QF))
 Base.one(QF::AbstractQFactorization) = one(eltype(QF))
 
 
-struct QFactorization{T, S} <: AbstractQFactorization{T, S}
-  Q::DescendingChain{T,S}
+struct QFactorization{T, S, V} <: AbstractQFactorization{T, S}
+  Q::DescendingChain{T,S, V}
   D::SparseDiagonal{S}
 end
 
@@ -57,9 +58,8 @@ end
 ##
 function passthrough!(QF::QFactorization, U::AbstractRotator)
 
-    UU = passthrough!(QF.D, U)
-    UUU = passthrough!(QF.Q, UU)
-    UUU
+    U = passthrough!(QF.D, U)
+    passthrough!(QF.Q, U)
 
 end
 

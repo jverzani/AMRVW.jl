@@ -5,8 +5,18 @@
 
 # ## The bulge is created by  (A-rho1) * (A - rho2) * e_1 where rho1 and rho2 are eigenvalue or random
 # ## for real case, we take the real part of this result
-#function create_bulge(state::QRFactorization{T, S}) where {T, S <: Real}
-function create_bulge(state::AbstractFactorizationState{T, S}) where {T, S <: Real}
+
+"""
+   create_bulge(state)
+
+Finds m=1 or 2 shifts (m=1 in the CSS case, m=2 in the RDS case) based on the eigenvalues of the lower 2x2 block (using `stop_index`). The
+vector `x = alpha (A - rho_1 I) e_1` or `x = alpha (A-rho_1 I) (A-rho_2 I) e1` is found. From this, one or two core transforms
+are found so that `U_1' x = gamma e_1` or `U_1' U_2' x = gamma e_1`. The values `U_1` or `U_1`, `U_2` are store in `state`.
+
+
+"""
+function create_bulge(state::QRFactorization{T, S, Vt, Rt}) where {T, S <: Real, Vt, Rt}
+
     if mod(state.ctrs.it_count, 15) == 0
 
         t = rand(T) * pi
@@ -36,6 +46,8 @@ function create_bulge(state::AbstractFactorizationState{T, S}) where {T, S <: Re
         diagonal_block(state, k+2)
         bk32 = state.A[2,1]
 
+
+        # compute `x`
         c1 = -l1i * l2i + l1r*l2r -l1r*bk11 -l2r * bk11 + bk11^2 + bk12 * bk21
         c2 = -l1r * bk21 - l2r * bk21 + bk11* bk21 + bk21 * bk22
         c3 = bk21 * bk32
@@ -56,8 +68,7 @@ function create_bulge(state::AbstractFactorizationState{T, S}) where {T, S <: Re
 end
 
 ## CSS case
-#function create_bulge(state::QRFactorization{T, S}) where {T, S <: Complex}
-function create_bulge(state::AbstractFactorizationState{T, S}) where {T, S <: Complex}
+function create_bulge(state::QRFactorization{T, S, V, Rt}) where {T, S <: Complex, V, Rt}
     ray = true  # state.ray?
 
     if mod(state.ctrs.it_count, 15) == 0

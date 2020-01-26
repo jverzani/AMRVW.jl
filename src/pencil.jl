@@ -10,6 +10,7 @@ V::RFactorizationRankOne{T, S}
 W::RFactorizationRankOne{T, S}
 end
 
+Base.size(RF::RFactorizationPencil) = size(RF.V)
 function Base.Matrix(RF::RFactorizationPencil)
     V = Matrix(RF.V)
     W = Matrix(RF.W)

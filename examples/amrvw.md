@@ -363,7 +363,7 @@ F = Qs * M
 D = A.SparseDiagonal(T,N+1)
 QF = A.QFactorizationTwisted(A.TwistedChain(Qs), D)
 RF = A.RFactorizationIdentity{T,S}()
-state = A.QRFactorization(QF, RF)
+state = A.QRFactorizationTwisted(QF, RF)
 
 [eigvals(state) eigvals(F)]
 ```

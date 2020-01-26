@@ -24,24 +24,49 @@ is_diagonal(r::AbstractRotator{T,S}) where {T,S} = norm(r.s) <= eps(T)
 ## XXX
 ## this uses [c s; -conj(s) conj(c)] for rotator!
 function *(a::AbstractRotator, M::AbstractArray)
-    c, s = vals(a)
-    i = idx(a); j = i+1
     N = copy(M)
-    N[i,:]  =  c * M[i,:] + s * M[j,:]
-    N[j,:]  =  -conj(s) * M[i,:] + conj(c) * M[j,:]
+    mul!(a, N)
     N
 end
 
-function *(M::AbstractArray, a::AbstractRotator)
+function LinearAlgebra.mul!(a::AbstractRotator, M::AbstractArray)
     c, s = vals(a)
     i = idx(a); j = i+1
-     N = copy(M)
-    N[:, i] = c * M[:,i] - conj(s) * M[:,j]
-    N[:, j] = s * M[:,i] + conj(c) * M[:,j]
+    n = size(M)[2]
+    for k in 1:n
+        mik, mjk = M[i,k], M[j,k]
+        M[i,k]  =  c * mik + s * mjk
+        M[j,k]  =  -conj(s) * mik + conj(c) * mjk
+    end
+    M
+end
+
+function *(M::AbstractArray, a::AbstractRotator)
+    N = copy(M)
+    mul!(N, a)
     N
 end
+
+function LinearAlgebra.mul!(M::AbstractArray, a::AbstractRotator)
+    c, s = vals(a)
+    i = idx(a); j = i+1
+    n = size(M)[1]
+    for k in 1:n
+        mki, mkj = M[k,i], M[k,j]
+        M[k, i] = c * mki - conj(s) * mkj
+        M[k, j] = s * mki + conj(c) * mkj
+    end
+    M
+end
+
 *(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform} = foldr(*, Qs, init=M)
 *(M::Matrix, Qs::Vector{R}) where {R <: CoreTransform} = foldl(*, Qs, init=M)
+function LinearAlgebra.mul!(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform}
+    foldr(mul!, Qs, init=M)
+end
+function LinearAlgebra.mul!(M::Matrix, Qs::Vector{R}) where {R <: CoreTransform}
+    foldl(mul!, Qs, init=M)
+end
 
 #the index is superflous for now, and a bit of a hassle to keep immutable
 #but might be of help later if twisting is approached. Shouldn't effect speed, but does mean 3N storage (Q, Ct, B)

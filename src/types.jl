@@ -13,11 +13,17 @@ end
 ##################################################
 
 
-abstract type AbstractFactorizationState{T, S, Twt} end
+abstract type AbstractQRFactorizationState{T, S, Twt} end
+function Base.size(state::AbstractQRFactorizationState)
+    m1, n1 = size(state.QF)
+    m2, n2 = size(state.RF)
+    return (max(m1,m2), max(n1, n2))
+end
 
-struct QRFactorization{T, S,  Qt<:QFactorization{T,S}, Rt<:AbstractRFactorization{T,S}} <: AbstractFactorizationState{T, S, Val{:not_twisted}}
+
+struct QRFactorization{T, S, V, Rt<:AbstractRFactorization{T,S}} <: AbstractQRFactorizationState{T, S, Val{:not_twisted}}
   N::Int
-  QF::Qt
+  QF::QFactorization{T, S, V}
   RF::Rt
   UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
   W::Vector{Rotator{T,S}}     # the limb when m > 1
@@ -25,8 +31,8 @@ struct QRFactorization{T, S,  Qt<:QFactorization{T,S}, Rt<:AbstractRFactorizatio
   REIGS::Vector{T}
   IEIGS::Vector{T}
   ctrs::AMRVW_Counter
-  QRFactorization{T,S,Qt, Rt}(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, Qt, Rt} = new(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs)
-  QRFactorization(N::Int, QF::QFactorization{T,S}, RF::Rt, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, Rt} = QRFactorization{T, S, QFactorization{T,S}, Rt}(N,QF,RF, UV, W, A, REIGS, IEIGS, ctrs)
+  QRFactorization{T,S,V, Rt}(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, V, Rt} = new(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs)
+  QRFactorization(N::Int, QF::QFactorization{T,S, V}, RF::Rt, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, V, Rt} = QRFactorization{T, S, V, Rt}(N,QF,RF, UV, W, A, REIGS, IEIGS, ctrs)
 end
 
 
@@ -46,11 +52,11 @@ function QRFactorization(QF::QFactorization{T, S},
     QRFactorization(N, QF, RF, UV, W, A, reigs, ieigs, ctr)
 end
 
-Base.length(state::AbstractFactorizationState) = state.N
+Base.length(state::AbstractQRFactorizationState) = state.N
 
 
 # return A
-function Base.Matrix(state::AbstractFactorizationState)
+function Base.Matrix(state::AbstractQRFactorizationState)
 
     Q = Matrix(state.QF)
     R = Matrix(state.RF)
@@ -59,9 +65,7 @@ function Base.Matrix(state::AbstractFactorizationState)
     if R != I
         m,n =  size(Q)[1], size(R)[1]
         if m < n
-            QQ = diagm(0 => ones(eltype(Q), n))
-            QQ[1:m, 1:m] .= Q
-            return  QQ  *  R
+            return Q * R[1:m, 1:m]
         else
             return Q * R
         end

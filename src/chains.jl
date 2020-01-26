@@ -32,23 +32,23 @@ end
 
 ## Types of chains
 ## FIX ME so that
-#struct DescendingChain{T, S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
-#  x::V
-#end
-
-
-#struct AscendingChain{T,S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
-#  x::V
-#end
-
-
-struct DescendingChain{T, S} <: AbstractRotatorChain{T,S}
-  x::Vector{Rotator{T,S}}
+struct DescendingChain{T, S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
+  x::V
 end
 
-struct AscendingChain{T,S} <: AbstractRotatorChain{T,S}
-    x::Vector{Rotator{T,S}}
+
+struct AscendingChain{T,S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
+  x::V
 end
+
+
+## struct DescendingChain{T, S} <: AbstractRotatorChain{T,S}
+##   x::Vector{Rotator{T,S}}
+## end
+
+## struct AscendingChain{T,S} <: AbstractRotatorChain{T,S}
+##     x::Vector{Rotator{T,S}}
+## end
 
 ## Structure to hold a twisted represenation
 ## pv is the position vector of length  n-1

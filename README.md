@@ -40,12 +40,11 @@ julia> p4 = [24.0, -50.0, 35.0, -10.0, 1.0]  # (x-1) * (x-2) * (x-3) * (x-4)
    1.0
 
 julia> roots(p4)
-
 4-element Array{Complex{Float64},1}:
- 2.0000000000000226 + 0.0im
- 0.9999999999999978 + 0.0im
-  4.000000000000043 + 0.0im
- 2.9999999999999423 + 0.0im
+ 0.9999999999999996 + 0.0im
+ 2.0000000000000027 + 0.0im
+ 2.9999999999999876 + 0.0im
+ 4.000000000000012 + 0.0im
 ```
 
 By means of comparison, using the `Polynomials` package:
@@ -102,7 +101,6 @@ As this is relatively speedy, statistics can be generated, albeit the following 
 ```julia
 julia> xs = [A.roots(randn(3000)) .|> isreal |> sum for _ in 1:3000]
 julia> using StatsBase
-julia> using StatsBase
 julia> xbar, s = mean_and_std(xs)
 julia> n = 3000
 julia> xbar .+ 1.96*s/sqrt(n) * [-1,1], 2/pi*log(n) + .625738072 + 2/(pi*n)
@@ -116,21 +114,20 @@ There are no exported functions, as of now. But the internal functions may be of
 
 ```
 T = Float64
+S =  T
 const A =  AMRVW
-Qs = A.random_rotator.(A.RealRotator{T}, 1:10)
-D = A.IdentityDiagonal{T}()
+Qs = A.random_rotator.(T, 1:10)
 Q = A.DescendingChain(Qs)
-W = A.Rotator(zero(T), one(T), 1)
-QF = A.QFactorization(Q,D,[W])
-RF = A.IdentityRFactorization{T, A.RealRotator{T}}()
-s = A.qrfactorization(11, QF, RF)
-A.AMRVW_algorithm(s)
-complex.(s.REIGS, s.IEIGS)
+D = A.SparseDiagonal(T, 0)
+QF = A.QFactorization(Q,D)
+RF = A.RFactorizationIdentity{T, S}()
+state = A.QRFactorization(QF, RF)
+eigvals(state)
 ```
 
 Which can be compared with:
 
 ```
 M = diagm(0 => ones(T, 11))
-Qs * M |> eigvals |> csort
+Qs * M |> eigvals
 ```

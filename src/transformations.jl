@@ -160,11 +160,9 @@ end
     ## UVW has first row [UVW11, UVW21, UVW31]
     UVW21 = -c2 * s3 * conj(c1) - c3*s1
     UVW31 = s2 * s3
-
     c4, s4, r4 = givensrot(UVW21, UVW31)
     c4, s4 = conj(c4), -s4  # conjugate, as [c4 s4; -s4 conj(s4)]*[a,b] = [r,0]
 #    c4, s4 =  polish_givens(c4, s4)
-
 
     UVW11 = c1*c3 - c2*s1*s3
     c5, s5::T = approx_givensrot(UVW11, real(r4))
@@ -179,8 +177,12 @@ end
     if !iszero(s5)
         c6, s6 = approx_givensrot(a, s1*s2/s5)
     else
-        b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0
-        c6, s6 = approx_givensrot(a, b)
+        b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0, need not be real so need a rotation!!!
+        #c6, s6 = approx_givensrot(a, b)
+        #c6, s6 = givensrot(a, b)
+        @show :uh_huh
+
+        c6, s6 = givensrot(c2*conj(c1), -s2)
     end
 #    c6, s6 = approx_givensrot(a, b)
 #    c6, s6 =  polish_givens(c6, s6)

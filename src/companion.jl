@@ -259,7 +259,10 @@ function roots(ps::Vector{S}) where {S}
     end
 #@show "done"
     rts = complex.(state.REIGS, state.IEIGS)
-    LinearAlgebra.sorteig!(rts)
+    try
+        _sorteig!(rts)
+    catch
+    end
     rts
 end
 

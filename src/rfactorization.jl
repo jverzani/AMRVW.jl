@@ -38,13 +38,14 @@ end
 ##################################################
 
 ## Rank one decomposition for amrvw algorithm to find eigenvalues of companion matrix
-struct RFactorizationRankOne{T,S} <: AbstractRFactorization{T, S}
-  Ct::AscendingChain{T,S}
-  B::DescendingChain{T,S}
-  D::AbstractSparseDiagonalMatrix{S}
+struct RFactorizationRankOne{T,S, V} <: AbstractRFactorization{T, S}
+  Ct::AscendingChain{T,S,V}
+  B::DescendingChain{T,S,V}
+  D::SparseDiagonal{S}
 end
 
 Base.length(RF::RFactorizationRankOne) = length(RF.Ct)
+Base.size(RF::RFactorizationRankOne) = (length(RF)+1, length(RF)+1)
 
 
 ## getindex
@@ -193,6 +194,7 @@ RFactorizationUpperTriangular(M::AbstractArray{S}) where {S} = RFactorizationUpp
 end
 
 Base.length(RF::RFactorizationUpperTriangular) = size(RF.R)[1]
+Base.size(RF::RFactorizationUpperTriangular) = size(RF.R)
 function Base.getindex(RF::RFactorizationUpperTriangular, i, j)
     if i > 0 && j > 0
         RF.R[i,j]
@@ -271,6 +273,7 @@ struct RFactorizationIdentity{T, S} <: AbstractRFactorization{T, S}
 RFactorizationIdentity{T, S}() where {T, S}= new()
 end
 
+Base.size(RF::RFactorizationIdentity) = (-1, -1)
 Base.getindex(RF::RFactorizationIdentity{T, S}, i, j) where {T, S} = i == j ? one(S) : zero(S)
 Base.Matrix(::RFactorizationIdentity) = I
 Base.length(RF::RFactorizationIdentity) = error("No dimension known")

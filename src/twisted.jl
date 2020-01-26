@@ -11,7 +11,7 @@
 ##
 ## * Clean up allocations
 ##
-## * store Decoupled and Ms in same space to avoid allocations
+## * store Decoupled and Ms in same space to avoid allocations; work with start_index, stop_index
 ##
 ## * get shifts by paper (m -> eigenvalues of mxm matrix, continue...)
 ##
@@ -24,12 +24,51 @@
 ##
 ## Twisted refers to the QFactorization
 ##
-struct QFactorizationTwisted{T, S} <: AbstractQFactorization{T, S}
-  Q::TwistedChain{T,S} ## Twisted
+struct QFactorizationTwisted{T, S, Vt, PVt} <: AbstractQFactorization{T, S}
+  Q::TwistedChain{T,S, Vt, PVt} ## Twisted
   D::SparseDiagonal{S}
 end
 
+## XXX This should be AbstractQFactorization{T,S} with S <: Reael....
+function deflate(QF::QFactorizationTwisted{T, S, Vt, Pvt}, k) where {T,S <: Real, Vt, Pvt}
 
+    c,s = vals(QF.Q[k])
+    i = idx(QF.Q[k])
+    QF.Q[k] = Rotator(sign(c), zero(T), i) # ± 1, not just 1
+
+
+end
+
+function deflate(QF::QFactorizationTwisted{T, S, Vt, Pvt}, k) where {T, S <: Complex, Vt, Pvt}
+
+    alpha, s = vals(QF.Q[k])
+    i = idx(QF.Q[k])
+
+    ## Make Q[k] an identity rotator
+    QF.Q[k] = Rotator(one(Complex{T}), zero(T), i)
+
+    @show k, QF.Q[k]
+
+    # absorb Di into D
+    Di =  DiagonalRotator(alpha, i)
+    ## passthrough Ascending and Descdending parts of QF.Q merge with D
+    passthrough_phase!(Di, QF)
+
+end
+
+function passthrough_phase!(Di::DiagonalRotator, QF::QFactorizationTwisted)
+    i = idx(Di)
+
+    ainds, aMMs = iget(QF.Q, i, Val(:Asc))
+    dinds, dMMs = iget(QF.Q, i, Val(:Des))
+    passthrough_phase!(Di,(DescendingChain(dMMs), AscendingChain(aMMs)), QF.D)
+    for (i,j) in enumerate(ainds)
+        QF.Q[j] = aMMs[i]
+    end
+    for (i,j) in enumerate(dinds)
+        QF.Q[j] = dMMs[i]
+    end
+end
 
 Base.eltype(QF::QFactorizationTwisted) = eltype(QF.Q.x)
 ## return q[i:k, j:k]
@@ -51,9 +90,10 @@ end
 # Twisting *would* require a different bulge chasing algorithm, so
 # we hold it in the type for dispatch
 ## XXX This is likely not what we want...
-struct QRFactorizationTwisted{T, S,  Qt<:QFactorizationTwisted{T,S}, Rt<:AbstractRFactorization{T,S}} <: AbstractFactorizationState{T, S, Val{:twisted}}
-  N::Int
-  QF::Qt
+struct QRFactorizationTwisted{T, S, Vt, PVt, Rt<:AbstractRFactorization{T,S}} <: AbstractQRFactorizationState{T, S, Val{:twisted}}
+N::Int
+m::Int
+  QF::QFactorizationTwisted{T,S, Vt, PVt}
   RF::Rt
   UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
   W::Vector{Rotator{T,S}}     # the limb when m > 1, a twisted chain
@@ -61,30 +101,32 @@ struct QRFactorizationTwisted{T, S,  Qt<:QFactorizationTwisted{T,S}, Rt<:Abstrac
   REIGS::Vector{T}
   IEIGS::Vector{T}
   ctrs::AMRVW_Counter
-  QRFactorizationTwisted{T,S,Qt, Rt}(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Qt, Rt} = new(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs)
-  QRFactorizationTwisted(N::Int, QF::QFactorizationTwisted{T,S}, RF::Rt, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Rt} = QRFactorizationTwisted{T, S, QFactorizationTwisted{T,S}, Rt}(N,QF,RF, UV,W, A, REIGS, IEIGS, ctrs)
+#  QRFactorizationTwisted{T,S,Vt, PVt, Rt}(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Vt, PVt, Rt} = new(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs)
+#  QRFactorizationTwisted(N::Int, QF::QFactorizationTwisted, RF, UV,W, A, REIGS, IEIGS, ctrs) = new(N, QF, RF, UV, A, REIGS, IEIGS, ctrs)
 end
 
 # XXX should pass in m, so that A=m x m matrix
-function QRFactorization(
-                         QF::QFactorizationTwisted{T, S},
+function QRFactorizationTwisted(
+                         QF::QFactorizationTwisted{T, S, Vt, PVt},
                          RF::AbstractRFactorization{T, S},
-                         m = 2
-                         ) where {T, S}
+                         m::Int = 0  # specify or use 1 for Complex, 2 for Real, larger if desired
+                         ) where {T, S, Vt, PVt}
 
+    if iszero(m)
+        m = S <: Complex ? 1 : 2
+    end
     N = length(QF) + 1
     A = zeros(S, m, m)
     reigs = zeros(T, N)
     ieigs = zeros(T, N)
     ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
-    m = S == T ? 2 : 1
-    UV = Vector{Rotator{T, S}}(undef, m)
-    W = Vector{Rotator{T, S}}(undef, m-1)
-    QRFactorizationTwisted(length(QF), QF, RF, UV, W, A, reigs, ieigs, ctr)
+    UV = Vector{Rotator{T, S}}(undef, m)   # Ascending Chain
+    W = Vector{Rotator{T, S}}(undef, m-1)  # the lim
+    QRFactorizationTwisted(length(QF), m,  QF, RF, UV, W, A, reigs, ieigs, ctr)
 end
 
 
-## struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
+## struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractQRFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
 ##   N::Int
 ##   QF::QFt
 ##   RF::RFt
@@ -126,18 +168,174 @@ end
 # Identify m shifts by taking the eigenvalues of the lower  m x m matrix, where k specifies the bottom corner of this matrix
 # approximate=true only constructs an approximate  part of the m x m matrix using just the lower rotators
 function find_shifts(state::QRFactorizationTwisted{T, S}, m, k; approximate=true) where {T,  S}
+
+    A = state.A # storage space for lower mxm block
+
+
 end
 
-function _create_bulge(state, shifts)
+## return state,m rotators to create a bulge
+function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}; approximate=true) where {T, S, Vt, PVt, Rt}
+
+    m = state.m
+    if mod(state.ctrs.it_count, 15) == 0
+        state.UV[:] = random_rotator.(S, m:-1:1)
+    else
+        create_bulge(Val(approximate), Val(S <: Real), state)
+    end
+
+    return nothing
 
 end
+
+## approximate, Real
+function create_bulge(::Val{true}, ::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+
+end
+
+## approximate, Complex
+function create_bulge(a::Val{true}, r::Val{false}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+    @show :hi_approx_complex
+    ## testing
+    ## idea: use Am for eigenvalues
+    ## idea: use (A-Q)x iterations to solve inverses
+     m = state.m
+    alpha, beta = state.ctrs.start_index, state.ctrs.stop_index
+    offset = alpha
+    ## XXX get Am more efficiently
+    ## We have state.RF[i,j] and can generate matrix for state.QF
+    ## from last m rotators....
+    A = Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
+    n = size(A)[1]
+    if m > 1
+        Am = A[beta-m:beta+1, beta-m:beta+1]
+        rhos = eigvals(Am)
+        @show rhos
+    else
+        Am = A[beta:beta+1, beta:beta+1]
+        @show Am
+        e1, e2 = eigvals(Am)
+        if norm(Am[2,2] - e1) < norm(Am[2,2] - e2)
+            rhos = [e1]
+        else
+            rhos = [e2]
+        end
+    end
+    e_alpha = zeros(S, m+1); e_alpha[1] = 1
+
+    Aalpha = A[offset:offset+m, offset:offset+m]
+    x = e_alpha
+    for i in 1:m
+        x = (Aalpha - rhos[i] * I) * x
+        pi = (i==1) ? :left : state.QF.Q.pv[i-1]
+        if  pi == :right
+            x = Aalpha \ x
+        end
+    end
+
+    # now roll up
+    _rollup!(state, x[1:m+1])
+
+    return nothing
+end
+
+## exact, Real
+function create_bulge(::Val{false}, ::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+    @show :exact_real
+    m = state.m
+    @assert m >= 2  # for even we need atleast a quadratic poly
+    alpha, beta = state.ctrs.start_index, state.ctrs.stop_index
+    offset = alpha - 1
+    ## XXX get Am in more efficient manner (use last m rotators...)
+    A = Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
+    n = size(A)[1]
+    Am = A[beta-m+2:beta+1, beta-m+2:beta+1]
+    rhos = _sorteig!(eigvals(Am))  ## sorted by LinearAlgebra.sorteig!
+
+    e_alpha = zeros(S, n); e_alpha[alpha] = 1
+    x = e_alpha
+    i = 1
+    while i <= m
+        rhoi = rhos[i]
+        pi = (i==1) ? :left : state.QF.Q.pv[i-1]
+        if i < m && isapprox(rhoi, conj(rhos[i+1]))
+            ## XXX deal with left right...
+            @show :complex_roots
+            x = (A^2 - 2real(rhos[i])*A + norm(rhos[i])^2*I) * x
+            i += 1
+        else
+            x = (A - rhos[i]*I) * x
+        end
+
+        ## XXX fix me
+        if  pi == :right
+            x = A \ x
+        end
+        i += 1
+    end
+
+    @show x
+    # now roll up
+    _rollup!(state, x[offset+1:offset+m+1])
+
+    return nothing
+
+end
+
+## exact, complex
+function create_bulge(a::Val{false}, r::Val{false}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+    m = state.m
+    alpha, beta = state.ctrs.start_index, state.ctrs.stop_index
+    offset = alpha - 1
+    A = Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
+    n = size(A)[1]
+    if m > 1
+        Am = A[beta-m+2:beta+1, beta-m+2:beta+1]
+        rhos = eigvals(Am)
+    else
+        Am = A[beta:beta+1, beta:beta+1]
+        e1, e2 = eigvals(Am)
+        if norm(Am[2,2] - e1) < norm(Am[2,2] - e2)
+            rhos = [e1]
+        else
+            rhos = [e2]
+        end
+    end
+
+    e_alpha = zeros(S, n); e_alpha[alpha] = 1
+
+    x = e_alpha
+    for i in 1:m
+        x = (A - rhos[i] * I) * x
+        pi = (i==1) ? :left : state.QF.Q.pv[i-1]
+        if  pi == :right
+            x = A \ x
+        end
+    end
+
+    # now roll up
+    _rollup!(state, x[offset+1:offset+m+1])
+
+    return nothing
+end
+
+function _rollup!(state, x)
+    m = state.m
+    r = x[m + 1]
+    for i in m:-1:1
+        c, s, r = givensrot(x[i], r)
+        U = Rotator(c, s, i)
+        state.UV[m+1-i] = U'
+    end
+end
+
 
 ##################################################
 
 function eigvals(state::QRFactorizationTwisted)
 
-    new_state = AMRVW_algorithm(state)
-    es = complex.(new_state.REIGS, new_state.IEIGS)
+    AMRVW_algorithm(state)
+    es = complex.(state.REIGS, state.IEIGS)
     LinearAlgebra.sorteig!(es)
     es
 
@@ -147,6 +345,7 @@ end
 ## We have the first n-m  steps through, a straightening out of the twisted factorization in QF,
 ## This should be  O(n^2) steps
 ## Then, once untwisted, we pass down to the more efficient O(n^2) algorithm (in time) to solve
+##  XXX  work in deflation, etc...
 function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
 
     Ms = state.QF.Q.x # the vector
@@ -159,26 +358,94 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
     N = N0 == nothing ? 1 : N0
 
 
-    while N >= 0
+    it_max = 20 * length(state)
+    kk = 0
 
-        bulge_step(state)
+       while kk <= it_max
 
-        # check for deflation of last one
-        c,s = vals(Ms[state.ctrs.stop_index])
-        if abs(s) <= eps(T)
-            state.ctrs.stop_index -= 1
+        kk += 1
+        state.ctrs.stop_index <= 0 && return     ## finished up!
+        state.ctrs.it_count += 1
+
+        ## show_status(state)
+
+
+        check_deflation(state)
+
+        k = state.ctrs.stop_index
+        delta =  state.ctrs.stop_index - state.ctrs.zero_index
+
+        if delta >= 2
+
+            bulge_step(state)
+
+        elseif delta == 1
+
+            #diagonal_block(state,  k + 1)
+            # XXX This is grossly inefficient!
+            a11,a12,a21,a22 = Matrix(state)[k:k+1, k:k+1]
+            e1r,e1i, e2r,e2i = eigen_values(a11, a12, a21, a22)
+            state.REIGS[k], state.IEIGS[k] = e1r, e1i
+            state.REIGS[k+1], state.IEIGS[k+1] = e2r, e2i
+
+            # can finish up if near end
+            if state.ctrs.stop_index == 2
+                diagonal_block(state, 2)
+                e1 = state.A[1,1]
+                state.REIGS[1] = real(e1)
+                state.IEIGS[1] = imag(e1)
+            end
+
+            state.ctrs.zero_index = 0
+            state.ctrs.start_index = 1
+            state.ctrs.stop_index -= 2
+
+        elseif delta <= 0
+
+            ##diagonal_block(state, k + 1)
+            # XXX This is grossly inefficient!
+            a11,a12,a21,a22 = Matrix(state)[k:k+1, k:k+1]
+            e1, e2 = a11, a22
+
+            if state.ctrs.stop_index == 1
+                state.REIGS[1], state.IEIGS[1] = real(e1), imag(e1)
+                state.REIGS[2], state.IEIGS[2] = real(e2), imag(e2)
+                state.ctrs.stop_index = 0
+
+            else
+                state.REIGS[k+1], state.IEIGS[k+1] = real(e2), imag(e2)
+                state.ctrs.zero_index = 0
+                state.ctrs.start_index = 1
+                state.ctrs.stop_index = k - 1
+
+                @show e2,k,  state.ctrs.start_index,state.ctrs.stop_index
+            end
+
         end
 
-        N -= m
     end
 
-    # now untwisted, so we can change over
-    QF = state.QF
-    Ms = QF.Q.x
-    QF_new = QFactorization(DescendingChain(Ms), QF.D)
-    new_state = QRFactorization(QF_new, state.RF)
-    AMRVW_algorithm(new_state)
-    new_state
+
+    ## while N >= 0
+
+    ##     bulge_step(state)
+
+    ##     check for deflation of last one
+    ##     c,s = vals(Ms[state.ctrs.stop_index])
+    ##     if abs(s) <= eps(T)
+    ##         state.ctrs.stop_index -= 1
+    ##     end
+
+    ##     N -= m
+    ## end
+
+    ## now untwisted, so we can change over
+    ## QF = state.QF
+    ## Ms = QF.Q.x
+    ## QF_new = QFactorization(DescendingChain(Ms), QF.D)
+    ## new_state = QRFactorization(QF_new, state.RF)
+    ## AMRVW_algorithm(new_state)
+    ## new_state
 
 end
 
@@ -186,18 +453,20 @@ end
 
 
 ## We use `bulge_step!` for more general usage; this is
-## tied to AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
-function bulge_step(state::QRFactorizationTwisted{T, S})  where {T,S}
+## tied to AbstractQRFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
+function bulge_step(state::QRFactorizationTwisted{T, S, V, Rt})  where {T,S, V, Rt}
 
     # create bulge is only right when  all rotators in QFt are straightened out,
     # but  this should step in the correct direction.
     create_bulge(state)
-    Asc = reverse(state.UV)  # stored as U, V
+    Asc = copy(state.UV)  # stored as U, V ## XXX copy!
     Ms = state.QF.Q
     D = state.QF.D
     RF = state.RF
+    n = state.ctrs.stop_index + 1
     # modify Ms, D, RF
-    bulge_step!(Ms, D, RF, Asc)
+    bulge_step!(n, Ms, D, RF, Asc)
+    return nothing
 
 end
 
@@ -207,7 +476,7 @@ end
 ## at the cost of keeping track of the respective boundaries (k in the case of Decoupled, and k+m)
 ## for Ms. This could save some allocations, as this step allocates a new Decoupled vector
 ## each pass through.
-function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choice = :left)
+function bulge_step!(n, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choice = :left)
 
 
     Rt = eltype(Ms)
@@ -216,7 +485,6 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
     Des = reverse(adjoint.(Asc))
 
 
-    n = length(Ms) + 1
     m = length(Asc)
 
     # psd[k] = ps[m+k] with padding soecufued by choice
@@ -239,7 +507,6 @@ function bulge_step!(Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choic
 
     ## M0 = Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))
     ## @show eigvals(M0)[1]
-
 
     limb, limb_side = step_0!(m, ps, Ms, Des, Asc, D)
 
@@ -323,9 +590,12 @@ function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
     has_limb = ifelse(m > 1, true, false)
 
     # grab limb, but keep order
+    @show idx.(Ms), m
     limb = _get_limb!(Ms, m)
 
     limb_side = :nothing
+
+    @show idx.(Des), idx.(Asc), idx.(limb)
 
     if has_limb
         if ps[m-1] == :left
