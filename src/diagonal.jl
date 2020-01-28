@@ -326,19 +326,21 @@ end
 
 # two special functions useful to simplify the below:
 function passthrough_phase!(Di::DiagonalRotator, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Des})
-    inds, Des = iget(V, j, Val(:Des))
-    passthrough_phase!(Di, DescendingChain(Des), Vs, D)
-    for (i,j) in enumerate(inds)
-        V[j] = Des[i]
-    end
+    inds = iget(V, j, Val(:Des))
+    passthrough_phase!(Di, DescendingChain(view(V.x, inds)), Vs, D)
+#    passthrough_phase!(Di, DescendingChain(Des), Vs, D)
+#    for (i,j) in enumerate(inds)
+#        V[j] = Des[i]
+#    end
 end
 
 function passthrough_phase!(Di::DiagonalRotator, V::TwistedChain, Vs::Tuple, D, j, ::Val{:Asc})
-    inds, Asc = iget(V, j, Val(:Asc))
-    passthrough_phase!(Di, AscendingChain(Asc), Vs, D)
-    for (i,j) in enumerate(inds)
-        V[j] = Asc[i]
-    end
+    inds = iget(V, j, Val(:Asc))
+    passthrough_phase!(Di, AscendingChain(view(V.x, inds)), Vs, D)
+#    passthrough_phase!(Di, AscendingChain(Asc), Vs, D)
+#    for (i,j) in enumerate(inds)
+#        V[j] = Asc[i]
+#    end
 end
 
 function passthrough_phase!(Di::DiagonalRotator, V::TwistedChain, Vs::Tuple, D)

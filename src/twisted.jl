@@ -59,15 +59,17 @@ end
 function passthrough_phase!(Di::DiagonalRotator, QF::QFactorizationTwisted)
     i = idx(Di)
 
-    ainds, aMMs = iget(QF.Q, i, Val(:Asc))
-    dinds, dMMs = iget(QF.Q, i, Val(:Des))
-    passthrough_phase!(Di,(DescendingChain(dMMs), AscendingChain(aMMs)), QF.D)
-    for (i,j) in enumerate(ainds)
-        QF.Q[j] = aMMs[i]
-    end
-    for (i,j) in enumerate(dinds)
-        QF.Q[j] = dMMs[i]
-    end
+    ainds = iget(QF.Q, i, Val(:Asc))
+    dinds = iget(QF.Q, i, Val(:Des))
+    @show :use_view
+    passthrough_phase!(Di,(DescendingChain(view(QF.Q.x, dinds)), AscendingChain(view(QF.Q.x, ainds))), QF.D)
+#    passthrough_phase!(Di,(DescendingChain(dMMs), AscendingChain(aMMs)), QF.D)
+#    for (i,j) in enumerate(ainds)
+#        QF.Q[j] = aMMs[i]
+#    end
+#    for (i,j) in enumerate(dinds)
+#        QF.Q[j] = dMMs[i]
+#    end
 end
 
 Base.eltype(QF::QFactorizationTwisted) = eltype(QF.Q.x)
@@ -83,6 +85,7 @@ function Base.Matrix(QF::QFactorizationTwisted{T, S}) where {T, S}
     M = diagm(0 => ones(S, n))
     D = Matrix(QF.D) * M
     return Vector(QF.Q) * D
+
 end
 
 
@@ -614,17 +617,19 @@ function step_0!(m,  ps, Ms::TwistedChain, Des, Asc, D) where {T}
         Des[end], Di = fuse(Des[end], U)  # fuse with descending; aka Ms[m]
         ## need to passthrough Ms too now
         i = idx(Di)
-
-        inds, MMs = iget(Ms, i, Val(:Des))
+        @show :use_view
+        inds = iget(Ms, i, Val(:Des))
 
         if limb_side == :right
-            passthrough_phase!(Di, DescendingChain(MMs),  (AscendingChain(Asc), limb), D)
+            #            passthrough_phase!(Di, DescendingChain(MMs),  (AscendingChain(Asc), limb), D)
+            passthrough_phase!(Di, DescendingChain(view(Ms.x, inds)),  (AscendingChain(Asc), limb), D)
         else
-            passthrough_phase!(Di, DescendingChain(MMs),  (AscendingChain(Asc), ), D)
+            #passthrough_phase!(Di, DescendingChain(MMs),  (AscendingChain(Asc), ), D)
+            passthrough_phase!(Di, DescendingChain(view(Ms.x, inds)),  (AscendingChain(Asc), ), D)
         end
-        for (i,j) in enumerate(inds)
-            Ms[j] = MMs[i]
-        end
+#        for (i,j) in enumerate(inds)
+#            Ms[j] = MMs[i]
+#        end
 
 
     else

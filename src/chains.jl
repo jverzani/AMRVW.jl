@@ -332,58 +332,113 @@ end
 ## XXX return range of indices only
 ## get ascending part from Un ... U_{i-1}
 function iget(Ms::TwistedChain, i, ::Val{:Asc})
+    @show :iget_asc
     n, N = extrema(Ms)
     pv = Ms.pv
 
 
-    inds = Int[]
+#    inds = Int[]
+    inds = Dict()
     Asc = eltype(Ms)[]
     ii = i - 1
-    (i <  n || i > N + 1) && return (inds, Asc)
+    (i <  n || i > N + 1) && return 1:0 # empyt inds #(inds, Asc)
     while true
         if ii >= n && (ii == N || pv[ii - n +  1] == :right)
             j,U = iget(Ms, ii)
-            push!(inds, j)
-            push!(Asc, U)
+            inds[:end] = get(inds, :end, j)
+            inds[:start] = j
+            ## @show j, ii
+            ## push!(inds, j)
+            ## push!(Asc, U)
         else
             break
         end
         ii -= 1
     end
-
-    inds, Asc
-end
+    #    @show i, inds, idx.(Ms.x)
+    inds[:start]:inds[:end]
+    #inds#, Asc
+    end
 
 ## XXX return range of indices only
 ## get descending part from U_{i+1} ... U_N
 function iget(Ms::TwistedChain, i, ::Val{:Des})
+    @show :iget_des
     n, N = extrema(Ms)
     pv = Ms.pv
 
-
-    inds = Int[]
-    Asc = eltype(Ms)[]
-    (i <  n - 1 || i >= N) && return (inds, Asc)
+    #inds = Int[]
+    inds = Dict()
+    Des = eltype(Ms)[]
+    (i <  n - 1 || i >= N) && return inds# (inds, Des)
 
     while true
         if i  < N && (i < n || pv[i-n+1] == :left)
 
             j, U = iget(Ms, i+1)
-            push!(inds, j)
-            push!(Asc, U)
+            inds[:start] = get(inds, :start, j)
+            inds[:end] = j
+#            @show j, i+1
+#            push!(inds, j)
+#            push!(Des, U)
 
         else
             break
         end
         i += 1
     end
-
-    inds, Asc
+#    @show ii, inds, idx.(Ms.x)
+    inds[:start]:inds[:end]
+#    inds#, Des
 end
 
 
+function ascending_part(Ms::TwistedChain, i, Δ=1)
+    n, N = extrema(Ms)
+    pv = Ms.pv
+
+    start = i
+    stop = i-1
+
+    (i <  n || i > N + 1) && return start:stop # empyt inds #(inds, Asc)
+    while i > Δ
+        i -= 1
+        @show i, pv[i]
+        if i >= n && (i == N || pv[i] == :right)
+            start = i
+            ## @show j, ii
+            ## push!(inds, j)
+            ## push!(Asc, U)
+        else
+            break
+        end
+    end
+
+    return start:stop
+end
 
 
+## Return (i+1):j where Ui, Ui+1, ... Uj is descending chain
+function descending_part(Ms::TwistedChain, i, Δ=extrema(Ms)[2])
+    n, N = extrema(Ms)
+    pv = Ms.pv
+
+    start = i+1
+    stop = i
+
+    (i <  n - 1 || i >= N) && return start:stop
+
+    while i < Δ
+        i += 1
+        if i  < N && (i < n || pv[i-1] == :left)
+            stop = i
+        else
+            break
+        end
+    end
+    start:stop
+#    inds#, Des
+end
 ##################################################
 
 ## Various "passthrough" functions
