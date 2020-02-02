@@ -36,10 +36,18 @@ struct DescendingChain{T, S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotat
   x::V
 end
 
-
 struct AscendingChain{T,S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
   x::V
 end
+
+const MonotonicChain = Union{DescendingChain, AscendingChain}
+
+Base.view(D::MonotonicChain, inds...) = DescendingChain(view(D.x, inds...))
+
+Base.pop!(D::MonotonicChain) = pop!(D.x)
+Base.popfirst!(D::MonotonicChain) = popfirst!(D.x)
+Base.push!(D::MonotonicChain) = push!(D.x)
+Base.pushfirst!(D::MonotonicChain) = pushfirst!(D.x)
 
 
 ## struct DescendingChain{T, S} <: AbstractRotatorChain{T,S}
@@ -58,7 +66,10 @@ x::V
 pv::PVt
 end
 
-
+function Base.view(Tw::TwistedChain, inds::UnitRange)
+    start, stop = inds.start, inds.stop
+    TwistedChain(view(Tw.x, inds), view(Tw.pv, start:stop-1))
+end
 
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
@@ -329,92 +340,90 @@ function iget!(Ms::TwistedChain,i)
 end
 
 
-## XXX return range of indices only
-## get ascending part from Un ... U_{i-1}
-function iget(Ms::TwistedChain, i, ::Val{:Asc})
-    @show :iget_asc
-    n, N = extrema(Ms)
-    pv = Ms.pv
+## ## XXX return range of indices only
+## ## get ascending part from Un ... U_{i-1}
+## function iget(Ms::TwistedChain, i, ::Val{:Asc})
+##     @show :iget_asc
+##     n, N = extrema(Ms)
+##     pv = Ms.pv
 
 
-#    inds = Int[]
-    inds = Dict()
-    Asc = eltype(Ms)[]
-    ii = i - 1
-    (i <  n || i > N + 1) && return 1:0 # empyt inds #(inds, Asc)
-    while true
-        if ii >= n && (ii == N || pv[ii - n +  1] == :right)
-            j,U = iget(Ms, ii)
-            inds[:end] = get(inds, :end, j)
-            inds[:start] = j
-            ## @show j, ii
-            ## push!(inds, j)
-            ## push!(Asc, U)
-        else
-            break
-        end
-        ii -= 1
-    end
-    #    @show i, inds, idx.(Ms.x)
-    inds[:start]:inds[:end]
-    #inds#, Asc
-    end
+## #    inds = Int[]
+##     inds = Dict()
+##     Asc = eltype(Ms)[]
+##     ii = i - 1
+##     (i <  n || i > N + 1) && return 1:0 # empyt inds #(inds, Asc)
+##     while true
+##         if ii >= n && (ii == N || pv[ii - n +  1] == :right)
+##             j,U = iget(Ms, ii)
+##             inds[:end] = get(inds, :end, j)
+##             inds[:start] = j
+##             ## @show j, ii
+##             ## push!(inds, j)
+##             ## push!(Asc, U)
+##         else
+##             break
+##         end
+##         ii -= 1
+##     end
+##     #    @show i, inds, idx.(Ms.x)
+##     inds[:start]:inds[:end]
+##     #inds#, Asc
+##     end
 
-## XXX return range of indices only
-## get descending part from U_{i+1} ... U_N
-function iget(Ms::TwistedChain, i, ::Val{:Des})
-    @show :iget_des
-    n, N = extrema(Ms)
-    pv = Ms.pv
+## ## XXX return range of indices only
+## ## get descending part from U_{i+1} ... U_N
+## function iget(Ms::TwistedChain, i, ::Val{:Des})
+##     @show :iget_des
+##     n, N = extrema(Ms)
+##     pv = Ms.pv
 
-    #inds = Int[]
-    inds = Dict()
-    Des = eltype(Ms)[]
-    (i <  n - 1 || i >= N) && return inds# (inds, Des)
+##     #inds = Int[]
+##     inds = Dict()
+##     Des = eltype(Ms)[]
+##     (i <  n - 1 || i >= N) && return inds# (inds, Des)
 
-    while true
-        if i  < N && (i < n || pv[i-n+1] == :left)
+##     while true
+##         if i  < N && (i < n || pv[i-n+1] == :left)
 
-            j, U = iget(Ms, i+1)
-            inds[:start] = get(inds, :start, j)
-            inds[:end] = j
-#            @show j, i+1
-#            push!(inds, j)
-#            push!(Des, U)
+##             j, U = iget(Ms, i+1)
+##             inds[:start] = get(inds, :start, j)
+##             inds[:end] = j
+## #            @show j, i+1
+## #            push!(inds, j)
+## #            push!(Des, U)
 
-        else
-            break
-        end
-        i += 1
-    end
-#    @show ii, inds, idx.(Ms.x)
-    inds[:start]:inds[:end]
-#    inds#, Des
-end
+##         else
+##             break
+##         end
+##         i += 1
+##     end
+## #    @show ii, inds, idx.(Ms.x)
+##     inds[:start]:inds[:end]
+## #    inds#, Des
+## end
 
-
+## From a twisted chain and index i, return ascending part of i-1, i-2, ....
 function ascending_part(Ms::TwistedChain, i, Δ=1)
     n, N = extrema(Ms)
     pv = Ms.pv
 
+
     start = i
     stop = i-1
-
-    (i <  n || i > N + 1) && return start:stop # empyt inds #(inds, Asc)
+#    @show i, idx.(Ms), pv,  Δ, n, N
+    (i <  n || i > N + 1) && return  AscendingChain(view(Ms.x, 1:0)) #start:stop # empyt inds #(inds, Asc)
     while i > Δ
         i -= 1
-        @show i, pv[i]
-        if i >= n && (i == N || pv[i] == :right)
+        if i >= n && (i == N || pv[i-n+1] == :right) ## i-n+1 seems right when n != 1
             start = i
-            ## @show j, ii
-            ## push!(inds, j)
-            ## push!(Asc, U)
         else
             break
         end
     end
 
-    return start:stop
+    AscendingChain(view(Ms.x, (stop-n+1):-1:(start-n+1)))
+
 end
 
 
@@ -425,19 +434,17 @@ function descending_part(Ms::TwistedChain, i, Δ=extrema(Ms)[2])
 
     start = i+1
     stop = i
-
-    (i <  n - 1 || i >= N) && return start:stop
-
+    (i <  n - 1 || i >= N) && return  DescendingChain(view(Ms.x, 1:0))
     while i < Δ
         i += 1
-        if i  < N && (i < n || pv[i-1] == :left)
+        if i <= N && (i <= n || pv[i-1-(n-1)] == :left)
             stop = i
         else
             break
         end
     end
-    start:stop
-#    inds#, Des
+    DescendingChain(view(Ms.x, (start-n+1):(stop-n+1)))
+
 end
 ##################################################
 

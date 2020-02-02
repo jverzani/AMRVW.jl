@@ -92,7 +92,6 @@ function check_deflation(state::AbstractQRFactorizationState{T,S,Twt}, tol=eps(T
     for k in state.ctrs.stop_index:-1:state.ctrs.start_index
         c, s = vals(QF.Q[k])
         if abs(s) <= tol
-            @show k
             deflate(QF, k)
             state.ctrs.zero_index = k      # points to a matrix Q[k] either
             state.ctrs.start_index = k + 1

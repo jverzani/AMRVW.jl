@@ -2,7 +2,7 @@
 
 ## A container for our counters
 mutable struct AMRVW_Counter
-    zero_index::Int
+    zero_index::Int  # this should be dropped, it is just start_index-1
     start_index::Int
     stop_index::Int
     it_count::Int

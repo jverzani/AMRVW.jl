@@ -97,7 +97,7 @@ end
 # deflate a term
 # deflation for ComplexReal is different, as
 # we replace Qi with I and move diagonal part into D
-function deflate(QF::QFactorization{T, S}, k) where {T, S <: Complex}
+function deflate(QF::AbstractQFactorization{T, S}, k) where {T, S <: Complex}
 
     # when we deflate here we want to leave Q[k] = I and
 
