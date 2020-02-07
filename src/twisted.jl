@@ -164,7 +164,6 @@ end
 ## This should be matrix multiplication
 ## as Twisted Q is no long Hessenberg
 function diagonal_block(state::QRFactorizationTwisted{T, S}, k) where {T,  S}
-
     A  = state.A
     QF,  RF =  state.QF, state.RF
 
@@ -196,13 +195,16 @@ function approx_diagonal_block!(A, state::QRFactorizationTwisted{T, S}, j, k) wh
     R = state.RF
     D = state.QF.D
     Q = state.QF.Q
+    k = min(k, length(Q))
     # make 1:(k-j+1) identity
-    if j == 1 || iszero(Q.x[j].s)
+    A .= zero(eltype(A))
+    if j == 1 #|| iszero(Q.x[j].s)
         _approx_diagonal_block!(A, Q, D, R, j, k)
     else
         _approx_diagonal_block!(A, Q, D, R, j-1, k)
         # shift up and left by 1
         m,n = size(A)
+        @show :shift_up
         for j in 1:n-1  # across columns, then down rows
             for i in 1:m-1
                 A[i,j] = A[i+1, j+1]
@@ -227,9 +229,10 @@ function _approx_diagonal_block!(A, Q, D, R, j, k)
 
     # we get first one
     Tw = view(Q, j:k)
+    @show reverse(position_vector_indices(Tw.pv))
     for i in reverse(position_vector_indices(Tw.pv))  # allocates here
         U = Tw.x[i]
-        V = Rotator(vals(U)..., idx(U)- j + 1)
+        V = Rotator(vals(U)..., idx(U) - j + 1)
         mul!(V, A)
     end
 
@@ -249,7 +252,7 @@ function find_shifts(state::QRFactorizationTwisted{T, S}, m, k; approximate=true
 end
 
 ## return state,m rotators to create a bulge
-function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}; approximate=false) where {T, S, Vt, PVt, Rt}
+function create_bulge(A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}; approximate=false) where {T, S, Vt, PVt, Rt}
 
     m = min(state.m, state.ctrs.stop_index - state.ctrs.zero_index)
 
@@ -260,7 +263,7 @@ function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}; approxim
             state.UV[i] = random_rotator.(S, state.ctrs.start_index + m - i)
         end
     else
-        create_bulge(Val(approximate), Val(S <: Real), state)
+        create_bulge(Val(approximate), Val(S <: Real), A, state)
     end
 
     return nothing
@@ -268,7 +271,7 @@ function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}; approxim
 end
 
 ## approximate, Real
-function create_bulge(::Val{true}, ::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+function create_bulge(::Val{true}, ::Val{true}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
 
 end
 
@@ -277,7 +280,7 @@ end
 ## * remove eigvals call for m <= 2
 ## * make approximate
 ##
-function create_bulge(a::Val{true}, r::Val{false}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+function create_bulge(a::Val{true}, r::Val{false}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
 #    @show :hi_approx_complex
     ## testing
     ## idea: use Am for eigenvalues
@@ -325,7 +328,7 @@ function create_bulge(a::Val{true}, r::Val{false}, state::QRFactorizationTwisted
 end
 
 ## exact, Real
-function create_bulge(a::Val{false}, r::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+function create_bulge(a::Val{false}, r::Val{true}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
     #    @show :exact_real
 
     n = state.ctrs.stop_index - state.ctrs.zero_index
@@ -336,15 +339,32 @@ function create_bulge(a::Val{false}, r::Val{true}, state::QRFactorizationTwisted
     offset = alpha - 1
 
     ## XXX get Am in more efficient manner (use last m rotators...)
-    A = Matrix(state) #Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
-    n = size(A)[1]
-    Am = A[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1]
+    AA = Matrix(state) #Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
+    #@show alpha, beta
+    approx_diagonal_block!(A, state, beta-m+1, beta)
+
+    #Am = A[1:(beta-alpha+2), 1:(beta-alpha+2)]
+    #Am = A[1:m, 1:m]
+    Am = A[2:m+1, 2:m+1]
+    @show :create_bulge
+    printtp(Am)
+    nn = min(beta+1, size(AA)[1])
+    printtp(AA[nn-m:nn, nn-m:nn])
+    printtp(AA[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1])
+
+    n = size(Am)[1]
+#    Am = A[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1]
     rhos = eigvals(Am)  ## sorted by LinearAlgebra.sorteig!
+    @show m, rhos
 
-    e_alpha = zeros(S, n)
-    e_alpha[alpha] = one(S)
+    e_alpha = zeros(S, m+1)#n)
+    #e_alpha[alpha] = one(S)
+    e_alpha[1] = one(S)
+
+    approx_diagonal_block!(A, state, alpha, alpha + m - 1)
+    Am = A[1:m+1, 1:m+1]
+
     x = e_alpha
-
     i = 1
     while i <= m
         rhoi = rhos[i]
@@ -354,45 +374,60 @@ function create_bulge(a::Val{false}, r::Val{true}, state::QRFactorizationTwisted
         if i < m && isapprox(rhoi, conj(rhos[i+1]))
             ## XXX deal with left right...
             #@show :complex_roots
-            x = (A^2 - 2real(rhos[i])*A + norm(rhos[i])^2*I) * x
+            x = (Am^2 - 2real(rhos[i])*Am + norm(rhos[i])^2*I) * x
             if pi == :right
-                x = A \ x
+                x = Am \ x
             end
             if pj == :right
-                x = A \ x
+                x = Am \ x
             end
             i += 1
         else
-            x = (A - real(rhos[i])*I) * x
+            x = (Am - real(rhos[i])*I) * x
         end
 
         i += 1
     end
 
     # now roll up
-    _rollup!(state, x[offset+1:offset+m+1])
-
+    _rollup!(state, x, alpha-1)
     return nothing
 
 end
 
 ## exact, complex
-function create_bulge(approximate::Val{false}, real::Val{false}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+function create_bulge(approximate::Val{false}, real::Val{false}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
 
     n = state.ctrs.stop_index - state.ctrs.zero_index
     m = state.m
 #    @show m >= n
-    m = state.m
-#    @show m, n
+
     alpha, beta = state.ctrs.start_index, state.ctrs.stop_index
-    A = Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
-    n = size(A)[1]
+    offset = alpha - 1
+    #A = Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
+    #n = size(A)[1]
+
+    approx_diagonal_block!(A, state, beta-m+1, beta)
+
     if m > 1
-        Am = A[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1]
+        #Am = A[1:m, 1:m] #(beta-alpha+2), 1:(beta-alpha+2)]  ## A[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1]
+        Am = A[2:m+1, 2:m+1]
         rhos = eigvals(Am)
+
+#        AA = Matrix(state)
+#        printtp(Am)
+#        printtp(AA[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1])
+
+
+
 #        @show length(rhos), rhos
     else
-        Am = A[beta:beta+1, beta:beta+1]
+        Am = A[1:2, 1:2] #A[beta:beta+1, beta:beta+1]
+
+#        AA = Matrix(state)
+#        @show "m=1"
+#        printtp(Am)
+#        printtp(AA[beta:beta+1, beta:beta+1])
         e1, e2 = eigvals(Am)
         if norm(Am[2,2] - e1) < norm(Am[2,2] - e2)
             rhos = [e1]
@@ -401,19 +436,27 @@ function create_bulge(approximate::Val{false}, real::Val{false}, state::QRFactor
         end
     end
 
-    e_alpha = zeros(S, n); e_alpha[alpha] = one(S)
+
+    #e_alpha = zeros(S, n); e_alpha[alpha] = one(S)
+    e_alpha = zeros(S, m+1)
+    e_alpha[1] = one(S)
+
+    @show size(A), alpha, alpha+m-1
+    approx_diagonal_block!(A, state, alpha, alpha + m - 1)
+    Am = A[1:m+1, 1:m+1]
 
     x = e_alpha
     for i in 1:m
-        x = (A - rhos[i] * I) * x
+        x = (Am - rhos[i] * I) * x
         pi = (i==1) ? :left : state.QF.Q.pv[i-1]
         if  pi == :right
-            x = A \ x
+            x = Am \ x
         end
     end
 
     # now roll up
-    _rollup!(state, view(x, alpha:alpha+m), alpha-1)
+    _rollup!(state, x, offset)
+    @show alpha, idx.(state.UV)
 
     return nothing
 end
@@ -447,7 +490,16 @@ end
 ## Then, once untwisted, we pass down to the more efficient O(n^2) algorithm (in time) to solve
 ##  XXX  work in deflation, etc...
 function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
+    m = S <: Real ? 2 : 1
+    AMRVW_algorithm(state, m)
+end
+
+
+function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}, m) where  {T, S}
     @show "<<<<<<---------------->>>>>>"
+
+    m = state.m ## XXX fix me...
+    A = zeros(S, max(4, m+2), max(4, m+2))
     n = length(state.QF.Q)
 
     N0 = findlast(x->x==:right, state.QF.Q.pv)
@@ -456,13 +508,14 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
     #M0 = (state.QF.Q * (I * (Matrix(state.QF.D) * Matrix(state.RF))))
     #e0 = eigvals(M0)[1]
 
-    it_max = 20 * length(state)
+    it_max = 5*length(state) #20 * length(state)
     kk = 0
 
     while kk <= it_max
         show_status(state)
 
         kk += 1
+        @show kk
 
         tmp = state.ctrs.stop_index - state.ctrs.zero_index
         @show state.ctrs.stop_index, tmp, state.m
@@ -499,12 +552,15 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
 
         if delta == 1
 
-            diagonal_block(state,  k + 1)
-            M = zeros(S, 3,3)
-            approx_diagonal_block!(M, state, k, k)
-            @show M[1:2, 1:2], state.A[1:2, 1:2]
+            #diagonal_block(state,  k + 1)
+            #a11,a12,a21,a22 = state.A[1,1], state.A[1,2], state.A[2,1], state.A[2,2]
 
-            a11,a12,a21,a22 = state.A[1,1], state.A[1,2], state.A[2,1], state.A[2,2]
+            approx_diagonal_block!(A, state, k, k+1)
+            a11,a12,a21,a22 = A[1,1], A[1,2], A[2,1], A[2,2]
+
+            printtp(state.A)
+            printtp(A)
+
             e1r,e1i, e2r,e2i = eigen_values(a11, a12, a21, a22)
 
             state.REIGS[k], state.IEIGS[k] = e1r, e1i
@@ -513,7 +569,10 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
 
             # can finish up if near end
             if state.ctrs.stop_index == 2
-                diagonal_block(state, 2)
+                #diagonal_block(state, 2)
+                #e1 = state.A[1,1]
+
+                approx_diagonal_block!(A, state, 1, 2)
                 e1 = state.A[1,1]
 
                 @show :add_1_all_done, e1
@@ -530,8 +589,11 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
 
         elseif delta <= 0
 
-            diagonal_block(state, k + 1)
-            a11,a12,a21,a22 = state.A[1,1], state.A[1,2], state.A[2,1], state.A[2,2]
+            #diagonal_block(state, k + 1)
+            #a11,a12,a21,a22 = state.A[1,1], state.A[1,2], state.A[2,1], state.A[2,2]
+
+            approx_diagonal_block!(A, state, k, k+1)
+            a11,a12,a21,a22 = A[1,1], A[1,2], A[2,1], A[2,2]
             e1, e2 = a11, a22
             #e1r,e1i, e2r,e2i = eigen_values(a11, a12, a21, a22)
             #e1 = complex(e1r, e1i)
@@ -545,24 +607,31 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
 
                 break
             else
-                @show :add_1, k+1,  e2
+                @show :add_1, k+1,  e2, e1,A[3,3]
                 state.REIGS[k+1], state.IEIGS[k+1] = real(e2), imag(e2)
                 state.ctrs.zero_index = 0
                 state.ctrs.start_index = 1
                 state.ctrs.stop_index -= 1
             end
 
-        elseif state.m >= delta
+        elseif state.m > 2 && state.m >= delta
             ## This is not so fair, but when m > 2 we use `eigvals` already
             ## so here we find the eigvals
             δ, Δ = state.ctrs.start_index, state.ctrs.stop_index
             @show "add $(Δ+1 - δ + 1) eigenvalues from $δ to $(Δ+1)"
-            @show state.QF.Q.x[max(1, δ-1)].s
-            @show state.QF.Q.x[min(length(state.QF.Q.x), Δ+1)].s
 #            @show  δ, Δ, state.m, delta
-#            @show "Need to take $delta $state.m eigemvalues here, ..."
-            es = eigvals(Matrix(state)[δ:Δ+1,δ:Δ+1])
+            #            @show "Need to take $delta $state.m eigemvalues here, ..."
+            #es = eigvals(Matrix(state)[δ:Δ+1,δ:Δ+1])
             #@show es[1], δ, Δ + 1
+
+            @show "----"
+            approx_diagonal_block!(A, state, δ, Δ+1)
+            printtp(A)
+            printtp(Matrix(state)[δ:Δ+1,δ:Δ+1])
+
+
+            es = eigvals(A[1:Δ-δ+2,1:Δ-δ+2])
+            #@show 1:Δ-δ+1, es
             for (ind, ev) in enumerate(es)
                 state.REIGS[δ+ind-1] = real(ev)
                 state.IEIGS[δ+ind-1] = imag(ev)
@@ -573,8 +642,10 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
             if  δ == 2
                 # finish up
                 @show :finish_up_m_delta
-                diagonal_block(state, 2)
-                e1 = state.A[1,1]
+                #diagonal_block(state, 2)
+                #e1 = state.A[1,1]
+                approx_diagonal_block!(A, state, 1, 2)
+                e1 = A[1,1]
                 state.REIGS[1] = real(e1)
                 state.IEIGS[1] = imag(e1)
 
@@ -589,7 +660,7 @@ function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
             @show δ, state.ctrs.stop_index
         else
 
-            bulge_step(state)
+            bulge_step(A, state)
 
         end
 
@@ -624,11 +695,10 @@ end
 
 ## We use `bulge_step!` for more general usage; this is
 ## tied to AbstractQRFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
-function bulge_step(state::QRFactorizationTwisted{T, S, V, Rt})  where {T,S, V, Rt}
+function bulge_step(A, state::QRFactorizationTwisted{T, S, V, Rt})  where {T,S, V, Rt}
 
-    # create bulge is only right when  all rotators in QFt are straightened out,
-    # but  this should step in the correct direction.
-    create_bulge(state)
+    create_bulge(A, state)
+
     n = state.ctrs.stop_index - state.ctrs.zero_index + 1
     m = min(state.m, n - 1)
     #m < state.m && @show :m_less, m
@@ -649,14 +719,8 @@ function bulge_step(state::QRFactorizationTwisted{T, S, V, Rt})  where {T,S, V, 
     if Δ < length(Ms.x)
         @assert iszero(Ms.x[Δ+1].s)
     end
-
-    # modify Ms, D, RF
-#    M = view(Ms, δ:Δ) * (Matrix(D) *  Matrix(RF))
-#    e1 = eigvals(M)[1]
+    @show δ
     bulge_step!(n, view(Ms, δ:Δ), D, RF, Asc)
-#    M = view(Ms, δ:Δ) * (Matrix(D) *  Matrix(RF))
-#    e2 = eigvals(M)[1]
-#    @show isapprox(e1, e2)
 
     return nothing
 
