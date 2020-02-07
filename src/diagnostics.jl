@@ -48,14 +48,14 @@ tilde(A) = A[1:end-1, 1:end-1]
 
 # simple graphic to show march of algorithm
 function show_status(state)
-    qs = [norm(u.s) for u in state.QF.Q.x[[state.ctrs.start_index:state.ctrs.stop_index...]]]
+    qs = [norm(u.s) for u in state.QF.Q.x[state.ctrs.start_index:state.ctrs.stop_index]]
 
     minq = length(qs) > 0 ?  minimum(qs) : 0.0
 
 
     x = fill(".", state.N+2)
     x[state.ctrs.zero_index+1] = "α"
-    x[state.ctrs.start_index+1] = "x"
+    x[state.ctrs.start_index+1] = "δ"
     x[state.ctrs.stop_index+2] = "Δ"
     println(join(x, ""), " ($minq)")
 end

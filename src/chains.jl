@@ -185,15 +185,24 @@ function TwistedChain(xs::Vector{Rotator{T,S}}) where {T,S}
 end
 
 
+function position_vector_indices(pv)
+
+    inds = [1]
+
+    for (j,d) in enumerate(pv)
+        i = j + 1
+        d == :left ? push!(inds, i) : pushfirst!(inds, i)
+    end
+
+    inds
+end
+
+
 
 function Base.Vector(Tw::TwistedChain)
-    isempty(Tw.x) &&  return eltype(Tw.x)[]
-    out = [Tw.x[1]]
-    for (i, lr) in enumerate(Tw.pv)
-        U = Tw.x[i+1]
-        lr == :left ? push!(out, U) : pushfirst!(out, U)
-    end
-    out
+    isempty(Tw.x) && return Tw.x
+
+    return Tw.x[position_vector_indices(Tw.pv)]
 end
 
 *(A::TwistedChain, M::Array) = Vector(A) * M

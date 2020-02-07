@@ -180,6 +180,7 @@ end
         b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0, need not be real so need a rotation!!!
         #c6, s6 = approx_givensrot(a, b)
         #c6, s6 = givensrot(a, b)
+        error("un hun")
         @show :uh_huh
 
         c6, s6 = givensrot(c2*conj(c1), -s2)
@@ -201,8 +202,8 @@ function turnover(Q1::Rt,
 
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
-    # @assert i == k && (abs(j-i) == 1)
 
+    # @assert i == k && (abs(j-i) == 1)
     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
     R1 = Rt(c4, s4, j)
     R2 = Rt(c5, s5, i)

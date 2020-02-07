@@ -35,7 +35,7 @@ compare_eigenvalues(M1, M2) = norm(prod(eigvals(M1)) - prod(eigvals(M2))) <= sqr
         RF = A.RFactorizationIdentity{T, S}()
         M = diagm(0 => ones(S, N+1))
         M1 = Ms * M
-        A.bulge_step!(Ms, D, RF, Asc)
+        A.bulge_step!(N, Ms, D, RF, Asc)
         M2 = Ms * (D * M)
         @test compare_eigenvalues(M1, M2)
     end
@@ -55,7 +55,7 @@ compare_eigenvalues(M1, M2) = norm(prod(eigvals(M1)) - prod(eigvals(M2))) <= sqr
         M = diagm(0 => ones(S, N+1))
         M1 = Ms * M
 
-        A.bulge_step!(Ms, D, RF, Asc)
+        A.bulge_step!(N, Ms, D, RF, Asc)
         M2 = Ms * (D * M)
         @test compare_eigenvalues(M1, M2)
     end
@@ -73,9 +73,9 @@ end
     N = length(Q)
     Q.x[randperm(N)] = Q.x[:]
     QF = A.QFactorizationTwisted(A.TwistedChain(Q.x), D)
-    state = A.QRFactorization(QF, RF)
-    es = eigvals(state)
-    LinearAlgebra.sorteig!(es)
+    state = A.QRFactorizationTwisted(QF, RF)
+##XXX    es = eigvals(state)
+
     ### maximum(norm.(es - eigvals(Q.x * Matrix(RF)))) < sqrt(eps())
 
     ## Complex

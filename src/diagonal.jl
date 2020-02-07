@@ -417,7 +417,6 @@ function passthrough_phase!(Di::DiagonalRotator, V::TwistedChain, Vs::Tuple, D)
                 Uj, Ui, Dj = turnover(Di, Uj, Ui)
                 V[ii] = Ui
                 V[ij] = Uj
-                @show i+1,  idx.(descending_part(V,i+1).x)
                 passthrough_phase!(Dj, descending_part(V,i+1), Vs,  D)#,  i+1, Val(:Des))
             end
         end
