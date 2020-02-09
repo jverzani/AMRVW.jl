@@ -47,7 +47,7 @@ tilde(A) = A[1:end-1, 1:end-1]
 
 
 # simple graphic to show march of algorithm
-function show_status(state, ctr=state.ctrs)
+function show_status(state, ctr)
     qs = [norm(u.s) for u in state.QF.Q.x[ctr.start_index:ctr.stop_index]]
 
     minq = length(qs) > 0 ?  minimum(qs) : 0.0

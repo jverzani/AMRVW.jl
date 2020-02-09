@@ -15,10 +15,10 @@ are found so that `U_1' x = gamma e_1` or `U_1' U_2' x = gamma e_1`. The values 
 
 
 """
-function create_bulge(state::QRFactorization{T, S, Vt, Rt}, storage,  ctr) where {T, S <: Real, Vt, Rt}
+function create_bulge(QF::QFactorization{T,S,VV}, RF, storage,  ctr) where {T, S <: Real,VV}
 
     A = storage.A
-    QF,  RF = state.QF, state.RF
+
 
     if mod(ctr.it_count, 15) == 0
 
@@ -77,11 +77,10 @@ function create_bulge(state::QRFactorization{T, S, Vt, Rt}, storage,  ctr) where
 end
 
 ## CSS case
-function create_bulge(state::QRFactorization{T, S, V, Rt}, storage, ctr) where {T, S <: Complex, V, Rt}
-    ray = true  # state.ray?
+function create_bulge(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, S <: Complex, VV}
+    ray = true # true seems to take  fewer steps than false
 
     A = storage.A
-    QF, RF =  state.QF, state.RF
 
     if mod(ctr.it_count, 15) == 0
 
@@ -100,8 +99,9 @@ function create_bulge(state::QRFactorization{T, S, V, Rt}, storage, ctr) where {
 
         if ray
             # Wilkinson
-            #e1, e2 = eigen_values(state)
-            e1, e2 = eigen_values(A)
+            e1, e2 = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
+            #e1, e2 = complex(e1r, e1i), complex(e2r, e2i)
+            #e1, e2 = eigen_values(A)
             shift = norm(A[2,2] - e1) < norm(A[2,2] - e2) ? e1 : e2
         else
             shift = A[2,2]

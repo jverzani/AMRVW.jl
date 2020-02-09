@@ -5,9 +5,8 @@
 
 # after a quick fuse
 # we must passthrough the diagonal rotator through the rest of Q
-function absorb_Ut(state::QRFactorization{T, S}, storage, ctr) where {T, S <: Complex}
+function absorb_Ut(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, S <: Complex, VV}
 
-    QF = state.QF
     Ut = storage.VU[1]'
     fuse!(Ut, QF)
 
@@ -15,12 +14,11 @@ function absorb_Ut(state::QRFactorization{T, S}, storage, ctr) where {T, S <: Co
 end
 
 
-function passthrough_triu(state::QRFactorization{T, S}, storage, ctr, dir::Val{:right}) where {T, S <: Complex}
+function passthrough_triu(QF::QFactorization{T, S, VV}, RF, storage, ctr, dir::Val{:right}) where {T, S <: Complex, VV}
 
     U = storage.VU[1]
     i = idx(U)
 
-    RF = state.RF
 
     flag = false
 
@@ -62,9 +60,8 @@ function simple_passthrough!(RF::RFactorizationRankOne{T, S}, U) where {T, S <: 
 end
 
 
-function passthrough_Q(state::QRFactorization{T, S}, storage, ctr,  dir::Val{:right}) where {T, S <: Complex}
+function passthrough_Q(QF::QFactorization{T, S, VV}, RF, storage, ctr,  dir::Val{:right}) where {T, S <: Complex, VV}
 
-    QF = state.QF
     U = storage.VU[1]
     i = idx(U)
 

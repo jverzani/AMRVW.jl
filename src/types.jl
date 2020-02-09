@@ -13,7 +13,8 @@ end
 ##################################################
 
 
-abstract type AbstractQRFactorizationState{T, S, Twt} end
+abstract type AbstractQRFactorizationState end
+
 function Base.size(state::AbstractQRFactorizationState)
     m1, n1 = size(state.QF)
     m2, n2 = size(state.RF)
@@ -21,38 +22,45 @@ function Base.size(state::AbstractQRFactorizationState)
 end
 
 
-struct QRFactorization{T, S, V, Rt<:AbstractRFactorization{T,S}} <: AbstractQRFactorizationState{T, S, Val{:not_twisted}}
-  N::Int
-  QF::QFactorization{T, S, V}
-  RF::Rt
-  UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
-  W::Vector{Rotator{T,S}}     # the limb when m > 1
-  A::Matrix{S}
-  REIGS::Vector{T}
-  IEIGS::Vector{T}
-  ctrs::AMRVW_Counter
-  QRFactorization{T,S,V, Rt}(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, V, Rt} = new(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs)
-  QRFactorization(N::Int, QF::QFactorization{T,S, V}, RF::Rt, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, V, Rt} = QRFactorization{T, S, V, Rt}(N,QF,RF, UV, W, A, REIGS, IEIGS, ctrs)
+
+
+struct QRFactorization{QF, RF} <: AbstractQRFactorizationState
+  QF::QF
+  RF::RF
 end
+
+## struct QRFactorization{T, S, V, Rt<:AbstractRFactorization{T,S}} <: AbstractQRFactorizationState{T, S, Val{:not_twisted}}
+##   N::Int
+##   QF::QFactorization{T, S, V}
+##   RF::Rt
+##   UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
+##   W::Vector{Rotator{T,S}}     # the limb when m > 1
+##   A::Matrix{S}
+##   REIGS::Vector{T}
+##   IEIGS::Vector{T}
+##   ctrs::AMRVW_Counter
+##   QRFactorization{T,S,V, Rt}(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, V, Rt} = new(N, QF, RF, UV, W, A, REIGS, IEIGS, ctrs)
+##   QRFactorization(N::Int, QF::QFactorization{T,S, V}, RF::Rt, UV, W, A, REIGS, IEIGS, ctrs) where {T, S, V, Rt} = QRFactorization{T, S, V, Rt}(N,QF,RF, UV, W, A, REIGS, IEIGS, ctrs)
+## end
 
 
 
 # constructor for either case
-function QRFactorization(QF::QFactorization{T, S},
-                         RF::AbstractRFactorization) where {T, S}
+## function QRFactorization(QF::QFactorization{T, S},
+##                          RF::AbstractRFactorization) where {T, S}
 
-    N = length(QF) + 1
-    A = zeros(S, 2, 2)
-    reigs = zeros(T, N)
-    ieigs = zeros(T, N)
-    ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
-    m = S == T ? 2 : 1
-    UV = Vector{Rotator{T, S}}(undef, m)
-    W = Vector{Rotator{T, S}}(undef, m-1)
-    QRFactorization(N, QF, RF, UV, W, A, reigs, ieigs, ctr)
-end
+##     N = length(QF) + 1
+##     A = zeros(S, 2, 2)
+##     reigs = zeros(T, N)
+##     ieigs = zeros(T, N)
+##     ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
+##     m = S == T ? 2 : 1
+##     UV = Vector{Rotator{T, S}}(undef, m)
+##     W = Vector{Rotator{T, S}}(undef, m-1)
+##     QRFactorization(N, QF, RF, UV, W, A, reigs, ieigs, ctr)
+## end
 
-Base.length(state::AbstractQRFactorizationState) = state.N
+Base.length(state::AbstractQRFactorizationState) = length(state.QF)+1
 
 
 # return A

@@ -148,9 +148,9 @@ end
 ##     QRFactorizationTwisted(length(QF), m,  QF, RF, UV, W, A, reigs, ieigs, ctr)
 ## end
 
-struct QRFactorizationTwisted{T, S, Vt, PVt, Rt<:AbstractRFactorization{T,S}} <: AbstractQRFactorizationState{T, S, Val{:twisted}}
-  QF::QFactorizationTwisted{T,S, Vt, PVt}
-  RF::Rt
+struct QRFactorizationTwisted{T, S, Vt, PVt, RF} <: AbstractQRFactorizationState
+  QF::QFactorizationTwisted{T, S, Vt, PVt}
+  RF::RF
 end
 
 # XXX should pass in m, so that A=m x m matrix
@@ -259,7 +259,7 @@ end
 
 
 ## return state,m rotators to create a bulge
-function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage, ctr, m) where {T, S, Vt, PVt, Rt}
+function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where {T, S}
 
 
     if mod(ctr.it_count, 15) == 0
@@ -268,7 +268,7 @@ function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage,
             storage.VU[i] = random_rotator.(S, ctr.start_index + m - i)
         end
     else
-        create_bulge(Val(S <: Real), state, storage, ctr, m)
+        create_bulge(Val(S <: Real), QF, RF, storage, ctr, m)
     end
 
     return nothing
@@ -276,7 +276,7 @@ function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage,
 end
 
 ## Real
-function create_bulge(::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage, ctr, m) where   {T, S, Vt, PVt, Rt}
+function create_bulge(::Val{true}, QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where   {T, S, Vt, PVt, Rt}
     #    @show :exact_real
 
     @assert m >= 2  # for even we need atleast a quadratic poly
@@ -288,7 +288,7 @@ function create_bulge(::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, 
 
     offset = alpha - 1
 
-    diagonal_block!(A, state.QF, state.RF, beta-m+1, beta)
+    diagonal_block!(A, QF, RF, beta-m+1, beta)
 
     Am = view(A, 2:m+1, 2:m+1)
 
@@ -305,15 +305,15 @@ function create_bulge(::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, 
     e_alpha = zeros(S, m+1)
     e_alpha[1] = one(S)
 
-    diagonal_block!(A, state.QF, state.RF, alpha, alpha + m - 1)
+    diagonal_block!(A, QF, RF, alpha, alpha + m - 1)
     Am = view(A, 1:m+1, 1:m+1)
 
     x = e_alpha
     i = 1
     while i <= m
         rhoi = rhos[i]
-        pi = (i==1) ? :left : state.QF.Q.pv[i-1]
-        pj = state.QF.Q.pv[i]
+        pi = (i==1) ? :left : QF.Q.pv[i-1]
+        pj = QF.Q.pv[i]
 
         if i < m && isapprox(rhoi, conj(rhos[i+1]))
             ## XXX deal with left right...
@@ -340,13 +340,13 @@ function create_bulge(::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, 
 end
 
 ## complex
-function create_bulge(real::Val{false}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage, ctr, m) where   {T, S, Vt, PVt, Rt}
+function create_bulge(real::Val{false}, QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where   {T, S}
 
     alpha, beta = ctr.start_index, ctr.stop_index
     n = beta -  alpha
     A = storage.A
 
-    diagonal_block!(A, state.QF, state.RF, beta-m+1, beta)
+    diagonal_block!(A,QF, RF, beta-m+1, beta)
 
     if m == 1
 
@@ -374,13 +374,13 @@ function create_bulge(real::Val{false}, state::QRFactorizationTwisted{T, S, Vt, 
     e_alpha = zeros(S, m+1)
     e_alpha[1] = one(S)
 
-    diagonal_block!(A, state.QF, state.RF, alpha, alpha + m - 1)
+    diagonal_block!(A, QF, RF, alpha, alpha + m - 1)
     Am = view(A, 1:m+1, 1:m+1)
 
     x = e_alpha
     for i in 1:m
         x = (Am - rhos[i] * I) * x
-        pi = (i==1) ? :left : state.QF.Q.pv[i-1]
+        pi = (i==1) ? :left : QF.Q.pv[i-1]
         if  pi == :right
             x = Am \ x
         end
@@ -428,15 +428,17 @@ function create_storage(QF::QFactorizationTwisted{T,S}, m) where {T,  S}
     (A=A, VU=VU, limb=limb)
 end
 
-function AMRVW_algorithm!(state::AbstractQRFactorizationState{T, S,  Twt}) where  {T, S, Twt}
-    m = S <: Real ? 2 : 1
+function AMRVW_algorithm!(state::AbstractQRFactorizationState)
+    m = eltype(state.QF) <: Real ? 2 : 1
     AMRVW_algorithm!(state, m)
 end
 
 
-function AMRVW_algorithm!(state::AbstractQRFactorizationState{T, S, Twt}, m) where  {T, S, Twt}
+function AMRVW_algorithm!(state::AbstractQRFactorizationState, m)
 
     QF, RF = state.QF, state.RF
+    S = eltype(QF)
+    T = real(S)
     # set counters
     n = length(QF.Q)
     ctr = AMRVW_Counter(0, 1, n, 0, n-1)
@@ -457,8 +459,7 @@ function AMRVW_algorithm!(state::AbstractQRFactorizationState{T, S, Twt}, m) whe
             break
         end
 
-
-        #show_status(state, ctr)
+#        show_status(state, ctr)
 
         kk += 1
         ctr.it_count += 1
@@ -546,12 +547,13 @@ function AMRVW_algorithm!(state::AbstractQRFactorizationState{T, S, Twt}, m) whe
 
         else
 
-            bulge_step(state, storage, ctr, m)
+            bulge_step(QF, RF, storage, ctr, m)
 
         end
 
     end
 
+#    @show kk
     LinearAlgebra.sorteig!(EIGS)
 
     EIGS
@@ -563,16 +565,16 @@ end
 
 ## We use `bulge_step!` for more general usage; this is
 ## tied to AbstractQRFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
-function bulge_step(state::QRFactorizationTwisted{T, S, V, Rt}, storage, ctr, m)  where {T,S, V, Rt}
+function bulge_step(QF::QFactorizationTwisted{T,S}, RF, storage, ctr, m)  where {T,S}
 
-    create_bulge(state, storage, ctr, m)
+    create_bulge(QF, RF, storage, ctr, m)
 
     n = ctr.stop_index - ctr.zero_index + 1
 
     Asc = copy(storage.VU[1:m])  # stored as V,U ## XXX copy! Could eliminate this
-    Ms = state.QF.Q
-    D = state.QF.D
-    RF = state.RF
+    Ms = QF.Q
+    D = QF.D
+    RF = RF
     δ, Δ = ctr.start_index, ctr.stop_index
 
     bulge_step!(n, m, view(Ms, δ:Δ), D, RF, Asc)

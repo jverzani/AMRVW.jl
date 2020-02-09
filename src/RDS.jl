@@ -11,9 +11,8 @@
 ## Ut * Vt * A * V * U in the DoubleShift Case
 ## This combines the Ut with A (or Ut, Vt, A into W,A)
 
-function absorb_Ut(state::QRFactorization{T,S}, storage, ctr) where {T,S <: Real}
+function absorb_Ut(QF::QFactorization{T,S, VV}, RF, storage, ctr) where {T,S <: Real, VV}
 
-    QF = state.QF
 
     U, V = storage.VU[2], storage.VU[1]
     Ut, Vt = U', V'
@@ -40,12 +39,11 @@ end
 
 
 ## For double shift we have V then U
-function passthrough_triu(state::QRFactorization{T, S}, storage, ctr,  dir::Val{:right}) where {T, S <: Real}
+function passthrough_triu(QF::QFactorization{T, S, Vt}, RF, storage, ctr,  dir::Val{:right}) where {T, S <: Real, Vt}
 
     U, V = storage.VU[2], storage.VU[1]
     j = idx(V)
 
-    RF = state.RF
 
     flag = false
 
@@ -96,9 +94,8 @@ end
 ##
 ## If we update indices and use a unitary transform, return false (not absorbed)
 ## else return true (was absorved)
-function passthrough_Q(state::QRFactorization{T, S}, storage, ctr, dir::Val{:right}) where {T, S <: Real}
+function passthrough_Q(QF::QFactorization{T, S, Vt}, RF, storage, ctr, dir::Val{:right}) where {T, S <: Real, Vt}
 
-    QF = state.QF
     U, V, W = storage.VU[2], storage.VU[1],  storage.limb[1]
     i = idx(U); j = i + 1
 
@@ -122,7 +119,7 @@ function passthrough_Q(state::QRFactorization{T, S}, storage, ctr, dir::Val{:rig
         U, Di = fuse(W, U)
 
         # pass U through triangle then fuse
-        U = passthrough!(state.RF, U)
+        U = passthrough!(RF, U)
 
         p = get_parity(QF,i+1)
         U = dflip(U, p)

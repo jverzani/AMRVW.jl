@@ -40,7 +40,7 @@ end
 
 # [a11 - l a12; a21 a22] -> l^2 -2 * (tr(A)/2) l + det(A)
 # so we use b = tr(A)/2 for qdrtc routing
-function eigen_values(state::AbstractQRFactorizationState{T,S, Val{:not_twisted}}) where {T,S}
+function eigen_values(state::AbstractQRFactorizationState)
 
     # this allocates:
     # e1, e2 = eigvals(state.A)
@@ -53,9 +53,15 @@ function eigen_values(state::AbstractQRFactorizationState{T,S, Val{:not_twisted}
 end
 
 # return tuple
-function eigen_values(A::AbstractArray)
-    e1r, e1i, e2r, e2i = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
+function eigen_values(A::AbstractArray{T, N}) where {T <: Real, N}
+    e1r::T, e1i::T, e2r::T, e2i::T = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
     (complex(e1r, e1i), complex(e2r, e2i))
+end
+
+function eigen_values(A::AbstractArray{S, N}) where {S <: Complex, N}
+    eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
+#    e1r::T, e1i::T, e2r::T, e2i::T = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
+#    (complex(e1r, e1i), complex(e2r, e2i))
 end
 
 function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
@@ -72,15 +78,17 @@ function  eigen_values(a11::S, a12::S, a21::S, a22::S) where {S <: Complex}
 
     tr = a11 + a22
     detm = a11 * a22 - a21 * a12
-    disc = sqrt(tr * tr - 4.0 * detm)
+    disc::S = sqrt(tr * tr - 4.0 * detm)
 
-    u = abs(tr + disc) > abs(tr - disc) ? tr + disc : tr - disc
+    u::S = abs(tr + disc) > abs(tr - disc) ? tr + disc : tr - disc
     if iszero(u)
+        return zero(S), zero(S)
         e1r, e1i = zero(T), zero(T)
         e2r, e2i = zero(T), zero(T)
     else
-        e1 = u / 2.0
-        e2 = detm / e1
+        e1::S = u / 2.0
+        e2::S = detm / e1
+        return e1, e2
         e1r, e1i = real(e1), imag(e1)
         e2r, e2i = real(e2), imag(e2)
     end
