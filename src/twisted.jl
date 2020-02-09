@@ -408,10 +408,17 @@ end
 
 function eigvals(state::QRFactorizationTwisted)
 
-    es = AMRVW_algorithm(state)
+    es = AMRVW_algorithm!(state)
     LinearAlgebra.sorteig!(es)
     es
 
+end
+
+function create_storage(QF::QFactorization{T,S}, m) where {T,  S}
+    A = zeros(S, 4, 4)
+    VU = Vector{Rotator{T, S}}(undef, m)   # Ascending Chain
+    limb = DescendingChain(copy(QF.Q.x[1:(m-1)]))
+    (A=A, VU=VU, limb=limb)
 end
 
 function create_storage(QF::QFactorizationTwisted{T,S}, m) where {T,  S}
@@ -421,13 +428,13 @@ function create_storage(QF::QFactorizationTwisted{T,S}, m) where {T,  S}
     (A=A, VU=VU, limb=limb)
 end
 
-function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
+function AMRVW_algorithm!(state::AbstractQRFactorizationState{T, S,  Twt}) where  {T, S, Twt}
     m = S <: Real ? 2 : 1
-    AMRVW_algorithm(state, m)
+    AMRVW_algorithm!(state, m)
 end
 
 
-function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}, m) where  {T, S}
+function AMRVW_algorithm!(state::AbstractQRFactorizationState{T, S, Twt}, m) where  {T, S, Twt}
 
     QF, RF = state.QF, state.RF
     # set counters

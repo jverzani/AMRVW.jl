@@ -8,11 +8,11 @@
 ## * absorb the left side -- absorb_Ut
 ## * chase the right side down until it is absorbed -- absorb_U
 ##
-function bulge_step(state::QRFactorization{T, S}) where {T, S}
+function bulge_step(state::QRFactorization{T, S}, storage, ctr, m=0) where {T, S}
 
-    create_bulge(state)
-    absorb_Ut(state) # see CSS or RDS
-    absorb_U(state)
+    create_bulge(state, storage, ctr)
+    absorb_Ut(state, storage, ctr) # see CSS or RDS
+    absorb_U(state, storage, ctr)
 
 
     return nothing
@@ -33,13 +33,13 @@ end
 ## * passthrough_Q passes through chain and return false, until fusion when
 ## it returns true
 ##
-function absorb_U(state::QRFactorization{T, S}) where {T, S}
+function absorb_U(state::QRFactorization{T, S}, storage, ctr) where {T, S}
 
     flag = false
     while !flag
 
-        passthrough_triu(state, Val(:right))
-        flag = passthrough_Q(state, Val(:right))
+        passthrough_triu(state, storage, ctr, Val(:right))
+        flag = passthrough_Q(state, storage,  ctr, Val(:right))
         ## implicit unitary operation to move U from left to right
 
     end

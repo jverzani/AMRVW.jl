@@ -4,17 +4,22 @@
 ## For QRFactorization, we exploit fact that QF is Hessenberg and
 ## R  is upper  triangular to simplify the matrix multiplication:
 function diagonal_block(state::QRFactorization{T, S}, k) where {T,  S}
+    diagonal_block!(state.A, state.QF, state.RF,  k-1, k-1)
+end
 
-    A  = state.A
-    QF,  RF =  state.QF, state.RF
+function diagonal_block!(A, QF::QFactorization, RF, j, J)
 
-    i, j = k-2, k-1
 
+    i, k = j-1, j+1
     qji, qjj, qjk, qkj, qkk = QF[j,i], QF[j,j], QF[j,k], QF[k,j], QF[k,k]
 
     rjj, rjk = RF[j,j], RF[j,k]
     rkk = RF[k,k]
-    rij, rik = RF[i,j], RF[i,k]
+    if i >= 1
+        rij, rik = RF[i,j], RF[i,k]
+    else
+        rij,  rik = 0*rkk, 0*rkk
+    end
 
     ## This is matrix multiplication of a Hessenberg matrix times a upper triangular
     ## (triu(Q,-1) * triu(R))[k-1:k, k-1:k]

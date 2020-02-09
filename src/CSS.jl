@@ -5,38 +5,38 @@
 
 # after a quick fuse
 # we must passthrough the diagonal rotator through the rest of Q
-function absorb_Ut(state::QRFactorization{T, S}) where {T, S <: Complex}
+function absorb_Ut(state::QRFactorization{T, S}, storage, ctr) where {T, S <: Complex}
 
     QF = state.QF
-    Ut = state.UV[1]'
+    Ut = storage.VU[1]'
     fuse!(Ut, QF)
 
     return nothing
 end
 
 
-function passthrough_triu(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Complex}
+function passthrough_triu(state::QRFactorization{T, S}, storage, ctr, dir::Val{:right}) where {T, S <: Complex}
 
-    U = state.UV[1]
+    U = storage.VU[1]
     i = idx(U)
 
     RF = state.RF
 
     flag = false
 
-    if  i < state.ctrs.tr
+    if  i < ctr.tr
 
         flag = simple_passthrough!(RF, U)
 
     end
-    if i > state.ctrs.tr || !flag
+    if i > ctr.tr || !flag
 
         U = passthrough!(RF, U)
-        state.UV[1] = U
+        storage.VU[1] = U
 
     end
 
-     state.ctrs.tr -= 1
+     ctr.tr -= 1
 
     return nothing
 end
@@ -62,18 +62,18 @@ function simple_passthrough!(RF::RFactorizationRankOne{T, S}, U) where {T, S <: 
 end
 
 
-function passthrough_Q(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Complex}
+function passthrough_Q(state::QRFactorization{T, S}, storage, ctr,  dir::Val{:right}) where {T, S <: Complex}
 
     QF = state.QF
-    U = state.UV[1]
+    U = storage.VU[1]
     i = idx(U)
 
 
-    if i < state.ctrs.stop_index
+    if i < ctr.stop_index
 
         U = passthrough!(QF, U)
 
-        state.UV[1] = U
+        storage.VU[1] = U
 
         return false
 
@@ -119,6 +119,6 @@ function deflate(QF::AbstractQFactorization{T, S}, k) where {T, S <: Complex}
 
     # absorb Di into D
     Di =  DiagonalRotator(alpha, i)
-    passthrough_phase!(Di,QF)
+    passthrough_phase!(Di, QF)
 
 end

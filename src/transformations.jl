@@ -189,7 +189,7 @@ end
         #b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0, need not be real so need a rotation!!!
         #c6, s6 = approx_givensrot(a, b)
         #c6, s6 = givensrot(a, b)
-        @show :uh_huh
+        #@show :uh_huh
         c6, s6 = givensrot(c2*conj(c1), -s2)
     end
 #    c6, s6 = approx_givensrot(a, b)
@@ -210,9 +210,9 @@ function turnover(Q1::Rt,
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
 
-    l = max(i,j,k)
-    M = diagm(0 => ones(eltype(c1), l+1))
-    M1 = [Q1,Q2,Q3] * M
+#    l = max(i,j,k)
+#    M = diagm(0 => ones(eltype(c1), l+1))
+#    M1 = [Q1,Q2,Q3] * M
 
 
     # @assert i == k && (abs(j-i) == 1)
@@ -221,13 +221,13 @@ function turnover(Q1::Rt,
     R2 = Rt(c5, s5, i)
     R3 = Rt(c6, s6, j)
 
-    M2 = [R1, R2,  R3] * M
-    resid = maximum(norm.(M1-M2))
-    if resid > sqrt(eps())
-        @show resid
-        @show Q1, Q2, Q3
-   # @show [M1-M2][l-1:l+1, l-1:l+1]
-    end
+   ##  M2 = [R1, R2,  R3] * M
+   ##  resid = maximum(norm.(M1-M2))
+   ##  if resid > sqrt(eps())
+   ##      @show resid
+   ##      @show Q1, Q2, Q3
+   ## # @show [M1-M2][l-1:l+1, l-1:l+1]
+   ##  end
     # we have Q1*Q2*Q3 = R1*R2*R3
     R1, R2, R3
 

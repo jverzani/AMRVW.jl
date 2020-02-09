@@ -15,16 +15,19 @@ are found so that `U_1' x = gamma e_1` or `U_1' U_2' x = gamma e_1`. The values 
 
 
 """
-function create_bulge(state::QRFactorization{T, S, Vt, Rt}) where {T, S <: Real, Vt, Rt}
+function create_bulge(state::QRFactorization{T, S, Vt, Rt}, storage,  ctr) where {T, S <: Real, Vt, Rt}
 
-    if mod(state.ctrs.it_count, 15) == 0
+    A = storage.A
+    QF,  RF = state.QF, state.RF
+
+    if mod(ctr.it_count, 15) == 0
 
         t = rand(T) * pi
 
         re1, ie1 = sincos(t)
         re2, ie2 = re1, -ie1
 
-        i = state.ctrs.start_index
+        i = ctr.start_index
         j = i + 1
 
         U =  Rotator(re1, ie1, i)
@@ -32,19 +35,25 @@ function create_bulge(state::QRFactorization{T, S, Vt, Rt}) where {T, S <: Real,
 
     else
 
-        Δ = state.ctrs.stop_index
-        diagonal_block(state, Δ+1)
 
-        l1r, l1i, l2r, l2i = eigen_values(state)
+        Δ = ctr.stop_index
+        #diagonal_block(state, Δ+1) ??
+        diagonal_block!(A, QF, RF, Δ, Δ) #+1)
+        #l1r, l1i, l2r, l2i = eigen_values(state)
+        e1,  e2 = eigen_values(A)
+        l1r, l1i  =  real(e1), imag(e1)
+        l2r, l2i =  real(e2), imag(e2)
 
-        k = state.ctrs.start_index
+        delta = ctr.start_index
 
-        diagonal_block(state,  k+1)
-        bk11, bk12 = state.A[1,1], state.A[1,2]
-        bk21, bk22 = state.A[2,1], state.A[2,2]
+        #diagonal_block(state,  k+1)
+        diagonal_block!(A, QF, RF,  delta, delta)
+        bk11, bk12 = A[1,1], A[1,2]
+        bk21, bk22 = A[2,1], A[2,2]
 
-        diagonal_block(state, k+2)
-        bk32 = state.A[2,1]
+        #diagonal_block(state, k+2)
+        diagonal_block!(A, QF, RF, delta+1, delta+1)
+        bk32 = A[2,1]
 
 
         # compute `x`
@@ -53,7 +62,7 @@ function create_bulge(state::QRFactorization{T, S, Vt, Rt}) where {T, S <: Real,
         c3 = bk21 * bk32
 
         c, s, nrm = givensrot(c2, c3)
-        i = state.ctrs.start_index #1
+        i = ctr.start_index #1
         j = i + 1
         V = Rotator(c, -s, j)
 
@@ -61,17 +70,20 @@ function create_bulge(state::QRFactorization{T, S, Vt, Rt}) where {T, S <: Real,
         U = Rotator(c, -s, i)
     end
 
-    state.UV[1] = U
-    state.UV[2] = V
+    storage.VU[2] = U
+    storage.VU[1] = V
 
     return nothing
 end
 
 ## CSS case
-function create_bulge(state::QRFactorization{T, S, V, Rt}) where {T, S <: Complex, V, Rt}
+function create_bulge(state::QRFactorization{T, S, V, Rt}, storage, ctr) where {T, S <: Complex, V, Rt}
     ray = true  # state.ray?
 
-    if mod(state.ctrs.it_count, 15) == 0
+    A = storage.A
+    QF, RF =  state.QF, state.RF
+
+    if mod(ctr.it_count, 15) == 0
 
         t = rand(T) * pi
         if ray
@@ -82,26 +94,27 @@ function create_bulge(state::QRFactorization{T, S, V, Rt}) where {T, S <: Comple
 
     else
 
-        diagonal_block(state, state.ctrs.stop_index+1)
+        #diagonal_block(state, state.ctrs.stop_index+1)
+        Delta = ctr.stop_index
+        diagonal_block!(A, QF, RF, Delta, Delta)
 
         if ray
             # Wilkinson
             #e1, e2 = eigen_values(state)
-            e1r, e1i, e2r, e2i = eigen_values(state)
-            e1 = complex(e1r,e1i)
-            e2 = complex(e2r, e2i)
-            shift = norm(state.A[2,2] - e1) < norm(state.A[2,2] - e2) ? e1 : e2
+            e1, e2 = eigen_values(A)
+            shift = norm(A[2,2] - e1) < norm(A[2,2] - e2) ? e1 : e2
         else
-            shift = state.A[2,2]
+            shift = A[2,2]
         end
 
     end
 
-    k =  state.ctrs.start_index
-    diagonal_block(state, k+1)
-    c,s,nrm = givensrot(state.A[1,1] - shift, state.A[2,1])
-    R = Rotator(c, s, k)
-    state.UV[1] = R'
+    delta =  ctr.start_index
+    #diagonal_block(state, delta+1)
+    diagonal_block!(A, QF, RF, delta,  delta)
+    c,s,nrm = givensrot(A[1,1] - shift, A[2,1])
+    R = Rotator(c, s, delta)
+    storage.VU[1] = R'
 
     nothing
 

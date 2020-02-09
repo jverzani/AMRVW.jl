@@ -11,11 +11,11 @@
 ## Ut * Vt * A * V * U in the DoubleShift Case
 ## This combines the Ut with A (or Ut, Vt, A into W,A)
 
-function absorb_Ut(state::QRFactorization{T,S}) where {T,S <: Real}
+function absorb_Ut(state::QRFactorization{T,S}, storage, ctr) where {T,S <: Real}
 
     QF = state.QF
 
-    U, V = state.UV[1], state.UV[2]
+    U, V = storage.VU[2], storage.VU[1]
     Ut, Vt = U', V'
 
     i = idx(U)
@@ -31,7 +31,7 @@ function absorb_Ut(state::QRFactorization{T,S}) where {T,S <: Real}
     Ut  = dflip(Ut, p)
 
     QF.Q[i] = Ut
-    state.W[1] = W
+    storage.limb[1] = W
 
     return nothing
 end
@@ -40,31 +40,31 @@ end
 
 
 ## For double shift we have V then U
-function passthrough_triu(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Real}
+function passthrough_triu(state::QRFactorization{T, S}, storage, ctr,  dir::Val{:right}) where {T, S <: Real}
 
-    U, V = state.UV[1], state.UV[2]
+    U, V = storage.VU[2], storage.VU[1]
     j = idx(V)
 
     RF = state.RF
 
     flag = false
 
-    if  j <= state.ctrs.tr
+    if  j <= ctr.tr
         # this leverages Ct*B*U = I*U when Ct, B not touched
         # so V, U are not touched, but Ct, B are
         # flag is true if done, false if not
         flag = simple_passthrough!(RF, U, V)
     end
 
-    if j > state.ctrs.tr || !flag
+    if j > ctr.tr || !flag
 
         V = passthrough!(RF, V)
         U = passthrough!(RF, U)
-        state.UV[1], state.UV[2]  = U, V
+        storage.VU[1], storage.VU[2]  = V, U
 
     end
 
-    state.ctrs.tr -= 2
+    ctr.tr -= 2
 
 
     return nothing
@@ -96,17 +96,17 @@ end
 ##
 ## If we update indices and use a unitary transform, return false (not absorbed)
 ## else return true (was absorved)
-function passthrough_Q(state::QRFactorization{T, S}, dir::Val{:right}) where {T, S <: Real}
+function passthrough_Q(state::QRFactorization{T, S}, storage, ctr, dir::Val{:right}) where {T, S <: Real}
 
     QF = state.QF
-    U, V, W = state.UV[1], state.UV[2],  state.W[1]
+    U, V, W = storage.VU[2], storage.VU[1],  storage.limb[1]
     i = idx(U); j = i + 1
 
-    if j < state.ctrs.stop_index
+    if j < ctr.stop_index
         V = passthrough!(QF, V)
         U = passthrough!(QF, U)
         V, U, W = turnover(W, V, U)
-        state.UV[1], state.UV[2],  state.W[1] = U, V, W
+        storage.VU[2], storage.VU[1],  storage.limb[1] = U, V, W
 
         return false
 
