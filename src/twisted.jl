@@ -111,42 +111,56 @@ end
 ##################################################
 # Twisting *would* require a different bulge chasing algorithm, so
 # we hold it in the type for dispatch
-## XXX This is likely not what we want...
+## ## XXX This is likely not what we want...
+## struct QRFactorizationTwisted{T, S, Vt, PVt, Rt<:AbstractRFactorization{T,S}} <: AbstractQRFactorizationState{T, S, Val{:twisted}}
+## N::Int
+## m::Int
+##   QF::QFactorizationTwisted{T,S, Vt, PVt}
+##   RF::Rt
+##   UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
+##   W::Vector{Rotator{T,S}}     # the limb when m > 1, a twisted chain
+##   A::Matrix{S}
+##   REIGS::Vector{T}
+##   IEIGS::Vector{T}
+##   ctrs::AMRVW_Counter
+## #  QRFactorizationTwisted{T,S,Vt, PVt, Rt}(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Vt, PVt, Rt} = new(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs)
+## #  QRFactorizationTwisted(N::Int, QF::QFactorizationTwisted, RF, UV,W, A, REIGS, IEIGS, ctrs) = new(N, QF, RF, UV, A, REIGS, IEIGS, ctrs)
+## end
+
+## # XXX should pass in m, so that A=m x m matrix
+## function QRFactorizationTwisted(
+##                          QF::QFactorizationTwisted{T, S, Vt, PVt},
+##                          RF::AbstractRFactorization{T, S},
+##                          m::Int = 0  # specify or use 1 for Complex, 2 for Real, larger if desired
+##                          ) where {T, S, Vt, PVt}
+
+##     if iszero(m)
+##         m = S <: Complex ? 1 : 2
+##     end
+##     N = length(QF) + 1
+##     M = max(2,m)
+##     A = zeros(S, M, M)
+##     reigs = zeros(T, N)
+##     ieigs = zeros(T, N)
+##     ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
+##     UV = Vector{Rotator{T, S}}(undef, m)   # Ascending Chain
+##     W = Vector{Rotator{T, S}}(undef, m-1)  # the lim
+##     QRFactorizationTwisted(length(QF), m,  QF, RF, UV, W, A, reigs, ieigs, ctr)
+## end
+
 struct QRFactorizationTwisted{T, S, Vt, PVt, Rt<:AbstractRFactorization{T,S}} <: AbstractQRFactorizationState{T, S, Val{:twisted}}
-N::Int
-m::Int
   QF::QFactorizationTwisted{T,S, Vt, PVt}
   RF::Rt
-  UV::Vector{Rotator{T,S}}    # Ascending chain for cfreating bulge
-  W::Vector{Rotator{T,S}}     # the limb when m > 1, a twisted chain
-  A::Matrix{S}
-  REIGS::Vector{T}
-  IEIGS::Vector{T}
-  ctrs::AMRVW_Counter
-#  QRFactorizationTwisted{T,S,Vt, PVt, Rt}(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs) where {T, S, Vt, PVt, Rt} = new(N, QF, RF, UV,W, A, REIGS, IEIGS, ctrs)
-#  QRFactorizationTwisted(N::Int, QF::QFactorizationTwisted, RF, UV,W, A, REIGS, IEIGS, ctrs) = new(N, QF, RF, UV, A, REIGS, IEIGS, ctrs)
 end
 
 # XXX should pass in m, so that A=m x m matrix
-function QRFactorizationTwisted(
-                         QF::QFactorizationTwisted{T, S, Vt, PVt},
-                         RF::AbstractRFactorization{T, S},
-                         m::Int = 0  # specify or use 1 for Complex, 2 for Real, larger if desired
-                         ) where {T, S, Vt, PVt}
+## function QRFactorizationTwisted(
+##                          QF::QFactorizationTwisted{T, S, Vt, PVt},
+##                          RF::AbstractRFactorization{T, S}
+##                          ) where {T, S, Vt, PVt}
 
-    if iszero(m)
-        m = S <: Complex ? 1 : 2
-    end
-    N = length(QF) + 1
-    M = max(2,m)
-    A = zeros(S, M, M)
-    reigs = zeros(T, N)
-    ieigs = zeros(T, N)
-    ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
-    UV = Vector{Rotator{T, S}}(undef, m)   # Ascending Chain
-    W = Vector{Rotator{T, S}}(undef, m-1)  # the lim
-    QRFactorizationTwisted(length(QF), m,  QF, RF, UV, W, A, reigs, ieigs, ctr)
-end
+##     QRFactorizationTwisted(QF, RF)
+## end
 
 
 ## struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractQRFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
@@ -163,38 +177,42 @@ end
 ## This is not correct!
 ## This should be matrix multiplication
 ## as Twisted Q is no long Hessenberg
-function diagonal_block(state::QRFactorizationTwisted{T, S}, k) where {T,  S}
-    A  = state.A
-    QF,  RF =  state.QF, state.RF
+## function diagonal_block(state::QRFactorizationTwisted{T, S}, k) where {T,  S}
+##     A  = state.A
+##     QF,  RF =  state.QF, state.RF
 
-    i, j = k-2, k-1
+##     i, j = k-2, k-1
 
-    qji, qjj, qjk, qkj, qkk = QF[j,i], QF[j,j], QF[j,k], QF[k,j], QF[k,k]
+##     qji, qjj, qjk, qkj, qkk = QF[j,i], QF[j,j], QF[j,k], QF[k,j], QF[k,k]
 
-    rjj, rjk = RF[j,j], RF[j,k]
-    rkk = RF[k,k]
-    rij, rik = RF[i,j], RF[i,k]
+##     rjj, rjk = RF[j,j], RF[j,k]
+##     rkk = RF[k,k]
+##     rij, rik = RF[i,j], RF[i,k]
 
-    ## This is matrix multiplication of a Hessenberg matrix times a upper triangular
-    ## (triu(Q,-1) * triu(R))[k-1:k, k-1:k]
-    ## could be just sum(QF[i,l] * RF[l,j] for l in i-1:j)
+##     ## This is matrix multiplication of a Hessenberg matrix times a upper triangular
+##     ## (triu(Q,-1) * triu(R))[k-1:k, k-1:k]
+##     ## could be just sum(QF[i,l] * RF[l,j] for l in i-1:j)
 
-    A[1,1] = qji * rij + qjj * rjj
-    A[1,2] = qji * rik + qjj * rjk + qjk * rkk
-    A[2,1] = qkj * rjj
-    A[2,2] = qkj * rjk + qkk * rkk
+##     A[1,1] = qji * rij + qjj * rjj
+##     A[1,2] = qji * rik + qjj * rjk + qjk * rkk
+##     A[2,1] = qkj * rjj
+##     A[2,2] = qkj * rjk + qkk * rkk
 
-    return nothing
-end
+##     return nothing
+## end
 
 ## fill in A[j:k+1, j:k+1]
 ## using rotators Q.x[j], ..., Q.x[k]
 ## Approximate in general, as not all rotators are used, but
 ##
-function approx_diagonal_block!(A, state::QRFactorizationTwisted{T, S}, j, k) where {T, S}
-    R = state.RF
-    D = state.QF.D
-    Q = state.QF.Q
+function diagonal_block!(A, QF::QFactorizationTwisted, RF, j, k)
+    approx_diagonal_block!(A, QF, RF, j, k)
+end
+
+function approx_diagonal_block!(A, QF, RF, j, k) where {T, S}
+    R = RF
+    D = QF.D
+    Q = QF.Q
     k = min(k, length(Q))
     # make 1:(k-j+1) identity
     A .= zero(eltype(A))
@@ -204,7 +222,6 @@ function approx_diagonal_block!(A, state::QRFactorizationTwisted{T, S}, j, k) wh
         _approx_diagonal_block!(A, Q, D, R, j-1, k)
         # shift up and left by 1
         m,n = size(A)
-        @show :shift_up
         for j in 1:n-1  # across columns, then down rows
             for i in 1:m-1
                 A[i,j] = A[i+1, j+1]
@@ -229,7 +246,6 @@ function _approx_diagonal_block!(A, Q, D, R, j, k)
 
     # we get first one
     Tw = view(Q, j:k)
-    @show reverse(position_vector_indices(Tw.pv))
     for i in reverse(position_vector_indices(Tw.pv))  # allocates here
         U = Tw.x[i]
         V = Rotator(vals(U)..., idx(U) - j + 1)
@@ -242,127 +258,55 @@ end
 
 
 
-# Identify m shifts by taking the eigenvalues of the lower  m x m matrix, where k specifies the bottom corner of this matrix
-# approximate=true only constructs an approximate  part of the m x m matrix using just the lower rotators
-function find_shifts(state::QRFactorizationTwisted{T, S}, m, k; approximate=true) where {T,  S}
-
-    A = state.A # storage space for lower mxm block
-
-
-end
-
 ## return state,m rotators to create a bulge
-function create_bulge(A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}; approximate=false) where {T, S, Vt, PVt, Rt}
+function create_bulge(state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage, ctr, m) where {T, S, Vt, PVt, Rt}
 
-    m = min(state.m, state.ctrs.stop_index - state.ctrs.zero_index)
 
-    if mod(state.ctrs.it_count, 15) == 0
-        @show :randomXXX
-#        error("")
+    if mod(ctr.it_count, 15) == 0
+        #@show :randomXXX
         for i in 1:m
-            state.UV[i] = random_rotator.(S, state.ctrs.start_index + m - i)
+            storage.VU[i] = random_rotator.(S, ctr.start_index + m - i)
         end
     else
-        create_bulge(Val(approximate), Val(S <: Real), A, state)
+        create_bulge(Val(S <: Real), state, storage, ctr, m)
     end
 
     return nothing
 
 end
 
-## approximate, Real
-function create_bulge(::Val{true}, ::Val{true}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
-
-end
-
-## approximate, Complex
-## TODO
-## * remove eigvals call for m <= 2
-## * make approximate
-##
-function create_bulge(a::Val{true}, r::Val{false}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
-#    @show :hi_approx_complex
-    ## testing
-    ## idea: use Am for eigenvalues
-    ## idea: use (A-Q)x iterations to solve inverses
-    #n = state.ctrs.stop_index - state.ctrs.zero_index
-    #m = min(state.m, n)
-    m = state.m
-    alpha, beta = state.ctrs.start_index, state.ctrs.stop_index
-    offset = alpha
-    ## XXX get Am more efficiently
-    ## We have state.RF[i,j] and can generate matrix for state.QF
-    ## from last m rotators....
-    A = Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
-    n = size(A)[1]
-    if m > 1
-        Am = A[beta+1-m:beta+1, beta+1-m:beta+1]
-        rhos = eigvals(Am)
-#        @show rhos
-    else
-        Am = A[beta:beta+1, beta:beta+1]
-        #@show Am
-        e1, e2 = eigvals(Am)
-        if norm(Am[2,2] - e1) < norm(Am[2,2] - e2)
-            rhos = [e1]
-        else
-            rhos = [e2]
-        end
-    end
-    e_alpha = zeros(S, m+1); e_alpha[1] = 1
-
-    Aalpha = A[offset:offset+m, offset:offset+m]
-    x = e_alpha
-    for i in 1:m
-        x = (Aalpha - rhos[i] * I) * x
-        pi = (i==1) ? :left : state.QF.Q.pv[i-1]
-        if  pi == :right
-            x = Aalpha \ x
-        end
-    end
-
-    # now roll up
-    _rollup!(state, x, offset-1)
-
-    return nothing
-end
-
-## exact, Real
-function create_bulge(a::Val{false}, r::Val{true}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+## Real
+function create_bulge(::Val{true}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage, ctr, m) where   {T, S, Vt, PVt, Rt}
     #    @show :exact_real
 
-    n = state.ctrs.stop_index - state.ctrs.zero_index
-    m = state.m
     @assert m >= 2  # for even we need atleast a quadratic poly
 
-    alpha, beta = state.ctrs.start_index, state.ctrs.stop_index
+    alpha, beta = ctr.start_index, ctr.stop_index
+    n = beta - alpha
+    A = storage.A
+
+
     offset = alpha - 1
 
-    ## XXX get Am in more efficient manner (use last m rotators...)
-    AA = Matrix(state) #Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
-    #@show alpha, beta
-    approx_diagonal_block!(A, state, beta-m+1, beta)
+    diagonal_block!(A, state.QF, state.RF, beta-m+1, beta)
 
-    #Am = A[1:(beta-alpha+2), 1:(beta-alpha+2)]
-    #Am = A[1:m, 1:m]
-    Am = A[2:m+1, 2:m+1]
-    @show :create_bulge
-    printtp(Am)
-    nn = min(beta+1, size(AA)[1])
-    printtp(AA[nn-m:nn, nn-m:nn])
-    printtp(AA[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1])
+    Am = view(A, 2:m+1, 2:m+1)
 
-    n = size(Am)[1]
-#    Am = A[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1]
-    rhos = eigvals(Am)  ## sorted by LinearAlgebra.sorteig!
-    @show m, rhos
+    if m == 2
 
-    e_alpha = zeros(S, m+1)#n)
-    #e_alpha[alpha] = one(S)
+        rhos = eigen_values(Am)
+
+    else
+
+        rhos = _eigvals(Am)  ## sorted by LinearAlgebra.sorteig!
+
+    end
+
+    e_alpha = zeros(S, m+1)
     e_alpha[1] = one(S)
 
-    approx_diagonal_block!(A, state, alpha, alpha + m - 1)
-    Am = A[1:m+1, 1:m+1]
+    diagonal_block!(A, state.QF, state.RF, alpha, alpha + m - 1)
+    Am = view(A, 1:m+1, 1:m+1)
 
     x = e_alpha
     i = 1
@@ -390,60 +334,48 @@ function create_bulge(a::Val{false}, r::Val{true}, A, state::QRFactorizationTwis
     end
 
     # now roll up
-    _rollup!(state, x, alpha-1)
+    _rollup!(storage.VU, x, alpha-1)
     return nothing
 
 end
 
-## exact, complex
-function create_bulge(approximate::Val{false}, real::Val{false}, A, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}) where   {T, S, Vt, PVt, Rt}
+## complex
+function create_bulge(real::Val{false}, state::QRFactorizationTwisted{T, S, Vt, PVt, Rt}, storage, ctr, m) where   {T, S, Vt, PVt, Rt}
 
-    n = state.ctrs.stop_index - state.ctrs.zero_index
-    m = state.m
-#    @show m >= n
+    alpha, beta = ctr.start_index, ctr.stop_index
+    n = beta -  alpha
+    A = storage.A
 
-    alpha, beta = state.ctrs.start_index, state.ctrs.stop_index
-    offset = alpha - 1
-    #A = Matrix(state.QF) * Matrix(state.RF) # full matrix for exact case
-    #n = size(A)[1]
+    diagonal_block!(A, state.QF, state.RF, beta-m+1, beta)
 
-    approx_diagonal_block!(A, state, beta-m+1, beta)
+    if m == 1
 
-    if m > 1
-        #Am = A[1:m, 1:m] #(beta-alpha+2), 1:(beta-alpha+2)]  ## A[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1]
-        Am = A[2:m+1, 2:m+1]
-        rhos = eigvals(Am)
+        Am = view(A, 1:2, 1:2)
+        e1, e2 = eigen_values(Am)
 
-#        AA = Matrix(state)
-#        printtp(Am)
-#        printtp(AA[beta+1-(m-1):beta+1, beta+1-(m-1):beta+1])
-
-
-
-#        @show length(rhos), rhos
-    else
-        Am = A[1:2, 1:2] #A[beta:beta+1, beta:beta+1]
-
-#        AA = Matrix(state)
-#        @show "m=1"
-#        printtp(Am)
-#        printtp(AA[beta:beta+1, beta:beta+1])
-        e1, e2 = eigvals(Am)
         if norm(Am[2,2] - e1) < norm(Am[2,2] - e2)
             rhos = [e1]
         else
             rhos = [e2]
         end
+
+    elseif m == 2
+
+        Am = view(A, 2:3, 2:3) #A[beta:beta+1, beta:beta+1]
+        rhos = eigen_values(Am)
+
+    else
+
+        Am = view(A, 2:m+1, 2:m+1)
+        rhos = _eigvals(Am)
+
     end
 
-
-    #e_alpha = zeros(S, n); e_alpha[alpha] = one(S)
     e_alpha = zeros(S, m+1)
     e_alpha[1] = one(S)
 
-    @show size(A), alpha, alpha+m-1
-    approx_diagonal_block!(A, state, alpha, alpha + m - 1)
-    Am = A[1:m+1, 1:m+1]
+    diagonal_block!(A, state.QF, state.RF, alpha, alpha + m - 1)
+    Am = view(A, 1:m+1, 1:m+1)
 
     x = e_alpha
     for i in 1:m
@@ -455,20 +387,19 @@ function create_bulge(approximate::Val{false}, real::Val{false}, A, state::QRFac
     end
 
     # now roll up
-    _rollup!(state, x, offset)
-    @show alpha, idx.(state.UV)
+    _rollup!(storage.VU, x, alpha - 1)
 
     return nothing
 end
 
-function _rollup!(state, x, offset=0)
+function _rollup!(VU, x, offset=0)
 
     r = x[end]
     m = length(x)
     for i in (m-1):-1:1
         c, s, r = givensrot(x[i], r)
         U = Rotator(c, s, i+offset)
-        state.UV[m-i] = U'
+        VU[m-i] = U'
     end
 end
 
@@ -477,18 +408,19 @@ end
 
 function eigvals(state::QRFactorizationTwisted)
 
-    AMRVW_algorithm(state)
-    es = complex.(state.REIGS, state.IEIGS)
+    es = AMRVW_algorithm(state)
     LinearAlgebra.sorteig!(es)
     es
 
 end
 
-## We don't go for the fastest method
-## We have the first n-m  steps through, a straightening out of the twisted factorization in QF,
-## This should be  O(n^2) steps
-## Then, once untwisted, we pass down to the more efficient O(n^2) algorithm (in time) to solve
-##  XXX  work in deflation, etc...
+function create_storage(QF::QFactorizationTwisted{T,S}, m) where {T,  S}
+    A = zeros(S, max(4, m+2), max(4, m+2))
+    VU = Vector{Rotator{T, S}}(undef, m)   # Ascending Chain
+    limb = TwistedChain(copy(QF.Q.x[1:(m-1)]), copy(QF.Q.pv[1:(m-2)]))
+    (A=A, VU=VU, limb=limb)
+end
+
 function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}) where  {T, S}
     m = S <: Real ? 2 : 1
     AMRVW_algorithm(state, m)
@@ -496,197 +428,126 @@ end
 
 
 function AMRVW_algorithm(state::QRFactorizationTwisted{T, S}, m) where  {T, S}
-    @show "<<<<<<---------------->>>>>>"
 
-    m = state.m ## XXX fix me...
-    A = zeros(S, max(4, m+2), max(4, m+2))
-    n = length(state.QF.Q)
+    QF, RF = state.QF, state.RF
+    # set counters
+    n = length(QF.Q)
+    ctr = AMRVW_Counter(0, 1, n, 0, n-1)
 
-    N0 = findlast(x->x==:right, state.QF.Q.pv)
-    N = N0 == nothing ? 1 : N0
+    # set up storage
+    storage = create_storage(QF, m)
+    A = storage.A  # cleanup
+    EIGS = zeros(Complex{T}, n+1)
 
-    #M0 = (state.QF.Q * (I * (Matrix(state.QF.D) * Matrix(state.RF))))
-    #e0 = eigvals(M0)[1]
 
-    it_max = 5*length(state) #20 * length(state)
+
+    it_max = 20*n
     kk = 0
 
     while kk <= it_max
-        show_status(state)
 
-        kk += 1
-        @show kk
-
-        tmp = state.ctrs.stop_index - state.ctrs.zero_index
-        @show state.ctrs.stop_index, tmp, state.m
-        if state.ctrs.stop_index <= 0
-            #@show "stop index less equal 0"
-            return
+        if ctr.stop_index <= 0
+            break
         end
 
-        state.ctrs.it_count += 1
+
+        #show_status(state, ctr)
+
+        kk += 1
+        ctr.it_count += 1
 
 
-
-        check_deflation(state)
-        show_status(state)
-
-
-        #M0 = (state.QF.Q * (I * (Matrix(state.QF.D) * Matrix(state.RF))))
-        #e1 = eigvals(M0)[1]
-        #if norm(e0 - e1) > sqrt(eps())
-#            @show e1
-#            @show state.QF.Q.pv
-        #    @show :huh
-        #end
-
-
-#        M1 = (state.QF.Q * (I * (Matrix(state.QF.D) * Matrix(state.RF))))
-#        @show eigvals(M1)[1]
+        check_deflation(state, ctr)
 
 
         ## Delta is number of rotators in piece being considered
-        ## m must be less than delta
-        k = state.ctrs.stop_index
-        delta =  state.ctrs.stop_index - state.ctrs.zero_index  ## number of rotators in Q factorization
+        ## m must be less than delta tto run a bulge step
+        k = ctr.stop_index
+        delta = ctr.stop_index - ctr.zero_index  ## number of rotators in Q factorization
 
         if delta == 1
 
-            #diagonal_block(state,  k + 1)
-            #a11,a12,a21,a22 = state.A[1,1], state.A[1,2], state.A[2,1], state.A[2,2]
 
-            approx_diagonal_block!(A, state, k, k+1)
-            a11,a12,a21,a22 = A[1,1], A[1,2], A[2,1], A[2,2]
+            diagonal_block!(A, QF, RF, k, k+1)
+            e1::Complex{T}, e2::Complex{T} = eigen_values(A)
 
-            printtp(state.A)
-            printtp(A)
-
-            e1r,e1i, e2r,e2i = eigen_values(a11, a12, a21, a22)
-
-            state.REIGS[k], state.IEIGS[k] = e1r, e1i
-            state.REIGS[k+1], state.IEIGS[k+1] = e2r, e2i
-            @show :add_2, k, k+1, complex(e1r, e1i), complex(e2r, e2i)
+            EIGS[k] = e1
+            EIGS[k+1] = e2
 
             # can finish up if near end
-            if state.ctrs.stop_index == 2
-                #diagonal_block(state, 2)
-                #e1 = state.A[1,1]
+            if ctr.stop_index == 2
 
-                approx_diagonal_block!(A, state, 1, 2)
-                e1 = state.A[1,1]
+                diagonal_block!(A, QF, RF, 1, 2)
+                e1 = A[1,1]
 
-                @show :add_1_all_done, e1
-
-                state.REIGS[1] = real(e1)
-                state.IEIGS[1] = imag(e1)
+                EIGS[1] = e1
 
                 break
             end
 
-            state.ctrs.zero_index = 0
-            state.ctrs.start_index = 1
-            state.ctrs.stop_index -= 2
+            ctr.zero_index = 0
+            ctr.start_index = 1
+            ctr.stop_index -= 2
 
         elseif delta <= 0
 
-            #diagonal_block(state, k + 1)
-            #a11,a12,a21,a22 = state.A[1,1], state.A[1,2], state.A[2,1], state.A[2,2]
+            diagonal_block!(A, QF, RF, k, k+1)
+            e1, e2 = A[1,1], A[2,2]  # 0s off diagonal
 
-            approx_diagonal_block!(A, state, k, k+1)
-            a11,a12,a21,a22 = A[1,1], A[1,2], A[2,1], A[2,2]
-            e1, e2 = a11, a22
-            #e1r,e1i, e2r,e2i = eigen_values(a11, a12, a21, a22)
-            #e1 = complex(e1r, e1i)
-            #e2 = complex(e2r, e2i)
+            if ctr.stop_index == 1
+                # finish up
 
-            if state.ctrs.stop_index == 1
-                @show :add_2_finish, k, e1, e2
-                state.REIGS[1], state.IEIGS[1] = real(e1), imag(e1)
-                state.REIGS[2], state.IEIGS[2] = real(e2), imag(e2)
-                state.ctrs.stop_index = 0
+                EIGS[1], EIGS[2] = e1, e2
+                ctr.stop_index = 0
 
                 break
             else
-                @show :add_1, k+1,  e2, e1,A[3,3]
-                state.REIGS[k+1], state.IEIGS[k+1] = real(e2), imag(e2)
-                state.ctrs.zero_index = 0
-                state.ctrs.start_index = 1
-                state.ctrs.stop_index -= 1
+
+                EIGS[k+1] = e2
+
+                ctr.zero_index = 0
+                ctr.start_index = 1
+                ctr.stop_index -= 1
+
             end
 
-        elseif state.m > 2 && state.m >= delta
-            ## This is not so fair, but when m > 2 we use `eigvals` already
+        elseif m > 2 && m >= delta - 1
+            ## When finding shifts we find m eigenvalues from some other means
             ## so here we find the eigvals
-            δ, Δ = state.ctrs.start_index, state.ctrs.stop_index
-            @show "add $(Δ+1 - δ + 1) eigenvalues from $δ to $(Δ+1)"
-#            @show  δ, Δ, state.m, delta
-            #            @show "Need to take $delta $state.m eigemvalues here, ..."
-            #es = eigvals(Matrix(state)[δ:Δ+1,δ:Δ+1])
-            #@show es[1], δ, Δ + 1
 
-            @show "----"
-            approx_diagonal_block!(A, state, δ, Δ+1)
-            printtp(A)
-            printtp(Matrix(state)[δ:Δ+1,δ:Δ+1])
+            δ, Δ = ctr.start_index, ctr.stop_index
+            diagonal_block!(A, QF, RF, δ, Δ+1)
 
-
-            es = eigvals(A[1:Δ-δ+2,1:Δ-δ+2])
-            #@show 1:Δ-δ+1, es
+            es = _eigvals(view(A,1:Δ-δ+2,1:Δ-δ+2))
             for (ind, ev) in enumerate(es)
-                state.REIGS[δ+ind-1] = real(ev)
-                state.IEIGS[δ+ind-1] = imag(ev)
+                EIGS[δ+ind-1] = ev
             end
-#            @show k
-            #            @show state.QF.Q.x
 
             if  δ == 2
                 # finish up
-                @show :finish_up_m_delta
-                #diagonal_block(state, 2)
-                #e1 = state.A[1,1]
-                approx_diagonal_block!(A, state, 1, 2)
-                e1 = A[1,1]
-                state.REIGS[1] = real(e1)
-                state.IEIGS[1] = imag(e1)
+                diagonal_block!(A, QF, RF, 1, 2)
+
+                e1 = A[1,1] # δ == 2 means first rotator a diagonal, so product will be diagonal in 1:2x1:2 block
+                EIGS[1] = e1
 
                 break
             end
 
-            state.ctrs.stop_index = state.ctrs.start_index - 2
-            state.ctrs.zero_index = 0
-            state.ctrs.start_index = 1
+            ctr.zero_index = 0
+            ctr.start_index = 1
+            ctr.stop_index = δ - 2
 
-
-            @show δ, state.ctrs.stop_index
         else
 
-            bulge_step(A, state)
+            bulge_step(state, storage, ctr, m)
 
         end
 
     end
 
+    LinearAlgebra.sorteig!(EIGS)
 
-    ## while N >= 0
-
-    ##     bulge_step(state)
-
-    ##     check for deflation of last one
-    ##     c,s = vals(Ms[state.ctrs.stop_index])
-    ##     if abs(s) <= eps(T)
-    ##         state.ctrs.stop_index -= 1
-    ##     end
-
-    ##     N -= m
-    ## end
-
-    ## now untwisted, so we can change over
-    ## QF = state.QF
-    ## Ms = QF.Q.x
-    ## QF_new = QFactorization(DescendingChain(Ms), QF.D)
-    ## new_state = QRFactorization(QF_new, state.RF)
-    ## AMRVW_algorithm(new_state)
-    ## new_state
+    EIGS
 
 end
 
@@ -695,32 +556,19 @@ end
 
 ## We use `bulge_step!` for more general usage; this is
 ## tied to AbstractQRFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
-function bulge_step(A, state::QRFactorizationTwisted{T, S, V, Rt})  where {T,S, V, Rt}
+function bulge_step(state::QRFactorizationTwisted{T, S, V, Rt}, storage, ctr, m)  where {T,S, V, Rt}
 
-    create_bulge(A, state)
+    create_bulge(state, storage, ctr, m)
 
-    n = state.ctrs.stop_index - state.ctrs.zero_index + 1
-    m = min(state.m, n - 1)
-    #m < state.m && @show :m_less, m
-    if state.ctrs.start_index > 1 && state.ctrs.stop_index < length(state.QF.Q.x) && m < state.m && m == 2
-#        @show "hi"
-        #error("m=2")
-    end
+    n = ctr.stop_index - ctr.zero_index + 1
 
-    Asc = copy(state.UV[1:m])  # stored as U, V ## XXX copy!
+    Asc = copy(storage.VU[1:m])  # stored as V,U ## XXX copy! Could eliminate this
     Ms = state.QF.Q
     D = state.QF.D
     RF = state.RF
-    δ, Δ = state.ctrs.start_index, state.ctrs.stop_index
+    δ, Δ = ctr.start_index, ctr.stop_index
 
-    if δ > 1
-        @assert iszero(Ms.x[δ-1].s)
-    end
-    if Δ < length(Ms.x)
-        @assert iszero(Ms.x[Δ+1].s)
-    end
-    @show δ
-    bulge_step!(n, view(Ms, δ:Δ), D, RF, Asc)
+    bulge_step!(n, m, view(Ms, δ:Δ), D, RF, Asc)
 
     return nothing
 
@@ -728,15 +576,17 @@ end
 
 ## Can enter here for more general usage
 ## n is the size of matrix, not the number of rotators
-function bulge_step!(n, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choice = :left)
+function bulge_step!(n, m, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, choice = :left)
 
 
-    Rt = eltype(Ms)
-    #Decoupled = Rt[]
+    ## XXX
+    ## We *can* save memory if we
+    ## * didn't copy VU to Asc
+    ## * put Asc, Des in storage and didn't adjust sizes in step_knit
+    ## * used the limb defined in create storage
+    ## This would require some reworking of step_knit!
 
     Des = reverse(adjoint.(Asc))
-
-    m = length(Asc)
 
     # psd[k] = ps[m+k] with padding soecufued by choice
     ps = copy(Ms.pv)
@@ -747,87 +597,32 @@ function bulge_step!(n, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc, ch
         append!(psd, choice)
     end
 
-    ## M2a = Des * (Ms * ((Matrix(D) * Matrix(RF)) * Asc))
-    ## @show eigvals(M2a)[1]
 
     ## Must put AscendingChain into place
     ## py passing through RF and D <--
     passthrough!(RF, AscendingChain(Asc))
     passthrough!(D, AscendingChain(Asc))
 
-    ## M2 = Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))
-    ## @show eigvals(M2)[1]
-
     limb, limb_side = step_0!(m, ps, psd, Ms, Des, Asc, D, RF)
 
 
-    ## _Ms = view(Ms, (m+1):length(Ms))
-    ## if limb_side == :left
-    ##     M3 = limb * (Des * (_Ms * (Asc * (Matrix(D) * Matrix(RF)))))
-    ##     @show eigvals(M3)[1]
-    ## else
-    ##     M3 = Des * (_Ms * (Asc * (limb *(Matrix(D) * Matrix(RF)))))
-    ##     @show eigvals(M3)[1]
-    ## end
-
     for k in 1:(n-m-2)
-#        @show k
+
         limb_side = step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF)
     end
 
-    ## @show :step_k
-    ## _Decoupled = TwistedChain(Decoupled, psd[1:length(Decoupled)-1])
-    ## if limb_side == :left
-    ##     if psd[n-m-2] == :left
-    ##         Mkll = _Decoupled * (limb * (Des * (Ms * (Asc * (Matrix(D) * Matrix(RF))))))
-    ##         @show eigvals(Mkll)[1]
-    ##     else
-    ##         Mklr = limb * (Des * (Ms * (Asc * (_Decoupled * (Matrix(D) * Matrix(RF))))))
-    ##         @show eigvals(Mklr)[1]
-    ##     end
-    ## else
-    ##     if psd[n-m-2] == :left
-    ##         Mkrl = _Decoupled * (Des * (Ms * (Asc * (limb *(Matrix(D) * Matrix(RF))))))
-    ##         @show eigvals(Mkrl)[1]
-    ##     else
-    ##         Mkrr = Des * (Ms * (Asc * (limb * (_Decoupled *(Matrix(D) * Matrix(RF))))))
-    ##         @show eigvals(Mkrr)[1]
-    ##     end
-    ## end
-
     # use new choice
     if n-m-1 > 0
-#        @show n-m-1
+
         limb_side = step_k!(n-m-1, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF)
     end
-
-    if m == n-1
-#        @show :show_off, m
-    end
-
-    ## if m + 1 >= n-1
-    ##     @show :show_off, n, length(Ms.x)
-    ##     _Ms = view(Ms, n-2:n-1)
-    ##     if limb_side == :left
-    ##         M4 = limb * (Des * (_Ms * (Asc * (Matrix(D) * Matrix(RF)))))
-    ##     else
-    ##         M4 = Des * (_Ms * (Asc * (limb * (Matrix(D) * Matrix(RF)))))
-    ##     end
-    ##     @show eigvals(M4)[1]
-    ##     error("")
-    ## end
-
 
 
 
     # now knit in  limb, Des, Asc
     step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF)
 
-    ## Decoupled is now Ms, assign and update position vector
-    #    append!(Ms.x, Decoupled)
     Ms.pv[:] = psd
-#    empty!(Ms.pv)
-#    append!(Ms.pv, psd)
 
     return nothing
 end
@@ -846,8 +641,6 @@ function step_0!(m,  ps, psd, Ms::TwistedChain, Des, Asc, D, RF) where {T}
     # limb is a copy, not a view
     limb = TwistedChain(copy(Ms.x[1:(m-1)]), copy(Ms.pv[1:(m-2)]))
     limb_side = :nothing
-
-    ##@show idx.(Des), idx.(Asc), idx.(limb), idx.(Ms), m
 
     if has_limb
         if ps[m-1] == :left
@@ -882,26 +675,12 @@ function step_0!(m,  ps, psd, Ms::TwistedChain, Des, Asc, D, RF) where {T}
         AA = popfirst!(Asc)
         AA, Di = fuse(U, AA)
 
-        #M2 =  Des * (view(Ms, (m+1):length(Ms)) * (AA * (Di * (Asc * (limb *(Matrix(D) * Matrix(RF)))))))
-        #@show eigvals(M2)[1]
-        #@show idx.(Des), idx.(Asc)
         if limb_side == :right
             passthrough_phase!(Di, (AscendingChain(Asc), limb), D)
         else
             passthrough_phase!(Di, (AscendingChain(Asc), ), D)
         end
         pushfirst!(Asc, AA)
-
-        ## Asc[1], Di = fuse(U, Asc[1])
-
-
-
-        ## if limb_side == :right
-        ##     @show :right
-        ##     passthrough_phase!(Di, (AscendingChain(view(Asc,2:length(Asc))), limb), D)
-        ## else
-        ##     passthrough_phase!(Di, (AscendingChain(view(Asc,2:length(Asc))), ), D)
-        ## end
 
     end
 
@@ -913,7 +692,6 @@ end
 function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
 
     phatk = psd[k]
-#    @show :step_k, k, n, m, phatk
 
     ## 4 cases based on:
     ## phatk/limb_side
@@ -992,11 +770,6 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
     end
 
     Ms.x[k] = U
-#    if k == 1 || psd[k-1] == :left
-#        Ms.x[k] = U # Decoupled is in the k the position
-#    else
-#        Ms.x[k] = U
-#    end
 
     return limb_side
 
@@ -1005,17 +778,6 @@ end
 ## steps k=n-m to  n-2
 function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
 
-    ## M = Matrix(D) * Matrix(RF)
-    ## if limb_side == :left
-    ##     M4 = limb * (Des * (view(Ms, 1:n-m-1) * (Asc * M)))
-    ## else
-    ##     M4 = Des * (view(Ms, 1:n-m-1) * (Asc * (limb * M)))
-    ## end
-    ## @show eigvals(M4)[1]
-
-
-
-#    @show :step_knit, limb_side, idx.(limb), limb.pv, idx.(Des), idx.(Asc)
     # make bottom
     U = pop!(Des)
     V = popfirst!(Asc)
@@ -1023,9 +785,6 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
 
     ## Decoupled too! Decoupled on right? as we augmented Ascending
     ## have a complicted check, as m can be big
-    if m == n-1
-#        @show :step_knit, m, psd
-    end
     psdm = length(psd)-m+1 > 0 ? psd[end-m+1] : :left
 
     if psdm == :right
@@ -1145,14 +904,12 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
         end
 
         if phatk == :left
-#            @show :asc_to_right
             # similarity to move Asc to right side
             passthrough!(RF, AscendingChain(Asc))  # <--
             passthrough!(D, AscendingChain(Asc))
 
             limb_side = :left
         else
-#            @show :asc_to_left
             # similarity to move Des to left side
             passthrough!(DescendingChain(Des), D)
             passthrough!(DescendingChain(Des), RF)
@@ -1163,18 +920,12 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
 
         ## pop off top, and add to Decopuled
         ## we have idx(U) ==   k; so psd[k-1] = phatk indicates direction to  add
-#        @show :add_to_Decoupled_is_1, k
         if phatk == :left
-#            @show :use_DES
             U  = popfirst!(Des)
             Ms.x[k] = U
-            #push!(Decoupled, U)
         else
-#            @show :use_ASC
             U = pop!(Asc)
-            #push!(Decoupled, U)
             Ms.x[k] = U
-            #pushfirst!(Decoupled, U)
         end
 
         U = pop!(Des)
@@ -1199,10 +950,8 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
     end
 
     # just the bottom left, but may be on wrong side if m > 1
-#    @show :just_bottom, psd[end]
     if psd[end] == :left
         if m > 1 && (length(psd) > 1 && psd[end-1] != psd[end])
-#            @show :reposition_to_left
             bottom = passthrough!(RF, bottom)  # move to other side
             bottom = passthrough!(D, bottom)
         end
@@ -1210,20 +959,11 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
 
     else
         if m > 1 && (length(psd) > 1 && psd[end-1] != psd[end])
-#            @show :reposition_to_right
             bottom = passthrough!(bottom, D)   # move bottom to other side
             bottom = passthrough!(bottom, RF)
         end
         Mx.x[end] = bottom
-        #push!(Decoupled, bottom)
     end
-
-
-    ## M5 = TwistedChain(Ms.x, psd) * (Matrix(D) * Matrix(RF))
-    ## @show eigvals(M5)[1]
-
-
-
 
     return nothing
 

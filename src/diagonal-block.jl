@@ -47,6 +47,11 @@ function eigen_values(state::AbstractQRFactorizationState{T,S, Val{:not_twisted}
     eigen_values(a11, a12, a21, a22)
 end
 
+# return tuple
+function eigen_values(A::AbstractArray)
+    e1r, e1i, e2r, e2i = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
+    (complex(e1r, e1i), complex(e2r, e2i))
+end
 
 function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
     b = (a11 + a22) / 2
@@ -78,3 +83,6 @@ function  eigen_values(a11::S, a12::S, a21::S, a22::S) where {S <: Complex}
     return e1r, e1i, e2r, e2i
 
 end
+
+_eigvals(A::AbstractMatrix{T}) where {T <: Real} = eigvals(A)::Vector{Complex{T}}
+_eigvals(A::AbstractMatrix{S}) where {S <: Complex} =  eigvals(A)

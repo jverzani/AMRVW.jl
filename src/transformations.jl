@@ -15,7 +15,8 @@ where `[c s; -s conj(c)] * [a,b] = [r, 0]
 """
 @inline function givensrot(a::T, b::T) where {T <: Real}
     G, r = givens(a,b,1,2)
-    s = sign(r)
+    s = r >= 0 ? one(T) : -one(T)   #sign(r)
+    #@show a,b,s,G.c, G.s
     s*G.c, s*G.s, s*r
 end
 
@@ -160,7 +161,15 @@ end
     ## UVW has first row [UVW11, UVW21, UVW31]
     UVW21 = -c2 * s3 * conj(c1) - c3*s1
     UVW31 = s2 * s3
+
+    if iszero(UVW21) && iszero(UVW31)
+        if iszero(s2*conj(c3)) ## this is the case of diagonal matrix Q1*Q2*Q3
+            return  c2,zero(T),c1*c3,zero(T),one(S),zero(T)
+        end
+    end
+
     c4, s4, r4 = givensrot(UVW21, UVW31)
+
     c4, s4 = conj(c4), -s4  # conjugate, as [c4 s4; -s4 conj(s4)]*[a,b] = [r,0]
 #    c4, s4 =  polish_givens(c4, s4)
 
@@ -177,12 +186,10 @@ end
     if !iszero(s5)
         c6, s6 = approx_givensrot(a, s1*s2/s5)
     else
-        b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0, need not be real so need a rotation!!!
+        #b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0, need not be real so need a rotation!!!
         #c6, s6 = approx_givensrot(a, b)
         #c6, s6 = givensrot(a, b)
-        error("un hun")
         @show :uh_huh
-
         c6, s6 = givensrot(c2*conj(c1), -s2)
     end
 #    c6, s6 = approx_givensrot(a, b)
@@ -203,12 +210,24 @@ function turnover(Q1::Rt,
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
 
+    l = max(i,j,k)
+    M = diagm(0 => ones(eltype(c1), l+1))
+    M1 = [Q1,Q2,Q3] * M
+
+
     # @assert i == k && (abs(j-i) == 1)
     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
     R1 = Rt(c4, s4, j)
     R2 = Rt(c5, s5, i)
     R3 = Rt(c6, s6, j)
 
+    M2 = [R1, R2,  R3] * M
+    resid = maximum(norm.(M1-M2))
+    if resid > sqrt(eps())
+        @show resid
+        @show Q1, Q2, Q3
+   # @show [M1-M2][l-1:l+1, l-1:l+1]
+    end
     # we have Q1*Q2*Q3 = R1*R2*R3
     R1, R2, R3
 
