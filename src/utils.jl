@@ -4,6 +4,7 @@ function deflate_leading_zeros(ps::Vector{S}) where {S}
     K = findfirst(!iszero, ps)
 
     N == 0 && return(zeros(S,0), length(ps))
+    # XXX  should  we make  a view?
     ps = ps[K:N]
     ps, K-1
 end
@@ -40,6 +41,7 @@ function deflate_leading_zeros(vs::Vector{S}, ws::Vector{S}) where {S}
             K += 1
         end
     end
+    ## Should  this be  a  view?
     vs[K:N], ws[K:N], K-1
 end
 
@@ -121,4 +123,23 @@ function qdrtc(b::T, c::T) where {T <: Real}
         r = sqrt(d) * (sign(b) + iszero(b)) + b
         return (r, zero(T), c/r, zero(T))
     end
+end
+
+##################################################
+
+## We need zero and one to match T,Complex{T} or just T,T depending
+function _zero_one(xs::Vector{S}) where {S}
+    T = real(S)
+    zero(T), one(T), zero(S), one(S)
+end
+
+
+
+## LinearALgebra.sorteig! is not v1.0-v1.?
+eigsortby(λ) = λ
+eigsortby(λ::Complex) = (real(λ),imag(λ))
+function _sorteig!(λ::AbstractVector)
+    p = sortperm(λ; alg=QuickSort, by=eigsortby)
+    permute!(λ, p)
+    return λ
 end

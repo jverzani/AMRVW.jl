@@ -1,83 +1,53 @@
 ## Types for factorization objects
 
-## A container for our counters
-mutable struct AMRVW_Counter
-    zero_index::Int
-    start_index::Int
-    stop_index::Int
-    it_count::Int
-    tr::Int
+
+
+abstract type AbstractQRFactorizationState end
+
+function Base.size(state::AbstractQRFactorizationState)
+    m1, n1 = size(state.QF)
+    m2, n2 = size(state.RF)
+    return (max(m1,m2), max(n1, n2))
 end
 
 
-##################################################
-## Factorization Types ##
-##################################################
-## A type to hold our factorization state (Q, R, temp storage)
-## T is floating point type
-## S is T or Complex{T}
-## Rt is rotator type, e.g. RealRotator{T}
-## Pt is pencil type: Val(:no_pencil) or Val(:pencil)
-## Twt is twist type: Val(:twisted) or Val(:not_twisted)
-abstract type AbstractFactorizationState{T, S, Rt, QFt, RFt, Twt} end
 
-# Factorization for No_Pencil and Not Twisted
-# N size of poly
-# QF, RF factorizations
-# UV reusable storage for U and [V] in real cose
-# A reusable storage for pieces of the full matrix
-# REIGS, IEIGS storage for eigen values
-struct QRFactorization{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:not_twisted}}
-  N::Int
-  QF::QFt
-  RF::RFt
-  UV::Vector{Rt}    # temp storage for U[V] Vector{Rt}, ,
-  A::Matrix{S}
-  REIGS::Vector{T}
-  IEIGS::Vector{T}
-  ctrs::AMRVW_Counter
+##  We  have  two types, though could consolidate
+##
+struct QRFactorization{QF, RF} <: AbstractQRFactorizationState
+  QF::QF
+  RF::RF
+end
+
+# use identity R when not specified
+function QRFactorization(QF::AbstractQFactorization{T,S}) where {T,S}
+    RF = RFactorizationIdentity{T,S}()
+    QRFactorization(QF, RF)
 end
 
 
-# Twisting *would* require a different bulge chasing algorithm, so
-# we hold it in the type for dispatch
-struct QRFactorizationTwisted{T, S, Rt, QFt, RFt} <: AbstractFactorizationState{T, S, Rt, QFt, RFt, Val{:twisted}}
-  N::Int
-  QF::QFt
-  RF::RFt
-  UV::Vector{Rt}    # temp storage for U[V] Vector{Rt}, ,
-  A::Matrix{S}
-  REIGS::Vector{T}
-  IEIGS::Vector{T}
-  ctrs::AMRVW_Counter
-end
+## XXX  remove me
+## struct QRFactorizationTwisted{T, S, Vt, PVt, RF} <: AbstractQRFactorizationState
+##   QF::QFactorizationTwisted{T, S, Vt, PVt}
+##   RF::RF
+## end
 
-# constructor for either case
-function qrfactorization(N,
-                         QF::AbstractQFactorization{T, Rt, Twt},
-                         RF::AbstractRFactorization) where {T, Rt, Twt}
+Base.length(state::AbstractQRFactorizationState) = length(state.QF)+1
+Base.eltype(state::AbstractQRFactorizationState) = eltype(state.QF)
 
+# return A
+function Base.Matrix(state::AbstractQRFactorizationState)
 
-    if Rt == ComplexRealRotator{T}
-        S = Complex{T}
-        UV = Vector{ComplexRealRotator{T}}(undef, 1)
+    Q = Matrix(state.QF)
+    R = Matrix(state.RF)
+
+    ## May have Q smaller than  R, so will pad in that case
+    if R != I
+        m,n =  size(Q)[1], size(R)[1]
+        n  < m && error("R is  too  small")
+        return Q * R[1:m, 1:m]
     else
-        S = T
-        UV = Vector{RealRotator{T}}(undef, 2)
+        return Q
     end
 
-    A = zeros(S, 2, 2)
-    reigs = zeros(T, N)
-    ieigs = zeros(T, N)
-    ctr = AMRVW_Counter(0, 1, N-1, 0, N-2)
-
-    if Twt == Val{:not_twisted}
-        state = QRFactorization(N, QF, RF, UV, A, reigs, ieigs, ctr)
-    else
-        state = QRFactorizationTwisted(N, QF, RF, UV, A, reigs, ieigs, ctr)
-    end
-
-    return state
 end
-
-Base.length(state::AbstractFactorizationState) = state.N

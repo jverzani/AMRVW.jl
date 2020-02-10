@@ -153,5 +153,21 @@ end
     rts = A.roots(vs, ws)
     @test all(!iszero(rts))
 
+    function pencil_split(ps, n)
+        vs = zeros(eltype(ps), length(ps)-1)
+        ws = zeros(eltype(ps), length(ps)-1)
+
+        vs[1:n] = ps[1:n]
+        ws[n:end] = ps[n+1:end]
+
+        vs, ws
+    end
+
+    ps = [24.0, -50.0, 35.0, -10.0, 1.0]
+    for i in 1:4
+        resid = eigvals(A.amrvw(pencil_split(ps, i)...)) - [1,2,3,4]
+        @test norm(resid) <= sqrt(eps())
+    end
+
 
 end

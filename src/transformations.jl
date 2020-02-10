@@ -15,7 +15,8 @@ where `[c s; -s conj(c)] * [a,b] = [r, 0]
 """
 @inline function givensrot(a::T, b::T) where {T <: Real}
     G, r = givens(a,b,1,2)
-    s = sign(r)
+    s = r >= 0 ? one(T) : -one(T)   #sign(r)
+    #@show a,b,s,G.c, G.s
     s*G.c, s*G.s, s*r
 end
 
@@ -75,8 +76,8 @@ end
 ##################################################
 ## Fuse
 ## fuse combines two rotations, a and b, into one,
-## For general rotation, we have no phase consideration
-@inline function fuse(a::AbstractRotator{T}, b::AbstractRotator{T}) where {T}
+## For general rotation, we have no phase consideration, so return an identity rotator
+@inline function fuse(a::AbstractRotator{T,S}, b::AbstractRotator{T,S}) where {T,S <: Real}
     #    idx(a) == idx(b) || error("can't fuse")
     i = idx(a)
 
@@ -86,7 +87,8 @@ end
     u = c1 * c2 - s1 * conj(s2)
     v = c1 * s2 + s1 * conj(c2)
 
-    return Rotator(u,v,i)
+    u,v = polish_givens(u,v)
+    return Rotator(u,v,i), IdentityRotator{T, S}(i)
 
 end
 
@@ -96,7 +98,7 @@ end
 ## we output by rotating by alpha.
 ## We have U*V = (UV) * D
 ## To get D * (UV) a flip is needed
-@inline function fuse(a::ComplexRealRotator{T}, b::ComplexRealRotator{T}) where {T}
+@inline function fuse(a::Rotator{T,S}, b::Rotator{T,S}) where {T, S <: Complex{T}}
 
     i = idx(a)
     #    idx(a) == idx(b) || error("can't fuse")
@@ -110,13 +112,14 @@ end
     alpha =  iszero(v) ? one(Complex{T}) : v/s
     c = u * alpha
 
+    c, s = polish_givens(c, s)
 
     Rotator(c, s, i), DiagonalRotator(conj(alpha), i)
 end
 
 ## Fuse for diagonal matrices
-fuse(D::IdentityDiagonalRotator, U) = U
-function fuse(D::DiagonalRotator{T}, U) where {T}
+fuse(D::IdentityRotator, U) = U, D
+function fuse(D::DiagonalRotator, U)
     alpha,_ = vals(D)
     i = idx(D)
     @assert i == idx(U)
@@ -159,10 +162,16 @@ end
     UVW21 = -c2 * s3 * conj(c1) - c3*s1
     UVW31 = s2 * s3
 
+    if iszero(UVW21) && iszero(UVW31)
+        if iszero(s2*conj(c3)) ## this is the case of diagonal matrix Q1*Q2*Q3
+            return  c2,zero(T),c1*c3,zero(T),one(S),zero(T)
+        end
+    end
+
     c4, s4, r4 = givensrot(UVW21, UVW31)
+
     c4, s4 = conj(c4), -s4  # conjugate, as [c4 s4; -s4 conj(s4)]*[a,b] = [r,0]
 #    c4, s4 =  polish_givens(c4, s4)
-
 
     UVW11 = c1*c3 - c2*s1*s3
     c5, s5::T = approx_givensrot(UVW11, real(r4))
@@ -177,8 +186,7 @@ end
     if !iszero(s5)
         c6, s6 = approx_givensrot(a, s1*s2/s5)
     else
-        b = -c5*s4*conj(c2) + s2 * c5 * conj(c1)*conj(c4) + s2*s1*s5#; M[3,2] when s5=>0
-        c6, s6 = approx_givensrot(a, b)
+        c6, s6 = givensrot(c2*conj(c1), -s2)
     end
 #    c6, s6 = approx_givensrot(a, b)
 #    c6, s6 =  polish_givens(c6, s6)
@@ -191,148 +199,41 @@ end
 ##
 ##  Turnover interface for rotators
 ##
-function turnover(Q1::AbstractRotator,
-                  Q2::AbstractRotator,
-                  Q3::AbstractRotator)
+function turnover(Q1::Rt,
+                  Q2::Rt,
+                  Q3::Rt) where {Rt}
+
+    c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
+    i,j,k = idx(Q1), idx(Q2), idx(Q3)
+
+    # @assert i == k && (abs(j-i) == 1)
+
+    c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
+    R1 = Rt(c4, s4, j)
+    R2 = Rt(c5, s5, i)
+    R3 = Rt(c6, s6, j)
+
+    R1, R2, R3
+
+end
+
+# need to specilize for diagonal rotator
+# as we want a  diagonal rotator to come o ut
+# This a  counter part.
+function turnover(Q1::DiagonalRotator{T},
+                  Q2::Rt,
+                  Q3::Rt) where {T, Rt}
 
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
     # @assert i == k && (abs(j-i) == 1)
 
     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
-    R1 = Rotator(c4, s4, j)
-    R2 = Rotator(c5, s5, i)
-    R3 = Rotator(c6, s6, j)
+    R1 = Rt(c4, s4, j)
+    R2 = Rt(c5, s5, i)
+    R3 = DiagonalRotator(c6, j)
 
     # we have Q1*Q2*Q3 = R1*R2*R3
     R1, R2, R3
 
-end
-
-
-##################################################
-
-## Various "passthrough" functions
-## These passthrough the chains
-
-function passthrough(A::DescendingChain, U::AbstractRotator, ::Val{:right})
-    i = idx(U)
-    # @assert i < length(A)
-    U, A[i], A[i+1] = turnover(A[i], A[i+1], U)
-    return U
-end
-
-
-function passthrough(A::DescendingChain, U::AbstractRotator, ::Val{:left})
-    i, n  = idx(U), length(A)
-    # @assert i > 1
-    A[i-1], A[i], U = turnover(U, A[i-1], A[i])
-    return U
-end
-
-
-function passthrough(A::AscendingChain, U::AbstractRotator, ::Val{:right})
-    i, n = idx(U), length(A)
-    j = n - i + 1
-    # @assert  i > 1
-    U, A[j], A[j+1] = turnover(A[j], A[j+1],U)
-    return U
-end
-
-
-function passthrough(A::AscendingChain, U::AbstractRotator, ::Val{:left})
-    i, n = idx(U), length(A)
-    j = n - i + 1
-    A[j-1], A[j], U = turnover(U, A[j-1], A[j])
-    return U
-end
-
-
-## passthrough
-## Pass a rotator through a diagonal matrix with phase shifts
-## D U -> U' D' (right, as in U starts on right)
-## U D -> D' U' (left)
-@inline function passthrough(D::SparseDiagonal, U::ComplexRealRotator{T}, ::Val{:right}) where {T}
-    i = idx(U)
-    c,s = vals(U)
-
-    alpha, beta = D[i], D[i+1]
-    beta1 = alpha * conj(beta)
-
-    D[i] = beta
-    D[i+1] = alpha
-    return Rotator(beta1 * c, s, i)
-end
-
-## U D -> D U
-@inline function passthrough(D::SparseDiagonal, U::ComplexRealRotator{T}, ::Val{:left}) where {T}
-    return passthrough(D, U, Val(:right))
-    i = idx(U)
-    c,s = vals(U)
-
-    alpha, beta = D[i], D[i+1]
-    beta1 = alpha/beta
-
-    D[i] *= conj(beta1)
-    D[i+1] *= beta1
-    return Rotator(beta1 * c, s, i)
-end
-
-## U D -> D U
-## Identity
-@inline function passthrough(D::IdentityDiagonal, U::AbstractRotator, dir)
-    U
-end
-
-
-
-## Pass a diagonal rotator through a chain
-## [  D --> D [
-##  [           [
-function passthrough(A::DescendingChain, D::DiagonalRotator, ::Val{:right})
-end
-
-##  [ D --> D   [
-## [          [
-function passthrough(A::AscendingChain, D::DiagonalRotator, ::Val{:right})
-    ## XXX write me, but not needed...
-end
-
-
-## [ D          [      D     [        D     [
-##     [   -->    [ D    -->   [    D   -->   [     * [alpha, I..., conj(alpha]
-##       [            [          [ D             [
-function passthrough(A::DescendingChain, D::SparseDiagonal, Di::DiagonalRotator, ::Val{:left})
-    ## We have two rules here
-    ## D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(c, conj(alpha)s) D_i(alpha)
-    ## R_{i+1}(c, conj(alpha) s) = R_{i+1}(conj(alpha) c, s) D_{i+1}(alpha)
-    ## so D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(conj(alpha) c, s) D{{i+1}(alpha) D_i(alpha)
-    ## Also D_i(alpha) * R_i(c,s) = R_i(c*alpha/conj(alpha), s) D_i(conj(alpha)
-    i, n = idx(Di), length(A)
-    alpha, _ = vals(Di)
-
-    ## D_i will passthrough and can be merged into D
-    ## we will have D_i(alpha) * D_{i+1}(alpha) * ... * D_j(alpha) which will only have alpha at i and conj(alpha) at j+1
-    D[i] *= alpha
-
-
-    while i < n
-        j = i + 1
-        c, s = vals(A[j])
-        @assert j == idx(A[j])
-
-        iszero(s) && break
-        A[j] = Rotator(conj(alpha)*c, s, j)
-        i = i + 1
-    end
-
-    D[i+1] *= conj(alpha)
-
-    return nothing
-
-end
-
-
-function passthrough(A::AscendingChain, D::DiagonalRotator, ::Val{:left})
-    ## XXX write me
 end
