@@ -118,9 +118,9 @@ function _r_factorization(xs::Vector{S}, Ct, B, D) where {S <: Complex}
     nothing
 end
 
-## Factor Q
-
+## Factor Q using vector xs
 function q_factorization(xs::Vector{S}) where {S}
+
     N = length(xs) - 1
     T = S <: Real ? S : real(S)
 
@@ -131,9 +131,7 @@ function q_factorization(xs::Vector{S}) where {S}
         Q[ii] = Rotator(zero(S), one(T), ii)
     end
 
-    D = SparseDiagonal(S, N)
-
-    return QFactorization(Q, D)
+    q_factorization(Q)
 
 end
 
@@ -162,6 +160,7 @@ end
 
 ## decomposition of ps into vs, ws needs to be expanded to work with framework
 function adjust_pencil(vs::Vector{T}, ws::Vector{T}) where {T}
+
     ps = basic_decompose(vcat(vs, one(T)))
     qs = vcat(ws, -one(T))  # or +1?
 
@@ -185,9 +184,8 @@ then
 function amrvw(vs::Vector{S}, ws::Vector{S}) where {S}
 
     N = length(vs)
-
     ps, qs = adjust_pencil(vs, ws)
-    QF = q_factorization(Vector{S}(undef, N+1))
+    QF = q_factorization(Vector{S}(undef, N+1)) # is this correct?
     ZF = pencil_factorization(ps, qs)
 
     QRFactorization(QF, ZF)
@@ -250,20 +248,14 @@ function roots(ps::Vector{S}) where {S}
 
     state = amrvw(ps)
 
-    AMRVW_algorithm(state)
+    EIGS =  AMRVW_algorithm!(state)
 
     if K > 0 # put back in leading zeros
-        ZS = zeros(real(S), K)
-        append!(state.REIGS, ZS)
-        append!(state.IEIGS, ZS)
+        append!(EIGS, zeros(eltype(EIGS), K))
     end
-#@show "done"
-    rts = complex.(state.REIGS, state.IEIGS)
-    try
-        _sorteig!(rts)
-    catch
-    end
-    rts
+
+    EIGS
+
 end
 
 ## A Pencil algorithm
@@ -288,13 +280,11 @@ function roots(vs::Vector{S}, ws::Vector{S}) where {S}
     end
 
     state = amrvw(ps, qs)
-    AMRVW_algorithm(state)
+    EIGS =  AMRVW_algorithm!(state)
 
     if K > 0 # put back in leading zeros
-        ZS = zeros(real(S), K)
-        append!(state.REIGS, ZS)
-        append!(state.IEIGS, ZS)
+        append!(EIGS, zeros(eltype(EIGS), K))
     end
 
-    complex.(state.REIGS, state.IEIGS)
+    EIGS
 end

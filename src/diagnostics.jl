@@ -3,7 +3,6 @@
 import LinearAlgebra: diagm
 
 ## debugging tools, basically
-
 XXX(st) = println("XXX: $st")
 round1(x) = round.(x, digits=1)
 round2(x) = round.(x, digits=2)
@@ -11,11 +10,6 @@ round3(x) = round.(x, digits=3)
 round5(x) = round.(x, digits=5)
 export round1, round2, round3, round5
 printtp(x) = println(sprint(io -> show(io, "text/plain", x)))
-
-## Multiplication of rotators
-## This is useful for diagnostics
-
-
 
 
 ### Random rotators are useful for testing
@@ -33,16 +27,6 @@ function random_rotator(s::Type{S}, i) where {S <: Complex}
     alpha = conj(s)/ns
     Rotator(c*alpha,ns,i)
 end
-
-
-
-## ### Code to create full matrix from factorization
-
-tilde(A) = A[1:end-1, 1:end-1]
-
-
-
-
 
 
 

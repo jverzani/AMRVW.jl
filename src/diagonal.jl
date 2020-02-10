@@ -3,6 +3,8 @@
 ## For the complex-real rotator case we need a diagonal matrix to store the phase
 ## This is a  means to make this generic with respect to rotator type
 ## The factorization can have an identity diagonal or a real one.
+##
+## XXX: This should  just  use  LinearAlgebra.Diagonal
 abstract type AbstractSparseDiagonalMatrix{S} end
 
 

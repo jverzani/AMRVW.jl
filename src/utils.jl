@@ -4,6 +4,7 @@ function deflate_leading_zeros(ps::Vector{S}) where {S}
     K = findfirst(!iszero, ps)
 
     N == 0 && return(zeros(S,0), length(ps))
+    # XXX  should  we make  a view?
     ps = ps[K:N]
     ps, K-1
 end
@@ -40,6 +41,7 @@ function deflate_leading_zeros(vs::Vector{S}, ws::Vector{S}) where {S}
             K += 1
         end
     end
+    ## Should  this be  a  view?
     vs[K:N], ws[K:N], K-1
 end
 
@@ -130,6 +132,7 @@ function _zero_one(xs::Vector{S}) where {S}
     T = real(S)
     zero(T), one(T), zero(S), one(S)
 end
+
 
 
 ## LinearALgebra.sorteig! is not v1.0-v1.?

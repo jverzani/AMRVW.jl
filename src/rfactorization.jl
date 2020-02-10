@@ -210,7 +210,6 @@ function passthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: Abs
     n = size(R)[2]
     i = idx(U); j = i+1
 
-#    R .= U * R
     c,s = vals(U)
     for k in i:n
         rik, rjk =  R[i,k],  R[k,k]
@@ -221,7 +220,7 @@ function passthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: Abs
     g2 = givens(R[i+1,i], R[i+1,i+1],1,2)[1]
     c, s = conj(g2.s), real(g2.c)
     V = Rt(c,s,i)
-#    R .= R*V
+
     for k in 1:j
         rki, rkj =  R[k,i], R[k,j]
         R[k, i] = c * rki - conj(s) * rkj
@@ -238,8 +237,6 @@ function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: Abs
     R = RF.R
     n = size(R)[2]
 
-
-    #R .= R * V
     c, s = vals(V)
     i = idx(V); j = i+1
     for k in 1:j
@@ -252,7 +249,7 @@ function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: Abs
     g2 = givens(R[i+1,i], R[i,i],1,2)[1]
     c, s = g2.s, real(g2.c)
     U = Rt(c,s,i)
-    #R .= U * R
+
     for k in i:n
         rik, rjk = R[i,k], R[j,k]
         R[i,k ]  = c * rik + s * rjk
@@ -260,6 +257,7 @@ function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: Abs
     end
     R[j,i] = zero(eltype(R))
     U'
+
 end
 
 

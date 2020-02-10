@@ -1,6 +1,7 @@
 ##################################################
 
 ## Q Factorization
+## We have two  different Q factorizations: one with a Descending chaing,  one with a  Twisted Chain
 abstract type AbstractQFactorization{T, S} end
 # implement Array interface
 Base.length(QF::AbstractQFactorization) = length(QF.Q)
@@ -11,29 +12,58 @@ Base.zero(QF::AbstractQFactorization) = zero(eltype(QF))
 Base.one(QF::AbstractQFactorization) = one(eltype(QF))
 
 
+# Factorization  for a   Descending Chain
 struct QFactorization{T, S, V} <: AbstractQFactorization{T, S}
-  Q::DescendingChain{T,S, V}
+  Q::DescendingChain{T, S, V}
   D::SparseDiagonal{S}
 end
 
+### QFactorization  Twisted
+struct QFactorizationTwisted{T, S, Vt, PVt} <: AbstractQFactorization{T, S}
+  Q::TwistedChain{T,S, Vt, PVt} ## Twisted
+  D::SparseDiagonal{S}
+end
+
+Base.eltype(::QFactorization{T, S, V}) where {T, S, V} = S
+Base.eltype(::QFactorizationTwisted{T, S, Vt, PVt}) where {T, S, Vt, PVt} = S
 
 # constructor
-function q_factorization(Qs::AbstractArray{T,S}) where {T, S}
-    N = length(Qs)
+#  for descending chain
+function q_factorization(Q::DescendingChain{T, S, V}) where {T, S, V}
+
+    N = length(Q)
     D = SparseDiagonal(S, N+1)
-    QFactorization{T,S}(DescendingChain(Qs), D)
+
+    QFactorization(Q, D)
+
 end
 
-function q_factorization(Qs::AbstractArray{T,S}, pv::Vector) where {T, S}
-    N = length(Qs)
-    D = SparseDiagonal(S, N+1)
-    QFactorization{T,S}(TwistedChain(Qs, pv), D)
+function q_factorization(Q::TwistedChain{T, S, Vt, PVt}) where {T, S, Vt, PVt}
+
+    N = length(Q)
+    D = SparseDiagonal{S}(N+1)
+
+    QFactorizationTwisted(Q, D)
+
 end
+
+## function q_factorization(Qs::AbstractArray{T,S}) where {T, S}
+##     N = length(Qs)
+##     D = SparseDiagonal(S, N+1)
+##     QFactorization{T,S}(DescendingChain(Qs), D)
+## end
+
+## #  for twisted chain
+## function q_factorization(Qs::AbstractArray{T,S}, pv::Vector) where {T, S}
+##     N = length(Qs)
+##     D = SparseDiagonal(S, N+1)
+##     QFactorization{T,S}(TwistedChain(Qs, pv), D)
+## end
 
 
 
 ## Find Q[j,k] from its factored form
-## QFactorization is Hessenber
+## QFactorization is Hessenberg
 ## We will only need near  diagonal elements, as we multiply by
 ## an  upper triangular matrix
 

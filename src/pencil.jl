@@ -4,7 +4,13 @@
 ## Factorization
 
 # Pencil is made up of two factorizations
-# algorithm is QZ algorithm, so we use Z factorization fir bane
+# notation in paper is
+# solve V - \lambda W
+# or V*inv(W) - lambda I
+# but V = QR, so consider
+# Q*R*inv(W)
+# to avoid (introduce?) confusion,we let R be V: and have
+# Q * V * inv(W) with the R Factorization store both V and W
 struct RFactorizationPencil{T, S} <: AbstractRFactorization{T, S}
 V::RFactorizationRankOne{T, S}
 W::RFactorizationRankOne{T, S}
@@ -14,7 +20,7 @@ Base.size(RF::RFactorizationPencil) = size(RF.V)
 function Base.Matrix(RF::RFactorizationPencil)
     V = Matrix(RF.V)
     W = Matrix(RF.W)
-    V * inv(W)
+    V[1:end-1, 1:end-1] * inv(W[1:end-1, 1:end-1])
 end
 
 ## VV = [Sym("v$i$j") for i in ("i","j","k"), j in ("i","j","k")] |> triu
@@ -23,6 +29,7 @@ end
 function Base.getindex(RF::RFactorizationPencil, l, k)
     Δ = k - l
     #@assert 0 <= Δ <= 2
+
     V, W = RF.V, RF.W
     l <= 0 &&  return zero(RF)
     if iszero(Δ)
@@ -33,9 +40,8 @@ function Base.getindex(RF::RFactorizationPencil, l, k)
     else
         i, j = l, l+1
         return V[i,i] * (W[i,j] * W[j,k] - W[i,k] * W[j,j]) / (W[i,i] * W[j,j] * W[k,k])  - (V[i,j] *  W[j,k]) / ( W[j,j] * W[k,k])  + V[i,k]/W[k,k]
-
-
     end
+
 end
 
 
@@ -47,6 +53,12 @@ end
 function pencil_factorization(vs, ws)
 
     V = r_factorization(vs)
+    for i in length(ws)-2:-2:2
+       ws[i] = -ws[i]
+    end
+    ## for i in length(ws)-1:-2: 1
+    ##     ws[i] = -ws[i]
+    ## end
     W = r_factorization(ws)
     RFactorizationPencil(V,W)
 

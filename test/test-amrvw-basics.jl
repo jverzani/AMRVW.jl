@@ -216,15 +216,18 @@ end
     # check that bulge step works
     for p in ps
         for T in Ts
+            m = 2
             state = A.amrvw(p)
-            A.bulge_step(state)
+            storage =  A.make_storage(state.QF, m)
+            ctr = A.make_counter(state)
+            A.bulge_step(state.QF, state.RF,  storage, ctr, m)
             d = length(p)-1
             F = A.Matrix(state)
             rts = sort(eigvals(F))
             @test norm(sort(eigvals(F))  .- [1:d...] ) <= 100sqrt(eps(T))
 
-            A.bulge_step(state)
-            allocs = @allocated A.bulge_step(state)
+            A.bulge_step(state.QF, state.RF,  storage, ctr, 2)
+            allocs = @allocated A.bulge_step(state.QF, state.RF, storage, ctr, 2)
             @test allocs == 0
         end
     end
@@ -233,9 +236,13 @@ end
     for p in [pc]
         for S in [Complex{Float64}]
             state = A.amrvw(p)
-            A.bulge_step(state)
-            allocs = @allocated A.bulge_step(state)
-            @test_broken allocs == 0
+            m =  1
+            storage =  A.make_storage(state.QF, m)
+            ctr = A.make_counter(state)
+
+            A.bulge_step(state.QF, state.RF, storage, ctr, m)
+            allocs = @allocated A.bulge_step(state.QF, state.RF, storage, ctr, m)
+            @test allocs == 0
         end
     end
 end
@@ -255,18 +262,22 @@ end
     for p in ps
         for T in Ts
             state = A.amrvw(p)
-            A.bulge_step(state)
-            state.ctrs.it_count += 1
-            A.bulge_step(state)
-            A.create_bulge(state)
+            m =  2
+            storage =  A.make_storage(state.QF, m)
+            ctr = A.make_counter(state)
+
+            A.bulge_step(state.QF, state.RF, storage, ctr, m)
+            ctr.it_count += 1
+            A.bulge_step(state.QF, state.RF, storage, ctr, m)
+            A.create_bulge(state.QF,  state.RF, storage, ctr)
 
             k = length(p) - 1
             @test Matrix(state.RF)[k,k] ≈ state.RF[k,k]
             @test Matrix(state.RF)[k-1,k] ≈ state.RF[k-1,k]
             @test Matrix(state.RF)[k-1,k-1] ≈ state.RF[k-1,k-1]
 
-            A.diagonal_block(state, k)
-            @test all(Matrix(state)[k-1:k, k-1:k] .≈ state.A)
+            A.diagonal_block!(storage.A, state.QF, state.RF, k-1, k-1)
+            @test all(Matrix(state)[k-1:k, k-1:k] .≈ storage.A[1:2, 1:2])
         end
     end
 

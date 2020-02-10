@@ -3,10 +3,6 @@
 ## with 2x2 view of full matrix; A[k-1:k, k-1:k]
 ## For QRFactorization, we exploit fact that QF is Hessenberg and
 ## R  is upper  triangular to simplify the matrix multiplication:
-function diagonal_block(state::QRFactorization{T, S}, k) where {T,  S}
-    diagonal_block!(state.A, state.QF, state.RF,  k-1, k-1)
-end
-
 function diagonal_block!(A, QF::QFactorization, RF, j, J)
 
 
@@ -33,7 +29,57 @@ function diagonal_block!(A, QF::QFactorization, RF, j, J)
     return nothing
 end
 
+function diagonal_block!(A, QF::QFactorizationTwisted, RF, j, k)
+    approx_diagonal_block!(A, QF, RF, j, k)
+end
 
+## For twisted we use thee approximate diagonal block
+## this is exact when the the j-1 and  k+1  rotators are deflated or j=1 or k=end
+function approx_diagonal_block!(A, QF, RF, j, k) where {T, S}
+    R = RF
+    D = QF.D
+    Q = QF.Q
+    k = min(k, length(Q))
+    # make 1:(k-j+1) identity
+    A .= zero(eltype(A))
+    if j == 1
+        _approx_diagonal_block!(A, Q, D, R, j, k)
+    else
+        _approx_diagonal_block!(A, Q, D, R, j-1, k)
+        # shift up and left by 1
+        m,n = size(A)
+        for j in 1:n-1  # across columns, then down rows
+            for i in 1:m-1
+                A[i,j] = A[i+1, j+1]
+            end
+        end
+    end
+
+    nothing
+end
+
+function _approx_diagonal_block!(A, Q, D, R, j, k)
+
+    S = eltype(A)
+    for i in j:k+1
+        for ii in j:(i-1)
+            A[i-j+1,ii-j+1] = zero(S)
+        end
+        for ii in i:k+1
+            A[i-j+1,ii-j+1] = D[i] *  R[i,ii]
+        end
+    end
+
+    # we get first one
+    Tw = view(Q, j:k)
+    for i in reverse(position_vector_indices(Tw.pv))  # allocates here
+        U = Tw.x[i]
+        V = Rotator(vals(U)..., idx(U) - j + 1)
+        mul!(V, A)
+    end
+
+    return  nothing
+end
 
 
 ##################################################
@@ -54,14 +100,11 @@ end
 
 # return tuple
 function eigen_values(A::AbstractArray{T, N}) where {T <: Real, N}
-    e1r::T, e1i::T, e2r::T, e2i::T = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
-    (complex(e1r, e1i), complex(e2r, e2i))
+    eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
 end
 
 function eigen_values(A::AbstractArray{S, N}) where {S <: Complex, N}
     eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
-#    e1r::T, e1i::T, e2r::T, e2i::T = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
-#    (complex(e1r, e1i), complex(e2r, e2i))
 end
 
 function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
@@ -69,7 +112,7 @@ function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
     c = a11 * a22 - a12 * a21
 
     e1r, e1i, e2r, e2i = qdrtc(b,c) #qdrtc(one(b), b, c)
-    return  e1r, e1i, e2r, e2i
+    return  complex(e1r, e1i), complex(e2r, e2i)
 
 end
 
@@ -83,19 +126,14 @@ function  eigen_values(a11::S, a12::S, a21::S, a22::S) where {S <: Complex}
     u::S = abs(tr + disc) > abs(tr - disc) ? tr + disc : tr - disc
     if iszero(u)
         return zero(S), zero(S)
-        e1r, e1i = zero(T), zero(T)
-        e2r, e2i = zero(T), zero(T)
     else
         e1::S = u / 2.0
         e2::S = detm / e1
         return e1, e2
-        e1r, e1i = real(e1), imag(e1)
-        e2r, e2i = real(e2), imag(e2)
     end
-
-    return e1r, e1i, e2r, e2i
 
 end
 
+#  this  makes some  algorithm type stable.
 _eigvals(A::AbstractMatrix{T}) where {T <: Real} = eigvals(A)::Vector{Complex{T}}
 _eigvals(A::AbstractMatrix{S}) where {S <: Complex} =  eigvals(A)

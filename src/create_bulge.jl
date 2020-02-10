@@ -1,7 +1,7 @@
 ##################################################
 ## Create Bulge
-## One for DoubleShift/SingleShift
-## Pencil or Twisted don't matter as they come out in diagonalblock.
+## 4  cases DoubleShift/SingleShift x Descending/Twisted Q Factorizations
+## RFactorization type doesn't entere here
 
 # ## The bulge is created by  (A-rho1) * (A - rho2) * e_1 where rho1 and rho2 are eigenvalue or random
 # ## for real case, we take the real part of this result
@@ -39,7 +39,6 @@ function create_bulge(QF::QFactorization{T,S,VV}, RF, storage,  ctr) where {T, S
         Δ = ctr.stop_index
         #diagonal_block(state, Δ+1) ??
         diagonal_block!(A, QF, RF, Δ, Δ) #+1)
-        #l1r, l1i, l2r, l2i = eigen_values(state)
         e1,  e2 = eigen_values(A)
         l1r, l1i  =  real(e1), imag(e1)
         l2r, l2i =  real(e2), imag(e2)
@@ -100,8 +99,6 @@ function create_bulge(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, 
         if ray
             # Wilkinson
             e1, e2 = eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
-            #e1, e2 = complex(e1r, e1i), complex(e2r, e2i)
-            #e1, e2 = eigen_values(A)
             shift = norm(A[2,2] - e1) < norm(A[2,2] - e2) ? e1 : e2
         else
             shift = A[2,2]
@@ -118,4 +115,151 @@ function create_bulge(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, 
 
     nothing
 
+end
+
+##################################################
+##
+##  Twisted case
+
+
+## return state,m rotators to create a bulge
+function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where {T, S}
+
+
+    if mod(ctr.it_count, 15) == 0
+        #@show :randomXXX
+        for i in 1:m
+            storage.VU[i] = random_rotator.(S, ctr.start_index + m - i)
+        end
+    else
+        create_bulge(QF, RF, storage, ctr, m)
+    end
+
+    return nothing
+
+end
+
+## Real
+function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where   {T, S <: Real}
+    #    @show :exact_real
+
+    @assert m >= 2  # for even we need atleast a quadratic poly
+
+    delta, Delta = ctr.start_index, ctr.stop_index
+    n = Delta - delta
+    A = storage.A
+
+
+    offset = delta - 1
+
+    diagonal_block!(A, QF, RF, Delta-m+1, Delta)
+
+    Am = view(A, 2:m+1, 2:m+1)
+
+    if m == 2
+
+        rhos = eigen_values(Am)
+
+    else
+
+        rhos = _eigvals(Am)  ## sorted by LinearAlgebra.sorteig!
+
+    end
+
+    x = zeros(S, m+1)
+    x[1] = one(S)
+
+    diagonal_block!(A, QF, RF, delta, delta + m - 1)
+    Am = view(A, 1:m+1, 1:m+1)
+
+    i = 1
+    while i <= m
+        rhoi = rhos[i]
+        pi = (i==1) ? :left : QF.Q.pv[i-1]
+        pj = QF.Q.pv[i]
+
+        if i < m && isapprox(rhoi, conj(rhos[i+1]))
+            ## XXX deal with left right...
+            x = (Am^2 - 2real(rhos[i])*Am + norm(rhos[i])^2*I) * x
+            if pi == :right
+                x = Am \ x
+            end
+            if pj == :right
+                x = Am \ x
+            end
+            i += 1
+        else
+            x = (Am - real(rhos[i])*I) * x
+        end
+
+        i += 1
+    end
+
+    # now roll up
+    _rollup!(storage.VU, x, delta-1)
+    return nothing
+
+end
+
+## complex
+function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where   {T, S <:  Complex}
+
+    delta, Delta = ctr.start_index, ctr.stop_index
+    n = Delta -  delta
+    A = storage.A
+
+    diagonal_block!(A,QF, RF, Delta-m+1, Delta)
+
+    if m == 1
+
+        Am = view(A, 1:2, 1:2)
+        e1, e2 = eigen_values(Am)
+
+        if norm(Am[2,2] - e1) < norm(Am[2,2] - e2)
+            rhos = [e1]
+        else
+            rhos = [e2]
+        end
+
+    elseif m == 2
+
+        Am = view(A, 2:3, 2:3) #A[Delta:Delta+1, Delta:Delta+1]
+        rhos = eigen_values(Am)
+
+    else
+
+        Am = view(A, 2:m+1, 2:m+1)
+        rhos = _eigvals(Am)
+
+    end
+
+    x = zeros(S, m+1)
+    x[1] = one(S)
+
+    diagonal_block!(A, QF, RF, delta, delta + m - 1)
+    Am = view(A, 1:m+1, 1:m+1)
+
+    for i in 1:m
+        x = (Am - rhos[i] * I) * x
+        pi = (i==1) ? :left : QF.Q.pv[i-1]
+        if  pi == :right
+            x = Am \ x
+        end
+    end
+
+    # now roll up
+    _rollup!(storage.VU, x, delta - 1)
+
+    return nothing
+end
+
+function _rollup!(VU, x, offset=0)
+
+    r = x[end]
+    m = length(x)
+    for i in (m-1):-1:1
+        c, s, r = givensrot(x[i], r)
+        U = Rotator(c, s, i+offset)
+        VU[m-i] = U'
+    end
 end
