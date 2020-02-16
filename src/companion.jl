@@ -20,6 +20,7 @@ function basic_decompose(ps::Vector{T}) where {T}
     qs[n+1] = -one(T)
 
     qs
+
 end
 
 
@@ -162,9 +163,16 @@ end
 function adjust_pencil(vs::Vector{T}, ws::Vector{T}) where {T}
 
     ps = basic_decompose(vcat(vs, one(T)))
+
+    ## adjust ws, as basic_decompose will use p(-x) for roots
+    for i in length(ws)-1:-2:1
+        ws[i] = -ws[i]
+    end
+
     qs = vcat(ws, -one(T))  # or +1?
 
     ps, qs
+
 end
 
 """
@@ -185,15 +193,10 @@ function amrvw(vs::Vector{S}, ws::Vector{S}) where {S}
 
     N = length(vs)
 
-    ## adjust ws, as basic_decompose will use p(-x) for roots
-    for i in length(ws)-1:-2:1
-       ws[i] = -ws[i]
-    end
 
     ps, qs = adjust_pencil(vs, ws)
 
     QF = q_factorization(Vector{S}(undef, N+1)) # is this correct?
-
     ZF = pencil_factorization(ps, qs)
 
     QRFactorization(QF, ZF)

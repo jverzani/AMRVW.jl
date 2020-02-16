@@ -1,6 +1,12 @@
+## A diagonal block is used to identify the shifts and to
+## find the eigenvalues for the deflated matrix
 
-## Update state.A temporary storage
-## with 2x2 view of full matrix; A[k-1:k, k-1:k]
+## For the QFactorization (Descending) case provide a 2 x 2 view of the full matrix, A[j:j+1,j:j+1]
+## For the Twisted case, provide a view of A[j:J+1, j:J+1] that is
+## approximate unless the rotators at j-1 and J+1 are both identity rotators (or implicitly so)
+
+
+##
 ## For QRFactorization, we exploit fact that QF is Hessenberg and
 ## R  is upper  triangular to simplify the matrix multiplication:
 function diagonal_block!(A, QF::QFactorization, RF, j, J)
@@ -29,6 +35,7 @@ function diagonal_block!(A, QF::QFactorization, RF, j, J)
     return nothing
 end
 
+## Twisted case
 function diagonal_block!(A, QF::QFactorizationTwisted, RF, j, k)
     approx_diagonal_block!(A, QF, RF, j, k)
 end
@@ -75,7 +82,7 @@ function _approx_diagonal_block!(A, Q, D, R, j, k)
     for i in reverse(position_vector_indices(Tw.pv))  # allocates here
         U = Tw.x[i]
         V = Rotator(vals(U)..., idx(U) - j + 1)
-        mul!(V, A)
+        lmul!(V, A)
     end
 
     return  nothing
@@ -86,26 +93,26 @@ end
 
 # [a11 - l a12; a21 a22] -> l^2 -2 * (tr(A)/2) l + det(A)
 # so we use b = tr(A)/2 for qdrtc routing
-function eigen_values(state::AbstractQRFactorizationState)
+## function eigen_values(state::AbstractQRFactorizationState)
 
-    # this allocates:
-    # e1, e2 = eigvals(state.A)
-    # return real(e1), imag(e1), real(e2), imag(e2)
+##     # this allocates:
+##     # e1, e2 = eigvals(state.A)
+##     # return real(e1), imag(e1), real(e2), imag(e2)
 
-    a11, a12 = state.A[1,1], state.A[1,2]
-    a21, a22 = state.A[2,1], state.A[2,2]
+##     a11, a12 = state.A[1,1], state.A[1,2]
+##     a21, a22 = state.A[2,1], state.A[2,2]
 
-    eigen_values(a11, a12, a21, a22)
-end
+##     eigen_values(a11, a12, a21, a22)
+## end
 
 # return tuple
-function eigen_values(A::AbstractArray{T, N}) where {T <: Real, N}
+function eigen_values(A::AbstractArray{T, N}) where {T, N}
     eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
 end
 
-function eigen_values(A::AbstractArray{S, N}) where {S <: Complex, N}
-    eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
-end
+## function eigen_values(A::AbstractArray{S, N}) where {S <: Complex, N}
+##     eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
+## end
 
 function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
     b = (a11 + a22) / 2

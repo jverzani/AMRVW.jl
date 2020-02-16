@@ -7,7 +7,7 @@
 abstract type CoreTransform{T,S} end
 abstract type AbstractRotator{T,S} <: CoreTransform{T,S} end
 
-## our rotators are [conj(c) s; -s c]
+## our rotators are [c s; -s conj(c)]
 ## Interface
 ## vals: return c,s
 ## idx: return i
@@ -25,11 +25,11 @@ is_diagonal(r::AbstractRotator{T,S}) where {T,S} = norm(r.s) <= eps(T)
 ## this uses [c s; -conj(s) conj(c)] for rotator!
 function *(a::AbstractRotator, M::AbstractArray)
     N = copy(M)
-    mul!(a, N)
+    lmul!(a, N)
     N
 end
 
-function LinearAlgebra.mul!(a::AbstractRotator, M::AbstractArray)
+function LinearAlgebra.lmul!(a::AbstractRotator, M::AbstractArray)
     c, s = vals(a)
     i = idx(a); j = i+1
     n = size(M)[2]
@@ -43,11 +43,11 @@ end
 
 function *(M::AbstractArray, a::AbstractRotator)
     N = copy(M)
-    mul!(N, a)
+    rmul!(N, a)
     N
 end
 
-function LinearAlgebra.mul!(M::AbstractArray, a::AbstractRotator)
+function LinearAlgebra.rmul!(M::AbstractArray, a::AbstractRotator)
     c, s = vals(a)
     i = idx(a); j = i+1
     n = size(M)[1]
@@ -61,18 +61,17 @@ end
 
 *(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform} = foldr(*, Qs, init=M)
 *(M::Matrix, Qs::Vector{R}) where {R <: CoreTransform} = foldl(*, Qs, init=M)
-function LinearAlgebra.mul!(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform}
-    foldr(mul!, Qs, init=M)
+function LinearAlgebra.lmul!(Qs::Vector{R}, M::Matrix) where {R <: CoreTransform}
+    foldr(lmul!, Qs, init=M)
 end
-function LinearAlgebra.mul!(M::Matrix, Qs::Vector{R}) where {R <: CoreTransform}
-    foldl(mul!, Qs, init=M)
+function LinearAlgebra.rmul!(M::Matrix, Qs::Vector{R}) where {R <: CoreTransform}
+    foldl(rmul!, Qs, init=M)
 end
 
-#the index is superflous for now, and a bit of a hassle to keep immutable
-#but might be of help later if twisting is approached. Shouldn't effect speed, but does mean 3N storage (Q, Ct, B)
-#so may be
-#
-
+# A rotator
+# c is real or complex
+# s is always real. (The Complex/Complex case was dropped)
+# i the index, adds storage space, but simplifies some algorithms
 struct Rotator{T,S} <: AbstractRotator{T,S}
 c::S
 s::T
@@ -88,15 +87,17 @@ Base.eltype(::Type{Rotator{T,S}}) where {T, S} = S
 Base.one(::Type{Rotator{T,S}}) where {T, S} = Rotator(one(S), zero(T), 0)
 Base.copy(U::Rotator) = Rotator(vals(U)..., idx(U))
 
+## A diagonal rotator has iszero(s) being true
 struct DiagonalRotator{T,S} <: AbstractRotator{S, S}
 c::S
 i::Int
 DiagonalRotator{T,S}(c,i) where {T,S} = new(convert(S,c),i)
+DiagonalRotator{T,S}(c,s,i) where {T,S} = new(convert(S,c),i)
 DiagonalRotator{S}(c,i) where {S} = DiagonalRotator{real(S),S}(c,i)
 DiagonalRotator(c::S, i) where {S} = DiagonalRotator{real(S),S}(c,i)
 end
 
-vals(D::DiagonalRotator{T,S}) where {T,S} = D.c, zero(real(S))
+vals(D::DiagonalRotator{T,S}) where {T,S} = D.c, zero(T)
 LinearAlgebra.adjoint(U::DiagonalRotator) = DiagaonalRotator(conj(U.c), U.i)
 
 ## for real case, we have identity diagonal

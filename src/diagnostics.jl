@@ -3,12 +3,9 @@
 import LinearAlgebra: diagm
 
 ## debugging tools, basically
-XXX(st) = println("XXX: $st")
-round1(x) = round.(x, digits=1)
 round2(x) = round.(x, digits=2)
-round3(x) = round.(x, digits=3)
 round5(x) = round.(x, digits=5)
-export round1, round2, round3, round5
+export round2, round5
 printtp(x) = println(sprint(io -> show(io, "text/plain", x)))
 
 

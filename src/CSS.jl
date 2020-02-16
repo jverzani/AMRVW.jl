@@ -27,6 +27,7 @@ function passthrough_triu(QF::QFactorization{T, S, VV}, RF, storage, ctr, dir::V
         flag = simple_passthrough!(RF, U)
 
     end
+
     if i > ctr.tr || !flag
 
         U = passthrough!(RF, U)
@@ -79,7 +80,7 @@ function passthrough_Q(QF::QFactorization{T, S, VV}, RF, storage, ctr,  dir::Val
         # handle details of knitting in
         D = QF.D
         U = passthrough!(D, U)
-        Di = fuse!(QF, U) # handles D bit
+        fuse!(QF, U) # handles D bit
 
         return true
 
@@ -94,7 +95,7 @@ end
 # deflate a term
 # deflation for ComplexReal is different, as
 # we replace Qi with I and move diagonal part into D
-function deflate(QF::AbstractQFactorization{T, S}, k) where {T, S <: Complex}
+function deflate(QF::AbstractQFactorization{T, S}, k, cgr) where {T, S <: Complex}
 
     # when we deflate here we want to leave Q[k] = I and
 

@@ -37,20 +37,18 @@ function create_bulge(QF::QFactorization{T,S,VV}, RF, storage,  ctr) where {T, S
 
 
         Δ = ctr.stop_index
-        #diagonal_block(state, Δ+1) ??
         diagonal_block!(A, QF, RF, Δ, Δ) #+1)
         e1,  e2 = eigen_values(A)
+
         l1r, l1i  =  real(e1), imag(e1)
         l2r, l2i =  real(e2), imag(e2)
 
         delta = ctr.start_index
 
-        #diagonal_block(state,  k+1)
         diagonal_block!(A, QF, RF,  delta, delta)
         bk11, bk12 = A[1,1], A[1,2]
         bk21, bk22 = A[2,1], A[2,2]
 
-        #diagonal_block(state, k+2)
         diagonal_block!(A, QF, RF, delta+1, delta+1)
         bk32 = A[2,1]
 
@@ -92,7 +90,6 @@ function create_bulge(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, 
 
     else
 
-        #diagonal_block(state, state.ctrs.stop_index+1)
         Delta = ctr.stop_index
         diagonal_block!(A, QF, RF, Delta, Delta)
 
@@ -107,7 +104,6 @@ function create_bulge(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, 
     end
 
     delta =  ctr.start_index
-    #diagonal_block(state, delta+1)
     diagonal_block!(A, QF, RF, delta,  delta)
     c,s,nrm = givensrot(A[1,1] - shift, A[2,1])
     R = Rotator(c, s, delta)
@@ -122,12 +118,11 @@ end
 ##  Twisted case
 
 
-## return state,m rotators to create a bulge
+
 function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where {T, S}
 
 
     if mod(ctr.it_count, 15) == 0
-        #@show :randomXXX
         for i in 1:m
             storage.VU[i] = random_rotator.(S, ctr.start_index + m - i)
         end
@@ -141,9 +136,24 @@ end
 
 ## Real
 function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where   {T, S <: Real}
-    #    @show :exact_real
 
     @assert m >= 2  # for even we need atleast a quadratic poly
+
+    if mod(ctr.it_count, 15) == 0
+        t = rand(T) * pi
+
+        re1, ie1 = sincos(t)
+        re2, ie2 = re1, -ie1
+
+        i = ctr.start_index
+        j = i + 1
+
+        U =  Rotator(re1, ie1, i)
+        V = Rotator(re2, ie2, j)
+
+        storage.VU[1], storage.VU[2] = V, U
+        return nothing
+    end
 
     delta, Delta = ctr.start_index, ctr.stop_index
     n = Delta - delta
@@ -190,6 +200,9 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
             i += 1
         else
             x = (Am - real(rhos[i])*I) * x
+            if pi == :right
+                x = Am \ x
+            end
         end
 
         i += 1
@@ -223,7 +236,7 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
 
     elseif m == 2
 
-        Am = view(A, 2:3, 2:3) #A[Delta:Delta+1, Delta:Delta+1]
+        Am = view(A, 2:3, 2:3)
         rhos = eigen_values(Am)
 
     else

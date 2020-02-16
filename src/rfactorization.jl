@@ -49,7 +49,7 @@ Base.size(RF::RFactorizationRankOne) = (length(RF)+1, length(RF)+1)
 
 
 ## getindex
-
+## helper function
 function _w(B, j, k)
 
     ck, sk = vals(B[k])
@@ -157,19 +157,22 @@ function Base.Matrix(RF::RFactorizationRankOne{T,S}) where {T,S}
 
     # Compute R
     R =   (Ct * (B * D)) +  (Ct * (e1 * yt))
+
 end
 
 
 
 
 
-## Pass a rotator through Rfactorization from left or right
+## Pass a rotator through Rfactorization from left or right; return modified U
 function passthrough!(RF::RFactorizationRankOne, U::AbstractRotator)
+
     U = passthrough!(RF.D, U)
     U = passthrough!(RF.B, U)
     U = passthrough!(RF.Ct, U)
 
     U
+
 end
 
 function passthrough!(U::AbstractRotator, RF::RFactorizationRankOne)
@@ -179,6 +182,7 @@ function passthrough!(U::AbstractRotator, RF::RFactorizationRankOne)
     U = passthrough!(U, RF.D)
 
     U
+
 end
 
 
@@ -202,11 +206,13 @@ function Base.getindex(RF::RFactorizationUpperTriangular, i, j)
         zero(eltype(RF.R))
     end
 end
-Base.Matrix(RF::RFactorizationUpperTriangular) = RF.R
+Base.Matrix(RF::RFactorizationUpperTriangular) = RF.R[1:end-1, 1:end-1]
 
+## Pass rotator through RFactorization
+## return modified U
 function passthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: AbstractRotator}
 
-    R = RF.R
+        R = RF.R
     n = size(R)[2]
     i = idx(U); j = i+1
 
@@ -227,14 +233,28 @@ function passthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: Abs
         R[k, j] = s * rki + conj(c) * rkj
     end
     R[j,i] = zero(eltype(R))
-    V'
+    return V'
+
+    ## R = RF.R
+    ## i = idx(U)
+    ## j = i + 1
+    ## lmul!(U, R)
+
+
+    ## c, s= givensrot(R[i+1,i+1], R[i+1,i])
+    ## V = Rt(c,s, i)
+    ## rmul!(R, V)
+    ## R[j,i] = zero(eltype(R))
+    ## return  V'
+
+
 
 end
 
 
 function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: AbstractRotator}
 
-    R = RF.R
+ R = RF.R
     n = size(R)[2]
 
     c, s = vals(V)
@@ -256,7 +276,20 @@ function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: Abs
         R[j, k]  = -conj(s) * rik + conj(c) * rjk
     end
     R[j,i] = zero(eltype(R))
-    U'
+    return U'
+
+
+
+
+
+
+    R = RF.R
+    rmul!(R, V)
+    i = idx(V)
+    c,s, r = givensrot(R[i+1,i], R[i,i])
+    U  = Rotator(c,s,i)
+    lmul!(U, R)
+    return U'
 
 end
 

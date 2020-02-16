@@ -4,7 +4,7 @@
 ## * fuse U,V -> UV or UV,D (when complex real)
 ## * turnover: [   [ -->  [
 ##               [      [   [
-## to this we add abstract "passthrough" functions
+## to this we add abstract "passthrough!" functions
 
 ##################################################
 
@@ -128,8 +128,8 @@ function fuse(D::DiagonalRotator, U)
 end
 
 ##################################################
-# Turnover: Q1    Q3   | x x x |      Q1
-#              Q2    = | x x x | = Q3    Q2
+# Turnover: Q1    Q3   | x x x |      U1
+#              Q2    = | x x x | = U3    U2
 #                      | x x x |
 #
 # This is the key computation once matrices are written as rotators
@@ -146,8 +146,8 @@ end
 # U1'      | b x x |
 #          | 0 x x |
 # Then use fact that a^2 + b^2 ~ 1 to use approx givens to find V1 to clear [2,1]
-# V1' *     * M  = | 1 0 0 |
-#       U1'        | 0 c s |
+# V1' *     * M  = | 1  0 0   |
+#       U1'        | 0  c s   |
 #                  | 0 -s cbar|
 # The 1 in [1,1] must be 1 and not -1;  so the  lower part is a rotator
 # from here [2:3,2:3] is unitary, we pick [3,3] for c and use
@@ -164,7 +164,10 @@ end
 
     if iszero(UVW21) && iszero(UVW31)
         if iszero(s2*conj(c3)) ## this is the case of diagonal matrix Q1*Q2*Q3
-            return  c2,zero(T),c1*c3,zero(T),one(S),zero(T)
+            c4 = one(S)
+            c5 = c1*c3 - c2*s1*s3
+            c6 = c2
+            return c4, zero(T), c5, zero(T), c6, zero(T)
         end
     end
 
@@ -182,11 +185,14 @@ end
 
     ##  use s1*s2 = s5 * s6 if we can
     ## get a from  M  = V1' * U1' * U *  V  *  W; a = M[3,3]
-    a = conj(c1) * s2 * s4 + conj(c2) * c4
     if !iszero(s5)
-        c6, s6 = approx_givensrot(a, s1*s2/s5)
+        a = conj(c1) * s2 * s4 + conj(c2) * c4
+        b = s1*s2/s5
+        c6, s6 = approx_givensrot(a, b)
     else
-        c6, s6 = givensrot(c2*conj(c1), -s2)
+        a = c2*conj(c1)
+        b = -s2
+        c6, s6 = givensrot(a, b)
     end
 #    c6, s6 = approx_givensrot(a, b)
 #    c6, s6 =  polish_givens(c6, s6)
@@ -199,9 +205,9 @@ end
 ##
 ##  Turnover interface for rotators
 ##
-function turnover(Q1::Rt,
-                  Q2::Rt,
-                  Q3::Rt) where {Rt}
+function turnover(Q1::R1t,
+                  Q2::R2t,
+                  Q3::R3t) where {R1t, R2t, R3t}
 
     c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
     i,j,k = idx(Q1), idx(Q2), idx(Q3)
@@ -209,31 +215,32 @@ function turnover(Q1::Rt,
     # @assert i == k && (abs(j-i) == 1)
 
     c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
-    R1 = Rt(c4, s4, j)
-    R2 = Rt(c5, s5, i)
-    R3 = Rt(c6, s6, j)
+
+
+
+
+    R1 = R3t(c4, s4, j)
+    R2 = R2t(c5, s5, i)
+    R3 = R1t(c6, s6, j)
+
+    ## delta = min(i,j,k) - 1
+    ## M1 = prod(rotm.([Q1,Q2,Q3],delta))
+    ## M2 = prod(rotm.([R1,R2,R3],delta))
+    ## a = maximum(norm.(M1-M2))
+    ## @show a
+    ## if a > sqrt(eps())
+    ##     @show c1,c2,c3,s1,s2,s3
+    ##     error("XXX")
+    ## end
+
 
     R1, R2, R3
 
 end
 
-# need to specilize for diagonal rotator
-# as we want a  diagonal rotator to come o ut
-# This a  counter part.
-function turnover(Q1::DiagonalRotator{T},
-                  Q2::Rt,
-                  Q3::Rt) where {T, Rt}
-
-    c1, s1 = vals(Q1); c2, s2 = vals(Q2); c3,s3 = vals(Q3)
-    i,j,k = idx(Q1), idx(Q2), idx(Q3)
-    # @assert i == k && (abs(j-i) == 1)
-
-    c4,s4,c5,s5,c6,s6 = _turnover(c1,s1, c2,s2, c3,s3)
-    R1 = Rt(c4, s4, j)
-    R2 = Rt(c5, s5, i)
-    R3 = DiagonalRotator(c6, j)
-
-    # we have Q1*Q2*Q3 = R1*R2*R3
-    R1, R2, R3
-
-end
+## function rotm(c,s,i)
+##     M = diagm(0=>ones(eltype(c), 3))
+##     M[i:i+1,i:i+1] = [c s; -s conj(c)]
+##     M
+## end
+## rotm(U, delta) = rotm(vals(U)..., idx(U)-delta)

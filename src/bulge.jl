@@ -1,4 +1,4 @@
-## Bulge chasing
+## Bulge chasing for the RDS and CSS case
 
 ## A bulge is introduced by a unitary transformation. In the single shift case this is just U^t A U; for
 ## the double shift case this is (VU)^T A (VU).

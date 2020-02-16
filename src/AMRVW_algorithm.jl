@@ -25,74 +25,124 @@ function AMRVW_algorithm!(state::AbstractQRFactorizationState, m)
 
 
 
-    it_max = 20*n
+    it_max = 20*n # 20*n
     kk = 0
+
+    #check_deflation(state, ctr)
 
     while kk <= it_max
 
         if ctr.stop_index <= 0
+            #@show :break, ctr.stop_indexx
             break
         end
 
-#        show_status(state, ctr)
+        #@show kk
+        check_deflation(state, ctr)
+
+        show_status(state, ctr)
+        #@show eigvals(Matrix(state))[1]
+        ## printtp(eigvals(Matrix(state)))
+        ## printtp(Matrix(state))
+        ## k = ctr.stop_index
+        ## diagonal_block!(A, QF, RF, k, k+1)
+        ## printtp(A)
+
+        ## show
+        #@show QF.Q.x[2:4]
+        #@show Matrix(RF)[2:5, 2:5]
+
+
 
         kk += 1
-        ctr.it_count += 1
 
 
-        check_deflation(state, ctr)
+
 
 
         ## Delta is number of rotators in piece being considered
-        ## m must be less than delta tto run a bulge step
+        ## m must be greater than delta-1 to run a bulge step
         k = ctr.stop_index
         delta = ctr.stop_index - ctr.zero_index  ## number of rotators in Q factorization
 
         if delta == 1
 
-
-            diagonal_block!(A, QF, RF, k, k+1)
+            #diagonal_block!(A, QF, RF, k, k+1)
+            diagonal_block!(A, QF, RF, k, k)
             e1::Complex{T}, e2::Complex{T} = eigen_values(A)
 
+            @show :add_2_delta_1, k, k+1, e1, e2
+            printtp(Matrix(state))
+            printtp(A)
+            diagonal_block!(A, QF, RF, k, k)
+            printtp(A)
             EIGS[k] = e1
             EIGS[k+1] = e2
 
             # can finish up if near end
             if ctr.stop_index == 2
-
+                @show :add_1_delta_1_finish, e1
                 diagonal_block!(A, QF, RF, 1, 2)
                 e1 = A[1,1]
-
                 EIGS[1] = e1
 
                 break
             end
 
+            ctr.stop_index = ctr.zero_index - 1
             ctr.zero_index = 0
             ctr.start_index = 1
-            ctr.stop_index -= 2
+            # ctr.stop_index -= 2
+
+
+            ctr.stop_index <= 0 && break
 
         elseif delta <= 0
 
-            diagonal_block!(A, QF, RF, k, k+1)
+
+            diagonal_block!(A, QF, RF, k, k)
             e1, e2 = A[1,1], A[2,2]  # 0s off diagonal
 
             if ctr.stop_index == 1
                 # finish up
 
+                @show :delta_0_add_2_finish, e1,e2
                 EIGS[1], EIGS[2] = e1, e2
                 ctr.stop_index = 0
 
                 break
             else
-
+                @show :delta_0_add_1, k+1, e2
                 EIGS[k+1] = e2
 
+                ctr.stop_index = ctr.zero_index - 1
                 ctr.zero_index = 0
                 ctr.start_index = 1
-                ctr.stop_index -= 1
-
+                #ctr.stop_index -= 1
+#                @show ctr.stop_index
+ #               @show  ctr.stop_index - ctr.zero_index
             end
+
+            ## diagonal_block!(A, QF, RF, k, k+1)
+            ## e1, e2 = A[1,1], A[2,2]  # 0s off diagonal
+
+            ## EIGS[k+1] = e2
+
+
+
+            ## if k == 1
+            ##     # finish up
+            ##     EIGS[1] = e1
+            ##     break
+            ## end
+
+
+
+            ## ctr.zero_index = 0
+            ## ctr.start_index = 1
+            ## ctr.stop_index -= 1
+
+            ctr.stop_index <= 0 && break
 
         elseif m > 2 && m >= delta - 1
             ## When finding shifts we find m eigenvalues from some other means
@@ -120,15 +170,19 @@ function AMRVW_algorithm!(state::AbstractQRFactorizationState, m)
             ctr.start_index = 1
             ctr.stop_index = δ - 2
 
+            ctr.stop_index <= 0 && break
+
         else
 
+            ctr.it_count += 1
             bulge_step(QF, RF, storage, ctr, m)
+
 
         end
 
+
     end
 
-#    @show kk
     LinearAlgebra.sorteig!(EIGS)
 
     EIGS
@@ -177,14 +231,17 @@ end
 ## when a Q[k] matrix becomes a diagonal matrix, we deflate.
 ## This is checked by the sine term being basically 0.
 function check_deflation(state::AbstractQRFactorizationState, ctr)
+
     QF = state.QF
-    tol = eps(real(eltype(QF)))
+    tol = 2.0*eps(real(eltype(QF)))
 
     for k in ctr.stop_index:-1:ctr.start_index
+
         c, s = vals(QF.Q[k])
+
         if abs(s) <= tol
 
-            deflate(QF, k)
+            deflate(QF, k, ctr)
 
             ctr.zero_index = k      # points to a matrix Q[k] either
             ctr.start_index = k + 1

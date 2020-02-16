@@ -131,7 +131,7 @@ function passthrough_Q(QF::QFactorization{T, S, Vt}, RF, storage, ctr, dir::Val{
 end
 
 ##################################################
-function deflate(QF::AbstractQFactorization{T, S}, k) where {T,S <: Real}
+function deflate(QF::AbstractQFactorization{T, S}, k, ctr) where {T,S <: Real}
 
     c,s = vals(QF.Q[k])
     i = idx(QF.Q[k])

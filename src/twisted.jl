@@ -9,19 +9,7 @@
 ##
 ## TODO:
 ##
-## * using linearAlgebra.Diagonal
-##
 ## * Clean up allocations
-##
-## * DONE  use a D matrix for real case with twisted
-##
-## * DONE  move storage, ctrs into algorithm, not factorization
-##
-## * DONE Factorization should just include terms to reconstruct matrix
-##
-## * DONE store Decoupled and Ms in same space to avoid allocations; work with start_index, stop_index
-##
-## * DONE get shifts by paper (m -> eigenvalues of mxm matrix, continue...)
 ##
 ## This algorithm encompasses those in CSS and RDS, but those are more efficient space wise
 ## This is more general and perhaps of interest as building blocks for experimentation
@@ -34,43 +22,44 @@
 ##
 
 ## unlike faster case, here instead of checking for parity in the diagonal rotators, we move -1 terms into  D
-function deflate(QF::QFactorizationTwisted{T, S, Vt, Pvt}, k) where {T,S <: Real, Vt, Pvt}
-
+function deflate(QF::QFactorizationTwisted{T, S, Vt, Pvt}, k, ctr) where {T,S <: Real, Vt, Pvt}
     c,s = vals(QF.Q[k])
     i = idx(QF.Q[k])
+    #@show :deflate, k
     QF.Q[k] = Rotator(one(T), zero(T), i) # ± 1, not just 1
     if sign(c) < 0
-        ## move into D term so no dflip concerns
+        ## move into D term so no dflip concerns, as with RDS
         Asc = ascending_part(QF.Q, i)
-        passthrough_phase(DiagonalRotator(c, i), Asc, QF.D)
         Des = descending_part(QF.Q, i)
-        passthrough_phase(DiagonalRotator(c, i), Des, QF.D)
+
+        m, M = i, i+1
+        for (i,U) in enumerate(Asc)
+            c,s = vals(U)
+            idx(U) < ctr.start_index && break
+            m -= 1
+            j = idx(U)
+            Asc[i] = Rotator(-c, s, j)
+        end
+        for (i, U) in enumerate(Des)
+            c,s = vals(U)
+            idx(U) > ctr.stop_index && break
+            M += 1
+            j = idx(U)
+            Des[i] = Rotator(-c, s, j)
+        end
+
+        QF.D.x[m] *= -one(T)
+        QF.D.x[M] *= -one(T)
     end
-
 end
-
-function passthrough_phase!(Di::DiagonalRotator, QF::QFactorizationTwisted)
-    i = idx(Di)
-
-    asc = ascending_part(QF.Q, i)
-    des = descending_part(QF.Q, i)
-
-    passthrough_phase!(Di, (des, asc), QF.D)
-
-end
-
-## ## return q[i:k, j:k]
-## function Base.getindex(QF::QFactorizationTwisted, j, k)
-##     ## This is wrong as QF.Q[j,k] is not correct
-##     QF.Q[j,k] * (k == 0 ? 0 : QF.D[k])
-## end
 
 function Base.Matrix(QF::QFactorizationTwisted{T, S}) where {T, S}
 
     n = length(QF) + 1
     M = diagm(0 => ones(S, n))
     D = Matrix(QF.D) * M
-    return Vector(QF.Q) * D
+    lmul!(Vector(QF.Q), D)
+    D
 
 end
 
@@ -91,18 +80,18 @@ function bulge_step(QF::QFactorizationTwisted{T,S}, RF, storage, ctr, m)  where 
 
     create_bulge(QF, RF, storage, ctr, m)
 
+    δ, Δ = ctr.start_index, ctr.stop_index
     n = ctr.stop_index - ctr.zero_index + 1
 
     Asc = copy(storage.VU[1:m])  # stored as V,U ## XXX copy! Could eliminate this
     Ms = QF.Q
     D = QF.D
     RF = RF
-    δ, Δ = ctr.start_index, ctr.stop_index
+
 
     bulge_step!(n, m, view(Ms, δ:Δ), D, RF, Asc)
 
     return nothing
-
 end
 
 ## Can enter here for more general usage
@@ -128,27 +117,37 @@ function bulge_step!(n, m, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc,
         append!(psd, choice)
     end
 
-
     ## Must put AscendingChain into place
     ## py passing through RF and D <--
     passthrough!(RF, AscendingChain(Asc))
     passthrough!(D, AscendingChain(Asc))
 
+    M1 = Des* (Ms * (Asc * (Matrix(D) * Matrix(RF))))
+    @show :eigvals
+    printtp(eigvals(M1))
+
+
+
+
+
     limb, limb_side = step_0!(m, ps, psd, Ms, Des, Asc, D, RF)
 
 
-    for k in 1:(n-m-2)
 
+
+    for k in 1:(n-m-2)
         limb_side = step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF)
     end
 
     # use new choice
     if n-m-1 > 0
-
         limb_side = step_k!(n-m-1, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF)
     end
 
-
+    @show  limb_side,  psd[end-m+1], n-m-1
+    M1 = limb * (Des * (Asc * (view(Ms, 1:(n-m-1)) *  (Matrix(D) * Matrix(RF)))))
+    @show :eigvals
+    printtp(eigvals(M1))
 
     # now knit in  limb, Des, Asc
     step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF)
@@ -161,8 +160,7 @@ end
 
 ############################################################
 ##
-## Implement thee different steps for one pass of Francis' algorithm
-
+## Implement thee different steps for one pass of the bulge chasing algorithm
 
 function step_0!(m,  ps, psd, Ms::TwistedChain, Des, Asc, D, RF) where {T}
 
@@ -233,6 +231,7 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
     if phatk == :left && limb_side == :left
 
         push!(Des, U)  ## Augment Descending
+
         passthrough!(DescendingChain(Des), AscendingChain(Asc)) ## translate ascending
 
         passthrough!(limb, AscendingChain(Asc))
@@ -267,9 +266,11 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
     elseif phatk == :right && limb_side == :left
 
         pushfirst!(Asc, U)
+
         passthrough!(DescendingChain(Des), AscendingChain(Asc))
 
         passthrough!(limb, AscendingChain(Asc))
+
 
         ## similarity transform descending to left side
         passthrough!(DescendingChain(Des), D)
@@ -290,8 +291,9 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
 
         ## similarity transform descending to left side
         passthrough!(DescendingChain(Des), D)
+        inds = idx.(Des)
         passthrough!(DescendingChain(Des), RF) #--> pass Des through Rf;  similarity transform
-
+        @assert all(idx.(Des) .== inds)
         U = pop!(Asc) # k = idx(U)
 
         if m > 1
@@ -299,7 +301,7 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
         end
 
     end
-
+@show k
     Ms.x[k] = U
 
     return limb_side
@@ -341,7 +343,6 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
         phatk = k > 1 ? psd[k-1] : :left
         if k > (n-m) && k > 2 && psd[k-2] != phatk
             ## need to reposition V structure to other side
-#            @show :reposition, phatk
             if phatk == :left
                 passthrough!(RF, DescendingChain(Des))
                 passthrough!(D, DescendingChain(Des))
@@ -353,7 +354,9 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
                 passthrough!(AscendingChain(Asc),D)
                 passthrough!(AscendingChain(Asc),RF)
                 bottom = passthrough!(bottom, D)
+                ind = idx(bottom)
                 bottom = passthrough!(bottom, RF)
+                @assert idx(bottom) == ind
                 passthrough!(DescendingChain(Des),D)
                 passthrough!(DescendingChain(Des),RF)
             end
@@ -382,7 +385,6 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
         ## :l, :r -> translate, fuse (Asc, limb, Des)
         ## :r, :l -> translate, fuse (limb)
         ## :r, :r -> fuse (.), translate
-#        @show limb_side, lpk
         if limb_side == :left || limb_side == :nothing
             if lpk == :left || lpk == :nothing
 
@@ -443,7 +445,9 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
         else
             # similarity to move Des to left side
             passthrough!(DescendingChain(Des), D)
+            inds = idx.(Des)
             passthrough!(DescendingChain(Des), RF)
+            @assert all(idx.(Des) .== inds)
 
             limb_side = :right
 
@@ -486,6 +490,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
             bottom = passthrough!(RF, bottom)  # move to other side
             bottom = passthrough!(D, bottom)
         end
+
         Ms.x[end] = bottom
 
     else
@@ -493,6 +498,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
             bottom = passthrough!(bottom, D)   # move bottom to other side
             bottom = passthrough!(bottom, RF)
         end
+        @assert length(Ms.x) == idx(bottom)
         Mx.x[end] = bottom
     end
 

@@ -14,8 +14,11 @@ Base.deleteat!(A::AbstractRotatorChain, j) = deleteat!(A.x, j)
 
 Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
 Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
-*(A::AbstractRotatorChain, M::Array) = A.x * M
-*(M::Array, A::AbstractRotatorChain) = M * A.x
+*(A::AbstractRotatorChain, M::Array) = Vector(A) * M
+*(M::Array, A::AbstractRotatorChain) = M * Vector(A)
+LinearAlgebra.lmul!(A::AbstractRotatorChain, M::Array) = lmul!(Vector(A), M)
+LinearAlgebra.rmul!(M::Array, A::AbstractRotatorChain) = rmul!(M, Vector(A))
+
 
 function Base.size(C::AbstractRotatorChain)
     n, N = extrema(C)
@@ -27,7 +30,7 @@ Base.extrema(C::AbstractRotatorChain) = extrema(idx.((C.x[1], C.x[end])))
 function Base.Matrix(C::AbstractRotatorChain)
     S =  eltype(first(C.x).c)
     M = diagm(0 => ones(S, size(C)[2]))
-    C * M
+    lmul!(C, M)
 end
 
 ## Types of chains
@@ -50,21 +53,11 @@ Base.push!(D::MonotonicChain) = push!(D.x)
 Base.pushfirst!(D::MonotonicChain) = pushfirst!(D.x)
 
 Base.Vector(D::MonotonicChain) = D.x
-## Structure to hold a twisted represenation
-## pv is the position vector of length  n-1
-## m is lowest index of rotators
-struct TwistedChain{T,S, V <: AbstractVector{Rotator{T,S}}, PVt <: AbstractVector{Symbol}} <: AbstractRotatorChain{T,S}
-x::V
-pv::PVt
-end
 
-function Base.view(Tw::TwistedChain, inds::UnitRange)
-    start, stop = inds.start, inds.stop
-    TwistedChain(view(Tw.x, inds), view(Tw.pv, start:stop-1))
-end
 
 Base.adjoint(A::AscendingChain) = DescendingChain(reverse(adjoint.(A.x)))
 Base.adjoint(A::DescendingChain) = AscendingChain(reverse(adjoint.(A.x)))
+
 
 
 
@@ -164,6 +157,20 @@ function Base.getindex(A::DescendingChain, i, j)
 end
 
 
+## Structure to hold a twisted represenation
+## pv is the position vector of length  n-1; we leave parametric so views can be used
+struct TwistedChain{T,S, V <: AbstractVector{Rotator{T,S}}, PVt <: AbstractVector{Symbol}} <: AbstractRotatorChain{T,S}
+  x::V
+  pv::PVt
+end
+
+function Base.view(Tw::TwistedChain, inds::UnitRange)
+    start, stop = inds.start, inds.stop
+    TwistedChain(view(Tw.x, inds), view(Tw.pv, start:stop-1))
+end
+
+
+
 ## Twisted Chains requires a bit more effort
 ## Constructor from a twisted vector of rotators
 function TwistedChain(xs::Vector{Rotator{T,S}}) where {T,S}
@@ -197,25 +204,22 @@ function Base.Vector(Tw::TwistedChain)
     return Tw.x[position_vector_indices(Tw.pv)]
 end
 
-*(A::TwistedChain, M::Array) = Vector(A) * M
-*(M::Array, A::TwistedChain) = M * Vector(A)
-
-## Constructor of a chain
-function Chain(xs::Vector)
-    if length(xs)  <=  1
-        return DescendingChain(xs)
-    else
-        inds =  idx.(xs)
-        pv = position_vector(inds)
-        if all(pv .==  :left)
-            return DescendingChain(xs)
-        elseif all(pv .== :right)
-            return AscendingChain(xs)
-        else
-            return TwistedChain(xs,  pv)
-        end
-    end
-end
+## ## Constructor of a chain
+## function Chain(xs::Vector)
+##     if length(xs)  <=  1
+##         return DescendingChain(xs)
+##     else
+##         inds =  idx.(xs)
+##         pv = position_vector(inds)
+##         if all(pv .==  :left)
+##             return DescendingChain(xs)
+##         elseif all(pv .== :right)
+##             return AscendingChain(xs)
+##         else
+##             return TwistedChain(xs,  pv)
+##         end
+##     end
+## end
 
 
 ## Find position vector from a permuation of 1...n
@@ -312,22 +316,15 @@ function iterate_lr(pv)
 end
 
 
-## XXX get rid of this
-## # Fish out of M the rotator with idx i
+## Fish out of M the rotator with idx i
+## return index in Ms.x and the rotator
 function iget(Ms::TwistedChain, i)
+
     m,M = extrema(Ms)
     j = i - (m-1)
     U = Ms[j]
+
     j, U
-end
-
-## # fish out and remove
-function iget!(Ms::TwistedChain,i)
-    U = popfirst!(Ms.x)
-    pk = !isempty(Ms.pv) ? popfirst!(Ms.pv) : :nothing
-    return  U
-
-
 end
 
 
@@ -388,7 +385,7 @@ function passthrough!(A::DescendingChain, U::AbstractRotator)
     i = idx(U)
     n = idx(A.x[1])
     N = idx(A.x[end])
-    @assert n <= i < N
+    #@assert n <= i < N
     l = (i-n) + 1
     U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
     U
@@ -398,7 +395,7 @@ function passthrough!(A::AscendingChain, U::AbstractRotator)
     i = idx(U)
     n = idx(A.x[end])
     N = idx(A.x[1])
-    @assert n < i <= N
+    #@assert n < i <= N
     l = length(A.x)  - (i-n)
     U, A[l], A[l+1] = turnover(A[l], A[l+1], U)
     U
@@ -410,7 +407,7 @@ function passthrough!(U::AbstractRotator, A::DescendingChain)
     i = idx(U)
     n = idx(A.x[1])
     N = idx(A.x[end])
-    @assert n < i <= N
+    #@assert n < i <= N
     l = (i-n) + 1
     A[l-1], A[l], U = turnover(U, A[l-1], A[l])
     U
@@ -420,7 +417,7 @@ function passthrough!(U::AbstractRotator, A::AscendingChain)
     i = idx(U)
     isempty(A.x) && return U
     n, N = extrema(A)
-    @assert n <= i < N
+    #@assert n <= i < N
     l = length(A.x)  - (i-n)
     A[l-1], A[l], U = turnover(U, A[l-1], A[l])
     U

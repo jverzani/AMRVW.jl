@@ -11,7 +11,6 @@ p6 = [720.0, -1764.0, 1624.0, -735.0, 175.0, -21.0, 1.0]
 pc = [0.0 + 1.0im, -1.0 + 0.0im, 0.0 + 0.0im, 0.0 + 0.0im, 0.0 - 1.0im, 1.0 + 0.0im]
 
 # could compare many ways
-
 compare_eigenvalues(M1, M2) = norm(prod(eigvals(M1)) - prod(eigvals(M2))) <= sqrt(eps())
 
 
@@ -65,19 +64,53 @@ end
 
 @testset "eigenvalues twisted Q" begin
 
+    @show :twistted_RF_I
+    T = Float64
+    S = Complex{T}
+    Qs = A.random_rotator.(T,  [6, 10, 5, 20, 12, 14, 7, 3, 17, 19, 1, 13, 8, 18, 16, 4, 2, 9, 15, 11])
+    QF = A.q_factorization(A.TwistedChain(Qs))
+    state = A.QRFactorization(QF)
+    e1 = eigvals(Matrix(state))
+    @test norm(e1 - eigvals(state)) <= sqrt(eps(T))
+
+
+    Qs = A.random_rotator.(S,  [6, 10, 5, 20, 12, 14, 7, 3, 17, 19, 1, 13, 8, 18, 16, 4, 2, 9, 15, 11])
+    QF = A.q_factorization(A.TwistedChain(Qs))
+    state = A.QRFactorization(QF)
+    e1 = eigvals(Matrix(state))
+    @test norm(e1 - eigvals(state)) <= sqrt(eps(T))
+
     ## Real
+    @show :ttwisted_RF_Rank_one
     state = A.amrvw(p6)
-    D = state.QF.D
     Q = state.QF.Q
     RF = state.RF
     N = length(Q)
-    Q.x[randperm(N)] = Q.x[:]
-    QF = A.QFactorizationTwisted(A.TwistedChain(Q.x), D)
+    ps = randperm(N)
+    @show ps
+    ps = [1, 5, 2, 4, 3]
+    Q.x[ps] = Q.x[:]
+    QF = A.QFactorizationTwisted(A.TwistedChain(Q.x))
     state = A.QRFactorization(QF, RF)
-    #es = eigvals(state)
+    e1 = eigvals(Matrix(state))
+    es = eigvals(state)
 
-    ### maximum(norm.(es - eigvals(Q.x * Matrix(RF)))) < sqrt(eps())
+    @test norm(prod(e1) - prod(es)) < sqrt(eps(T))
 
     ## Complex
+    @show :twtisted_RRF_D
+    state = A.amrvw(pc)
+    Q = state.QF.Q
+    RF = state.RF
+    N = length(Q)
+    ps = randperm(N)
+    @show ps
+    Q.x[randperm(N)] = Q.x[:]
+    QF = A.q_factorization(A.TwistedChain(Q.x))
+    state = A.QRFactorization(QF, RF)
+    e1 = eigvals(Matrix(state))
+    es = eigvals(state)
+
+    @test norm(prod(e1) - prod(es)) < sqrt(eps(T))
 
 end

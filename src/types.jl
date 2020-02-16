@@ -1,7 +1,13 @@
-## Types for factorization objects
-
-
-
+## In LinearAlgebra/src/qr.jl
+## the QR factorization stores
+## * Q in a compressed form using Householder transformations
+## * R as an upper triangular matrix
+##
+## QRFactorization stores
+## * Q in a compressed form using Givens rotations, either descending or twisted
+## * R in a compressed form (RankOne, Pencil, or Identity) or as a full matrix that is upper triangular
+## * this factorization gets updated by the AMRVW_algorithm!, and hence `eigvals`
+##
 abstract type AbstractQRFactorizationState end
 
 function Base.size(state::AbstractQRFactorizationState)
@@ -17,7 +23,8 @@ end
 struct QRFactorization{QF, RF} <: AbstractQRFactorizationState
   QF::QF
   RF::RF
-end
+  end
+
 
 # use identity R when not specified
 function QRFactorization(QF::AbstractQFactorization{T,S}) where {T,S}
@@ -25,17 +32,10 @@ function QRFactorization(QF::AbstractQFactorization{T,S}) where {T,S}
     QRFactorization(QF, RF)
 end
 
-
-## XXX  remove me
-## struct QRFactorizationTwisted{T, S, Vt, PVt, RF} <: AbstractQRFactorizationState
-##   QF::QFactorizationTwisted{T, S, Vt, PVt}
-##   RF::RF
-## end
-
 Base.length(state::AbstractQRFactorizationState) = length(state.QF)+1
 Base.eltype(state::AbstractQRFactorizationState) = eltype(state.QF)
 
-# return A
+# return A = QR
 function Base.Matrix(state::AbstractQRFactorizationState)
 
     Q = Matrix(state.QF)
