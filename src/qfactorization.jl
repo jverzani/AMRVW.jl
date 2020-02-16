@@ -2,7 +2,7 @@
 
 ## Q Factorization
 ## We have two  different Q factorizations: one with a Descending chaing,  one with a  Twisted Chain
-abstract type AbstractQFactorization{T, S} end
+abstract type AbstractQFactorization{T, S} <: LinearAlgebra.Factorization{S} end
 
 # implement Array interface
 Base.length(QF::AbstractQFactorization) = length(QF.Q)

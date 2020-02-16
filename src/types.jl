@@ -8,9 +8,9 @@
 ## * R in a compressed form (RankOne, Pencil, or Identity) or as a full matrix that is upper triangular
 ## * this factorization gets updated by the AMRVW_algorithm!, and hence `eigvals`
 ##
-abstract type AbstractQRFactorizationState end
+abstract type AbstractQRRotatorFactorization  end
 
-function Base.size(state::AbstractQRFactorizationState)
+function Base.size(state::AbstractQRRotatorFactorization)
     m1, n1 = size(state.QF)
     m2, n2 = size(state.RF)
     return (max(m1,m2), max(n1, n2))
@@ -20,7 +20,7 @@ end
 
 ##  We  have  two types, though could consolidate
 ##
-struct QRFactorization{QF, RF} <: AbstractQRFactorizationState
+struct QRFactorization{QF, RF} <: AbstractQRRotatorFactorization
   QF::QF
   RF::RF
   end
@@ -32,11 +32,11 @@ function QRFactorization(QF::AbstractQFactorization{T,S}) where {T,S}
     QRFactorization(QF, RF)
 end
 
-Base.length(state::AbstractQRFactorizationState) = length(state.QF)+1
-Base.eltype(state::AbstractQRFactorizationState) = eltype(state.QF)
+Base.length(state::QRFactorization) = length(state.QF)+1
+Base.eltype(state::QRFactorization) = eltype(state.QF)
 
 # return A = QR
-function Base.Matrix(state::AbstractQRFactorizationState)
+function Base.Matrix(state::QRFactorization)
 
     Q = Matrix(state.QF)
     R = Matrix(state.RF)

@@ -2,13 +2,13 @@
 ## Main algorithm of AMRVW
 ## This follows that given in the paper very closely
 ## should trace algorithm better with `verbose`
-function AMRVW_algorithm!(state::AbstractQRFactorizationState)
+function AMRVW_algorithm!(state::AbstractQRRotatorFactorization)
     m = eltype(state.QF) <: Real ? 2 : 1
     AMRVW_algorithm!(state, m)
 end
 
 
-function AMRVW_algorithm!(state::AbstractQRFactorizationState, m)
+function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
 
     QF, RF = state.QF, state.RF
     S = eltype(QF)
@@ -230,7 +230,7 @@ end
 ## Deflation
 ## when a Q[k] matrix becomes a diagonal matrix, we deflate.
 ## This is checked by the sine term being basically 0.
-function check_deflation(state::AbstractQRFactorizationState, ctr)
+function check_deflation(state::AbstractQRRotatorFactorization, ctr)
 
     QF = state.QF
     tol = 2.0*eps(real(eltype(QF)))
@@ -256,7 +256,7 @@ end
 
 
 ## Find eigenvalues from factorization
-function eigvals(state::AbstractQRFactorizationState)
+function eigvals(state::AbstractQRRotatorFactorization)
 
     es = AMRVW_algorithm!(state)
     LinearAlgebra.sorteig!(es)

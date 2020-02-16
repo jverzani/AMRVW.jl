@@ -4,7 +4,7 @@
 ## UpperTriangular{T,S}
 ## Identity{T,S}
 
-abstract type AbstractRFactorization{T, S} end
+abstract type AbstractRFactorization{T, S} <: LinearAlgebra.Factorization{S} end
 
 # Basic interface for an RFactorization:
 #
@@ -206,7 +206,7 @@ function Base.getindex(RF::RFactorizationUpperTriangular, i, j)
         zero(eltype(RF.R))
     end
 end
-Base.Matrix(RF::RFactorizationUpperTriangular) = RF.R[1:end-1, 1:end-1]
+Base.Matrix(RF::RFactorizationUpperTriangular) = RF.R
 
 ## Pass rotator through RFactorization
 ## return modified U

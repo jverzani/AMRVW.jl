@@ -259,14 +259,6 @@ end
 ## note this is expensive
 Base.adjoint(A::TwistedChain) = TwistedChain(reverse(adjoint.(Vector(A))))
 
-## ## Get i,j entry of twisted chain
-## ## XXX This is not correct XXX
-## ## The general formula is complicated, so we use
-## ## the formula for a descending chain, as our algorithm is set up to turn twisted
-## ## chains into descending chains
-## function Base.getindex(A::TwistedChain{T}, i, j) where {T}
-##     DescendingChain(A.x)[i,j]
-## end
 
 # In a Twisted chain from n to N, pop off the N rotator
 # and modify the position vector
