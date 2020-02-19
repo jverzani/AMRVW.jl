@@ -64,7 +64,8 @@ end
 
 @testset "eigenvalues twisted Q" begin
 
-    @show :twistted_RF_I
+    # Basic algorithm
+    ## real
     T = Float64
     S = Complex{T}
     Qs = A.random_rotator.(T,  [6, 10, 5, 20, 12, 14, 7, 3, 17, 19, 1, 13, 8, 18, 16, 4, 2, 9, 15, 11])
@@ -73,44 +74,52 @@ end
     e1 = eigvals(Matrix(state))
     @test norm(e1 - eigvals(state)) <= sqrt(eps(T))
 
-
+    ## Complex
     Qs = A.random_rotator.(S,  [6, 10, 5, 20, 12, 14, 7, 3, 17, 19, 1, 13, 8, 18, 16, 4, 2, 9, 15, 11])
     QF = A.q_factorization(A.TwistedChain(Qs))
     state = A.QRFactorization(QF)
     e1 = eigvals(Matrix(state))
-    @test norm(e1 - eigvals(state)) <= sqrt(eps(T))
-
-    ## Real
-    @show :ttwisted_RF_Rank_one
-    state = A.amrvw(p6)
-    Q = state.QF.Q
-    RF = state.RF
-    N = length(Q)
-    ps = randperm(N)
-    @show ps
-    ps = [1, 5, 2, 4, 3]
-    Q.x[ps] = Q.x[:]
-    QF = A.QFactorizationTwisted(A.TwistedChain(Q.x))
-    state = A.QRFactorization(QF, RF)
-    e1 = eigvals(Matrix(state))
     es = eigvals(state)
+    @test norm(e1 - es) <= sqrt(eps(T))
 
-    @test norm(prod(e1) - prod(es)) < sqrt(eps(T))
+    # Different RF
+    ## Real
+    state = A.amrvw(p6)
+    RF1 = state.RF
+    RF2 = A.amrvw(rand(6), rand(6)).RF
+    R = Matrix(RF1)[1:end-1, 1:end-1]
+    RF3 = A.RFactorizationUpperTriangular(R)
+    RF4 = A.RFactorizationUpperTriangular(LinearAlgebra.UpperTriangular(Matrix(R)))
+    RF5 = A.RFactorizationIdentity{T, S}()
+
+    pv = [:right, :left, :right, :left]
+    QF = A.QFactorizationTwisted(A.TwistedChain(state.QF.Q.x, pv))
+    for RF in (RF1, RF2, RF3, RF4, RF5)
+        state = A.QRFactorization(QF, RF)
+        e1 = eigvals(Matrix(state))
+        es = eigvals(state)
+        @test norm(prod(e1) - prod(es)) < sqrt(eps(T))
+    end
+
 
     ## Complex
-    @show :twtisted_RRF_D
     state = A.amrvw(pc)
     Q = state.QF.Q
-    RF = state.RF
-    N = length(Q)
-    ps = randperm(N)
-    @show ps
-    Q.x[randperm(N)] = Q.x[:]
-    QF = A.q_factorization(A.TwistedChain(Q.x))
-    state = A.QRFactorization(QF, RF)
-    e1 = eigvals(Matrix(state))
-    es = eigvals(state)
+    RF1 = state.RF
+    RF2 = A.amrvw(rand(S,5), rand(S,5)).RF
+    R = Matrix(RF1)#[1:end-1, 1:end-1]
+    RF3 = A.RFactorizationUpperTriangular(R)
+    RF4 = A.RFactorizationUpperTriangular(LinearAlgebra.UpperTriangular(Matrix(R)))
+    RF5 = A.RFactorizationIdentity{T, S}()
 
-    @test norm(prod(e1) - prod(es)) < sqrt(eps(T))
+    pv = [:right, :left, :right]
+    QF = A.QFactorizationTwisted(A.TwistedChain(state.QF.Q.x, pv))
+    for RF in (RF1, RF2, RF3, RF4, RF5)
+        state = A.QRFactorization(QF, RF)
+        e1 = eigvals(Matrix(state))
+        es = eigvals(state)
+        @test norm(prod(e1) - prod(es)) < sqrt(eps(T))
+    end
+
 
 end

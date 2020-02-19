@@ -46,7 +46,8 @@ end
 const MonotonicChain = Union{DescendingChain, AscendingChain}
 
 Base.view(D::MonotonicChain, inds...) = DescendingChain(view(D.x, inds...))
-
+Base.copy(D::DescendingChain) = DescendingChain(copy(D.x))
+Base.copy(D::AscendingChain) = AscendingChain(copy(D.x))
 Base.pop!(D::MonotonicChain) = pop!(D.x)
 Base.popfirst!(D::MonotonicChain) = popfirst!(D.x)
 Base.push!(D::MonotonicChain) = push!(D.x)
@@ -168,7 +169,7 @@ function Base.view(Tw::TwistedChain, inds::UnitRange)
     start, stop = inds.start, inds.stop
     TwistedChain(view(Tw.x, inds), view(Tw.pv, start:stop-1))
 end
-
+Base.copy(Tw::TwistedChain) = TwistedChain(copy(Tw.x), copy(Tw.pv))
 
 
 ## Twisted Chains requires a bit more effort

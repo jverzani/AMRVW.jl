@@ -21,7 +21,6 @@ function create_bulge(QF::QFactorization{T,S,VV}, RF, storage,  ctr) where {T, S
 
 
     if mod(ctr.it_count, 15) == 0
-
         t = rand(T) * pi
 
         re1, ie1 = sincos(t)
@@ -127,7 +126,7 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
             storage.VU[i] = random_rotator.(S, ctr.start_index + m - i)
         end
     else
-        create_bulge(QF, RF, storage, ctr, m)
+        _create_bulge(QF, RF, storage, ctr, m)
     end
 
     return nothing
@@ -140,6 +139,7 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
     @assert m >= 2  # for even we need atleast a quadratic poly
 
     if mod(ctr.it_count, 15) == 0
+
         t = rand(T) * pi
 
         re1, ie1 = sincos(t)
@@ -215,7 +215,7 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
 end
 
 ## complex
-function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where   {T, S <:  Complex}
+function _create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where   {T, S <:  Complex}
 
     delta, Delta = ctr.start_index, ctr.stop_index
     n = Delta -  delta
@@ -267,7 +267,6 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
 end
 
 function _rollup!(VU, x, offset=0)
-
     r = x[end]
     m = length(x)
     for i in (m-1):-1:1

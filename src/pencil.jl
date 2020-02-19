@@ -15,6 +15,7 @@ V::RFactorizationRankOne{T, S}
 W::RFactorizationRankOne{T, S}
 end
 
+Base.copy(RF::RFactorizationPencil) = RFactorizationPencil(copy(RF.V), copy(RF.W))
 Base.size(RF::RFactorizationPencil) = size(RF.V)
 function Base.Matrix(RF::RFactorizationPencil)
     V = Matrix(RF.V)

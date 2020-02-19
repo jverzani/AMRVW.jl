@@ -10,14 +10,6 @@
 ##
 abstract type AbstractQRRotatorFactorization  end
 
-function Base.size(state::AbstractQRRotatorFactorization)
-    m1, n1 = size(state.QF)
-    m2, n2 = size(state.RF)
-    return (max(m1,m2), max(n1, n2))
-end
-
-
-
 ##  We  have  two types, though could consolidate
 ##
 struct QRFactorization{QF, RF} <: AbstractQRRotatorFactorization
@@ -32,6 +24,14 @@ function QRFactorization(QF::AbstractQFactorization{T,S}) where {T,S}
     QRFactorization(QF, RF)
 end
 
+
+function Base.size(state::AbstractQRRotatorFactorization)
+    m1, n1 = size(state.QF)
+    m2, n2 = size(state.RF)
+    return (max(m1,m2), max(n1, n2))
+end
+
+Base.copy(F::QRFactorization) = QRFactorization(copy(F.QF), copy(F.RF))
 Base.length(state::QRFactorization) = length(state.QF)+1
 Base.eltype(state::QRFactorization) = eltype(state.QF)
 

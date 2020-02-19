@@ -44,6 +44,7 @@ struct RFactorizationRankOne{T,S, V} <: AbstractRFactorization{T, S}
   D::SparseDiagonal{S}
 end
 
+Base.copy(RF::RFactorizationRankOne) = RFactorizationRankOne(copy(RF.Ct), copy(RF.B), copy(RF.D))
 Base.length(RF::RFactorizationRankOne) = length(RF.Ct)
 Base.size(RF::RFactorizationRankOne) = (length(RF)+1, length(RF)+1)
 
@@ -197,8 +198,9 @@ RFactorizationUpperTriangular{T, S, Rt}(M) where {T, S, Rt}= new(M)
 RFactorizationUpperTriangular(M::AbstractArray{S}) where {S} = RFactorizationUpperTriangular{real(S), S, typeof(M)}(M)
 end
 
+Base.copy(RF::RFactorizationUpperTriangular) = RFactorizationUpperTriangular(copy(RF.R))
 Base.length(RF::RFactorizationUpperTriangular) = size(RF.R)[1]
-Base.size(RF::RFactorizationUpperTriangular) = size(RF.R)
+Base.size(RF::RFactorizationUpperTriangular, args...) = size(RF.R, args...)
 function Base.getindex(RF::RFactorizationUpperTriangular, i, j)
     if i > 0 && j > 0
         RF.R[i,j]
@@ -212,87 +214,114 @@ Base.Matrix(RF::RFactorizationUpperTriangular) = RF.R
 ## return modified U
 function passthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: AbstractRotator}
 
-        R = RF.R
-    n = size(R)[2]
-    i = idx(U); j = i+1
+
+    R = RF.R
+    n = size(R, 2)
 
     c,s = vals(U)
-    for k in i:n
-        rik, rjk =  R[i,k],  R[k,k]
+    i = idx(U); j = i+1
+
+
+    rik, rjk = R[i,i], R[j,i] # k = i
+    R[i,i] = c *  rik + s *  rjk
+    rji = - conj(s) * rik + conj(c) * rjk
+    for k in j:n
+        rik, rjk =  R[i,k],  R[j,k]
         R[i,k] = c * rik + s * rjk
         R[j,k] = -conj(s) * rik + conj(c) * rjk
     end
 
-    g2 = givens(R[i+1,i], R[i+1,i+1],1,2)[1]
-    c, s = conj(g2.s), real(g2.c)
-    V = Rt(c,s,i)
+    c, s, r = givensrot(R[j,j], rji)
+    c = conj(c)
 
-    for k in 1:j
+    Vt = Rt(c, s,i)
+
+    for k in 1:i
         rki, rkj =  R[k,i], R[k,j]
         R[k, i] = c * rki - conj(s) * rkj
         R[k, j] = s * rki + conj(c) * rkj
     end
+    R[j,j] = s * rji + conj(c) * R[j,j]
     R[j,i] = zero(eltype(R))
-    return V'
 
-    ## R = RF.R
-    ## i = idx(U)
-    ## j = i + 1
-    ## lmul!(U, R)
-
-
-    ## c, s= givensrot(R[i+1,i+1], R[i+1,i])
-    ## V = Rt(c,s, i)
-    ## rmul!(R, V)
-    ## R[j,i] = zero(eltype(R))
-    ## return  V'
-
-
+    Vt'
 
 end
 
 
 function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: AbstractRotator}
 
- R = RF.R
+    R = RF.R
     n = size(R)[2]
 
     c, s = vals(V)
     i = idx(V); j = i+1
-    for k in 1:j
+    for k in 1:i
         rki, rkj =  R[k,i], R[k,j]
         R[k,i] = c * rki - conj(s) * rkj
         R[k,j] = s * rki + conj(c) * rkj
     end
+    rji    = c * R[j,i] - conj(s) * R[j,j] # avoid R[j,i], as R could be upper triangular
+    R[j,j] = s * R[j,i] + conj(c) *  R[j,j]
 
+    c,s,r = givensrot(R[i,i], rji)
+    Ut = Rt(c, s, i)
 
-    g2 = givens(R[i+1,i], R[i,i],1,2)[1]
-    c, s = g2.s, real(g2.c)
-    U = Rt(c,s,i)
+    # k = i
+    rik, rjk = R[i,i], rji
+    R[i,i] = c  * rik + s * rjk
+    R[j,i] = 0
 
-    for k in i:n
+    for k in j:n
         rik, rjk = R[i,k], R[j,k]
-        R[i,k ]  = c * rik + s * rjk
+        R[i, k]  = c * rik + s * rjk
         R[j, k]  = -conj(s) * rik + conj(c) * rjk
     end
-    R[j,i] = zero(eltype(R))
-    return U'
+
+
+
+    return Ut'
 
 
 
 
 
-
-    R = RF.R
-    rmul!(R, V)
-    i = idx(V)
-    c,s, r = givensrot(R[i+1,i], R[i,i])
-    U  = Rotator(c,s,i)
-    lmul!(U, R)
-    return U'
 
 end
 
+
+## # Trick Find V' so that U*R*V' is upper T, then U*R = (U*R*V')*V will satisfy contract here
+function Xpassthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: AbstractRotator}
+
+    R = RF.R
+    i = idx(U)
+    j = i + 1
+    lmul!(U, R)
+
+
+    c, s, r= givensrot(R[j,j], R[j,i])
+    V = Rt(c, s, i)
+    rmul!(R, V)
+    R[j,i] = zero(eltype(R))
+    return  V'
+
+
+
+end
+
+
+## function Xpassthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: AbstractRotator}
+
+##     R = RF.R
+##     rmul!(R, V)
+##     i = idx(V)
+##     c,s, r = givensrot(R[i+1,i], R[i,i])
+##     U  = Rotator(c,s,i)
+##     lmul!(U, R)
+##     R[i+1,i] = zero(eltype(R))
+##     return U'
+
+## end
 
 simple_passthrough!(RF::RFactorizationUpperTriangular, U::AbstractRotator) = false
 simple_passthrough!(RF::RFactorizationUpperTriangular, U::AbstractRotator, V::AbstractRotator) = false
@@ -304,6 +333,7 @@ struct RFactorizationIdentity{T, S} <: AbstractRFactorization{T, S}
 RFactorizationIdentity{T, S}() where {T, S}= new()
 end
 
+Base.copy(RF::RFactorizationIdentity) = RF
 Base.size(RF::RFactorizationIdentity) = (-1, -1)
 Base.getindex(RF::RFactorizationIdentity{T, S}, i, j) where {T, S} = i == j ? one(S) : zero(S)
 Base.Matrix(::RFactorizationIdentity) = I

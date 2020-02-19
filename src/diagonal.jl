@@ -11,10 +11,12 @@ abstract type AbstractSparseDiagonalMatrix{S} end
 
 struct SparseDiagonal{S} <: AbstractSparseDiagonalMatrix{S}
 x::Vector{S}
+SparseDiagonal(x::AbstractVector{S}) where {S} = new{S}(x)
 SparseDiagonal{S}(n) where {S} = new(ones(S, n))
 SparseDiagonal(::Type{T}, n) where {T <: Real} = SparseDiagonal{T}(0)
 SparseDiagonal(::Type{S}, n) where {S} = SparseDiagonal{S}(n)
 end
+
 
 # this is annoying
 function Base.getindex(D::SparseDiagonal{T}, k) where {T <: Real}
@@ -35,6 +37,8 @@ end
 
 @inbounds Base.getindex(D::SparseDiagonal, k)  = D.x[k]
 Base.@propagate_inbounds Base.setindex!(D::SparseDiagonal, X, inds...) = setindex!(D.x, X, inds...)
+
+Base.copy(D::SparseDiagonal) = SparseDiagonal(copy(D.x))
 
 function Base.Matrix(D::SparseDiagonal{T}) where {T <: Real}
     if length(D.x) > 0
@@ -97,18 +101,35 @@ end
     return Rotator(beta1 * c, s, i)
 end
 
-passthrough!(D::SparseDiagonal{T}, U::Rotator) where {T <: Real} = U
-passthrough!(U::Rotator, D::SparseDiagonal{T}) where {T <: Real}  = U
+function passthrough!(D::SparseDiagonal{T}, U::Rotator) where {T <: Real}
+    isempty(D.x) && return U
+    c, s = vals(U)
+    i = idx(U)
+    Rotator(c, s*D.x[i]*D.x[i+1], i)
+end
+function passthrough!(U::Rotator, D::SparseDiagonal{T}) where {T <: Real}
+
+    isempty(D.x) && return U
+
+    c, s = vals(U)
+    i = idx(U)
+    Rotator(c, s*D.x[i]*D.x[i+1], i)
+
+end
 
 
 # Move a chain through a diagonal
-function passthrough!(D::SparseDiagonal{S}, Ch::Union{DescendingChain, AscendingChain}) where {S <: Complex}
+function passthrough!(D::SparseDiagonal{S}, Ch::Union{DescendingChain, AscendingChain}) where {S}
+
+    isempty(D.x) && return nothing
+
     for i in 1:length(Ch) # pass  ch through D
         Ch[i] = passthrough!(D, Ch[i])
     end
+
 end
 
-function passthrough!(Ch::Union{DescendingChain, AscendingChain}, D::SparseDiagonal{S}) where {S <: Complex}
+function passthrough!(Ch::Union{DescendingChain, AscendingChain}, D::SparseDiagonal{S}) where {S}
     for i in length(Ch):-1:1
         Ch[i] = passthrough!(Ch[i],D)
     end
@@ -117,12 +138,12 @@ end
 ## could do two others...
 
 ## noop when Identity Diagonal Matrix
-passthrough!(D::SparseDiagonal{T}, C::DescendingChain) where {T <: Real} =  nothing
-passthrough!(D::SparseDiagonal{T}, C::AscendingChain) where {T <: Real} =  nothing
-passthrough!(D::SparseDiagonal{T}, C::TwistedChain) where {T <: Real} =  nothing
-passthrough!(C::DescendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
-passthrough!(C::AscendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
-passthrough!(C::TwistedChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
+#passthrough!(D::SparseDiagonal{T}, C::DescendingChain) where {T <: Real} =  nothing
+#passthrough!(D::SparseDiagonal{T}, C::AscendingChain) where {T <: Real} =  nothing
+#passthrough!(D::SparseDiagonal{T}, C::TwistedChain) where {T <: Real} =  nothing
+#passthrough!(C::DescendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
+#passthrough!(C::AscendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
+#passthrough!(C::TwistedChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
 
 ## Di U = U' Di'
 passthrough!(D::IdentityRotator, U::AbstractRotator) = (U,D)

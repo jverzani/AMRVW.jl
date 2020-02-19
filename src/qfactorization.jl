@@ -32,6 +32,8 @@ end
 
 Base.eltype(::QFactorization{T, S, V}) where {T, S, V} = S
 Base.eltype(::QFactorizationTwisted{T, S, Vt, PVt}) where {T, S, Vt, PVt} = S
+Base.copy(QF::QFactorization) = QFactorization(copy(QF.Q), copy(QF.D))
+Base.copy(QF::QFactorizationTwisted) = QFactorizationTwisted(copy(QF.Q), copy(QF.D))
 
 # constructor
 # for descending chain

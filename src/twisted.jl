@@ -117,14 +117,18 @@ function bulge_step!(n, m, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc,
         append!(psd, choice)
     end
 
+    ## M0 = (Ms *  (Matrix(D) * (Matrix(RF)[1:end-1, 1:end-1])))
+    ## @show :eigvals
+    ## printtp(eigvals(M0))
+
     ## Must put AscendingChain into place
     ## py passing through RF and D <--
     passthrough!(RF, AscendingChain(Asc))
     passthrough!(D, AscendingChain(Asc))
 
-    M1 = Des* (Ms * (Asc * (Matrix(D) * Matrix(RF))))
-    @show :eigvals
-    printtp(eigvals(M1))
+    ## M1 = Des* (Ms * (Asc * (Matrix(D) * (Matrix(RF)[1:end-1, 1:end-1]))))
+    ## @show :eigvals
+    ## printtp(eigvals(M1))
 
 
 
@@ -144,10 +148,10 @@ function bulge_step!(n, m, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc,
         limb_side = step_k!(n-m-1, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF)
     end
 
-    @show  limb_side,  psd[end-m+1], n-m-1
-    M1 = limb * (Des * (Asc * (view(Ms, 1:(n-m-1)) *  (Matrix(D) * Matrix(RF)))))
-    @show :eigvals
-    printtp(eigvals(M1))
+    ## @show  limb_side,  psd[end-m+1], n-m-1
+    ## M1 = limb * (Des * (Asc * (view(Ms, 1:(n-m-1)) *  (Matrix(D) * Matrix(RF)))))
+    ## @show :eigvals
+    ## printtp(eigvals(M1))
 
     # now knit in  limb, Des, Asc
     step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF)
@@ -301,7 +305,7 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
         end
 
     end
-@show k
+#@show k
     Ms.x[k] = U
 
     return limb_side
