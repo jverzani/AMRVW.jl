@@ -2,7 +2,7 @@ module AMRVW
 
 
 using LinearAlgebra
-import LinearAlgebra: eigvals
+import LinearAlgebra: eigvals, diagm
 import Base: adjoint, *
 
 # package code goes here
@@ -14,11 +14,11 @@ include("diagonal.jl")
 
 include("rfactorization.jl")
 include("qfactorization.jl")
-include("types.jl")
+include("qrfactorization.jl")
 
 include("diagonal-block.jl")
-include("bulge.jl")
-include("create_bulge.jl")
+include("bulge-step.jl")
+include("create-bulge.jl")
 
 include("RDS.jl")
 include("CSS.jl")

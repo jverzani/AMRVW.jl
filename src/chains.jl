@@ -34,7 +34,6 @@ function Base.Matrix(C::AbstractRotatorChain)
 end
 
 ## Types of chains
-## FIX ME so that
 struct DescendingChain{T, S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
   x::V
 end
@@ -169,6 +168,7 @@ function Base.view(Tw::TwistedChain, inds::UnitRange)
     start, stop = inds.start, inds.stop
     TwistedChain(view(Tw.x, inds), view(Tw.pv, start:stop-1))
 end
+
 Base.copy(Tw::TwistedChain) = TwistedChain(copy(Tw.x), copy(Tw.pv))
 
 
@@ -204,24 +204,6 @@ function Base.Vector(Tw::TwistedChain)
 
     return Tw.x[position_vector_indices(Tw.pv)]
 end
-
-## ## Constructor of a chain
-## function Chain(xs::Vector)
-##     if length(xs)  <=  1
-##         return DescendingChain(xs)
-##     else
-##         inds =  idx.(xs)
-##         pv = position_vector(inds)
-##         if all(pv .==  :left)
-##             return DescendingChain(xs)
-##         elseif all(pv .== :right)
-##             return AscendingChain(xs)
-##         else
-##             return TwistedChain(xs,  pv)
-##         end
-##     end
-## end
-
 
 ## Find position vector from a permuation of 1...n
 ## If i is to the left of i+1, set  ps[i] = :left

@@ -126,7 +126,7 @@ function q_factorization(xs::Vector{S}) where {S}
     T = S <: Real ? S : real(S)
 
     Q =  DescendingChain(Vector{Rotator{T,S}}(undef, N-1))
-    zt,ot,zs,os = _zero_one(xs)
+    zt,ot,zs,os = zero(T), one(T), zero(S), one(S)
 
     @inbounds for ii = 1:(N-1)
         Q[ii] = Rotator(zero(S), one(T), ii)

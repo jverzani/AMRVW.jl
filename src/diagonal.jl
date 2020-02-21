@@ -4,8 +4,8 @@
 ## This is a  means to make this generic with respect to rotator type
 ## The factorization can have an identity diagonal or a real one.
 ##
-## XXX: This should  just  use  LinearAlgebra.Diagonal
-## but that might involve type piracy
+## XXX: Should this  just  use  LinearAlgebra.Diagonal?
+## (that might involve type piracy)
 abstract type AbstractSparseDiagonalMatrix{S} end
 
 
@@ -26,6 +26,15 @@ function Base.getindex(D::SparseDiagonal{T}, k) where {T <: Real}
         one(T)
     end
 end
+
+function Base.getindex(D::SparseDiagonal{S}, i, j) where {S}
+    if length(D.x) > 0
+        i == j ? D.x[i] : zero(S)
+    else
+        i == j ? one(S) : zero(S)
+    end
+end
+
 Base.@propagate_inbounds function Base.setindex!(D::SparseDiagonal{T}, X, inds...) where {T <: Real}
     if length(D.x) > 0
         setindex!(D.x, X, inds...)
@@ -137,14 +146,6 @@ end
 
 ## could do two others...
 
-## noop when Identity Diagonal Matrix
-#passthrough!(D::SparseDiagonal{T}, C::DescendingChain) where {T <: Real} =  nothing
-#passthrough!(D::SparseDiagonal{T}, C::AscendingChain) where {T <: Real} =  nothing
-#passthrough!(D::SparseDiagonal{T}, C::TwistedChain) where {T <: Real} =  nothing
-#passthrough!(C::DescendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
-#passthrough!(C::AscendingChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
-#passthrough!(C::TwistedChain, D::SparseDiagonal{T}) where {T <: Real} =  nothing
-
 ## Di U = U' Di'
 passthrough!(D::IdentityRotator, U::AbstractRotator) = (U,D)
 passthrough!(U::AbstractRotator, D::IdentityRotator) = (U,D)
@@ -193,8 +194,8 @@ tip(Uj::AbstractRotator, Di::IdentityRotator) = (Di, Uj)
 ## pass Di thorugh A; fuses with D
 ##
 ## In general, a recursive algorithm can handle this task;
+## This would be **much** easier if Complex/Complex rotators were used.
 ## These two functions are speficic to this task, and hence more efficient.
-
 function passthrough_phase!(Di::DiagonalRotator, A::DescendingChain, D::SparseDiagonal)
     ## We have two rules here
     ## D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(c, conj(alpha)s) D_i(alpha)

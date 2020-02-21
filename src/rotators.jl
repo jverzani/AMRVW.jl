@@ -11,7 +11,9 @@ abstract type AbstractRotator{T,S} <: CoreTransform{T,S} end
 ## Interface
 ## vals: return c,s
 ## idx: return i
-## adjoint: return adjoing
+## adjoint: return adjoint
+## XXX: for twisted, it would have been easier to have Complex/Complex rotators, as then
+## `passthrough_phase` could have been dramatically simplified.
 
 ## get values
 @inline vals(r::AbstractRotator{T}) where {T} = (r.c, r.s)
@@ -21,7 +23,7 @@ abstract type AbstractRotator{T,S} <: CoreTransform{T,S} end
 Base.copy(a::AbstractRotator) = AbstractRotator(a.c, a.s, a.i)
 is_diagonal(r::AbstractRotator{T,S}) where {T,S} = norm(r.s) <= eps(T)
 
-## XXX
+## Multiplication of a rotator and a matrix
 ## this uses [c s; -conj(s) conj(c)] for rotator!
 function *(a::AbstractRotator, M::AbstractArray)
     N = copy(M)

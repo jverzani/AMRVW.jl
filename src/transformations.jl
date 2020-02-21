@@ -16,7 +16,6 @@ where `[c s; -s conj(c)] * [a,b] = [r, 0]
 @inline function givensrot(a::T, b::T) where {T <: Real}
     G, r = givens(a,b,1,2)
     s = r >= 0 ? one(T) : -one(T)   #sign(r)
-    #@show a,b,s,G.c, G.s
     s*G.c, s*G.s, s*r
 end
 
@@ -223,24 +222,7 @@ function turnover(Q1::R1t,
     R2 = R2t(c5, s5, i)
     R3 = R1t(c6, s6, j)
 
-    ## delta = min(i,j,k) - 1
-    ## M1 = prod(rotm.([Q1,Q2,Q3],delta))
-    ## M2 = prod(rotm.([R1,R2,R3],delta))
-    ## a = maximum(norm.(M1-M2))
-    ## @show a
-    ## if a > sqrt(eps())
-    ##     @show c1,c2,c3,s1,s2,s3
-    ##     error("XXX")
-    ## end
-
 
     R1, R2, R3
 
 end
-
-## function rotm(c,s,i)
-##     M = diagm(0=>ones(eltype(c), 3))
-##     M[i:i+1,i:i+1] = [c s; -s conj(c)]
-##     M
-## end
-## rotm(U, delta) = rotm(vals(U)..., idx(U)-delta)

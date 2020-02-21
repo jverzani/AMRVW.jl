@@ -1,9 +1,16 @@
-## A factorization type for upper diagonal matrices
-## RankOne{T,S}
-## Z{T,S}, pencil
-## UpperTriangular{T,S}
-## Identity{T,S}
+## A factorization type for upper diagonal matrices. One of:
+##
+## * RankOne{T,S}
+## * Z{T,S}, pencil
+## * Identity{T,S}
+## * UnitaryDiagonal
+## * UpperTriangular{T,S}
 
+"""
+
+An R factorization encapsupulate the `R` in a QR factorization. For the companion matrix case, this is a sparse factorization in terms of rotators. Other scenarios are different sub-types.
+
+"""
 abstract type AbstractRFactorization{T, S} <: LinearAlgebra.Factorization{S} end
 
 # Basic interface for an RFactorization:
@@ -21,6 +28,7 @@ Base.eltype(RF::AbstractRFactorization{T, S}) where {T,S} = S
 Base.zero(RF::AbstractRFactorization) = zero(eltype(RF))
 Base.one(RF::AbstractRFactorization) = one(eltype(RF))
 
+## passthrough: RF <- Us
 function passthrough!(RF::AbstractRFactorization, Us::Union{AscendingChain, DescendingChain})
     for i in  eachindex(Us.x)
         Us.x[i] =  passthrough!(RF, Us.x[i])
@@ -28,16 +36,38 @@ function passthrough!(RF::AbstractRFactorization, Us::Union{AscendingChain, Desc
 end
 
 
-# passthrough Us -> R
+# passthrough: Us -> RF
 function passthrough!(Us::Union{AscendingChain, DescendingChain}, RF::AbstractRFactorization)
     for i in length(Us.x):-1:1
          Us.x[i] =  passthrough!(Us.x[i], RF)
     end
 end
 
+function passthrough!(RF::AbstractRFactorization, B::TwistedChain)
+    length(B) == 0 && return nothing
+    for i in iterate_rl(B.pv)
+        B.x[i] = passthrough!(RF, B.x[i])
+    end
+end
+
+function passthrough!(B::TwistedChain, RF::AbstractRFactorization)
+    length(B) == 0 && return nothing
+    for i in iterate_lr(B.pv)
+        B.x[i] = passthrough!(B.x[i], RF)
+    end
+end
+
+
+
+
 ##################################################
 
 ## Rank one decomposition for amrvw algorithm to find eigenvalues of companion matrix
+"""
+
+A companion matrix will have a QR decomposition wherein R is essentially an identy plus a rank one matrix
+
+"""
 struct RFactorizationRankOne{T,S, V} <: AbstractRFactorization{T, S}
   Ct::AscendingChain{T,S,V}
   B::DescendingChain{T,S,V}
@@ -187,11 +217,45 @@ function passthrough!(U::AbstractRotator, RF::RFactorizationRankOne)
 end
 
 
+##################################################
+##
+## This is useful if a unitary Hessenberg matrix is factored into rotators:
+## Un Un_1 ... U2 U1 * Q = R so that Q = U1' U2' ... Un' * R
+## R factor will have this structure
+"""
+
+For the case where the QR decomposion has R as a diagonal matrix that is unitary
+
+"""
+struct RFactorizationUnitaryDiagonal{T, S} <: AbstractRFactorization{T, S}
+D::SparseDiagonal{S}
+RFactorizationUnitaryDiagonal(D::SparseDiagonal{S}) where {S} = new{real(S),S}(D)
+function RFactorizationUnitaryDiagonal(xs::Vector{S}) where {S}
+    D = SparseDiagonal(xs)
+    RFactorizationUnitaryDiagonal(D)
+end
+end
+#XXX
+Base.copy(RF::RFactorizationUnitaryDiagonal) = RFactorizationUnitaryDiagonal(RF.D.x)
+Base.size(RF::RFactorizationUnitaryDiagonal) = size(RF.D)
+Base.getindex(RF::RFactorizationUnitaryDiagonal{T, S}, i, j) where {T, S} = RF.D[i,j]
+Base.Matrix(RF::RFactorizationUnitaryDiagonal) = Matrix(RF.D)
+Base.length(RF::RFactorizationUnitaryDiagonal) = error("No dimension known")
+passthrough!(RF::RFactorizationUnitaryDiagonal, U::AbstractRotator) = passthrough!(RF.D, U)
+passthrough!(U::AbstractRotator, RF::RFactorizationUnitaryDiagonal) = passthrough!(U, RF.D)
+
+
+simple_passthrough!(RF::RFactorizationUnitaryDiagonal, args...) = false
 
 
 ##################################################
 
 # hold upper triangular matrix as full matrix
+"""
+
+For the case where the QR decomposition has R as a full, upper-triangular matrix
+
+"""
 struct RFactorizationUpperTriangular{T, S, Rt <: AbstractArray{S,2}} <: AbstractRFactorization{T, S}
 R::Rt
 RFactorizationUpperTriangular{T, S, Rt}(M) where {T, S, Rt}= new(M)
@@ -287,44 +351,12 @@ function passthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: Abs
 
 
 
-end
-
-
-## # Trick Find V' so that U*R*V' is upper T, then U*R = (U*R*V')*V will satisfy contract here
-function Xpassthrough!(U::Rt, RF::RFactorizationUpperTriangular) where {Rt <: AbstractRotator}
-
-    R = RF.R
-    i = idx(U)
-    j = i + 1
-    lmul!(U, R)
-
-
-    c, s, r= givensrot(R[j,j], R[j,i])
-    V = Rt(c, s, i)
-    rmul!(R, V)
-    R[j,i] = zero(eltype(R))
-    return  V'
-
-
 
 end
 
+simple_passthrough!(RF::RFactorizationUpperTriangular, Us...) = false
 
-## function Xpassthrough!(RF::RFactorizationUpperTriangular, V::Rt) where {Rt <: AbstractRotator}
 
-##     R = RF.R
-##     rmul!(R, V)
-##     i = idx(V)
-##     c,s, r = givensrot(R[i+1,i], R[i,i])
-##     U  = Rotator(c,s,i)
-##     lmul!(U, R)
-##     R[i+1,i] = zero(eltype(R))
-##     return U'
-
-## end
-
-simple_passthrough!(RF::RFactorizationUpperTriangular, U::AbstractRotator) = false
-simple_passthrough!(RF::RFactorizationUpperTriangular, U::AbstractRotator, V::AbstractRotator) = false
 
 
 ##################################################
@@ -340,6 +372,7 @@ Base.Matrix(::RFactorizationIdentity) = I
 Base.length(RF::RFactorizationIdentity) = error("No dimension known")
 passthrough!(RF::RFactorizationIdentity, U::AbstractRotator) = U
 passthrough!(U::AbstractRotator, RF::RFactorizationIdentity) = U
+# this bypasses some more general one for speed
 passthrough!(RF::RFactorizationIdentity, C::DescendingChain) = nothing
 passthrough!(RF::RFactorizationIdentity, C::AscendingChain) = nothing
 passthrough!(RF::RFactorizationIdentity, C::TwistedChain) = nothing
@@ -347,5 +380,4 @@ passthrough!(C::DescendingChain,RF::RFactorizationIdentity) = nothing
 passthrough!(C::AscendingChain,RF::RFactorizationIdentity) = nothing
 passthrough!(C::TwistedChain,RF::RFactorizationIdentity) = nothing
 
-simple_passthrough!(RF::RFactorizationIdentity, U::AbstractRotator) = true
-simple_passthrough!(RF::RFactorizationIdentity, U::AbstractRotator, V::AbstractRotator) = true
+simple_passthrough!(RF::RFactorizationIdentity, Us...) = true

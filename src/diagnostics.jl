@@ -1,6 +1,5 @@
 ## Diagonostic code
 ##
-import LinearAlgebra: diagm
 
 ## debugging tools, basically
 round2(x) = round.(x, digits=2)
@@ -33,10 +32,10 @@ function show_status(state, ctr)
 
     minq = length(qs) > 0 ?  minimum(qs) : 0.0
 
-
     x = fill(".", length(state.QF) + 2)
     x[ctr.zero_index+1] = "α"
     x[ctr.start_index+1] = "δ"
     x[ctr.stop_index+2] = "Δ"
     println(join(x, ""), " ($minq)")
+
 end

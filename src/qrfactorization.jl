@@ -51,3 +51,54 @@ function Base.Matrix(state::QRFactorization)
     end
 
 end
+
+"""
+
+    qr_factorization(H::Matrix; unitary=false)
+
+For a Hessenberg matrix `H` return a factorization,`Q⋅R`, where `Q` is a `QFactorization` object of descending rotators and `R` is either a `AMRVW.RFactorizationUnitaryDiagonal` object (if `unitary=true`) or a `RFactorizationUpperTriangular` object.
+
+`H` may be a full matrix or the `.H` compontent  of a `hessenberg` factorization.
+
+"""
+function qr_factorization(H::AbstractMatrix; unitary=false)
+    R = copy(H)
+    qr_factorization!(R; unitary=unitary)
+end
+
+function qr_factorization!(R::AbstractMatrix{S}; unitary=false) where {S}
+
+    n = size(R, 1)
+    Qs = Vector{Rotator{real(S),S}}(undef, n-1)
+    for i in 1:n-1
+        c,s,r = givensrot(R[i,i], R[i+1,i])
+        Ui =  Rotator(c,s,i)
+        Qs[i] = Ui'
+        j = i + 1
+        R[i,i] = r
+        R[j,i] = zero(S)
+        for k in j:n
+            rik, rjk =  R[i,k],  R[j,k]
+            R[i,k] = c * rik + s * rjk
+            R[j,k] = -conj(s) * rik + conj(c) * rjk
+        end
+    end
+
+    _qr_factorization(DescendingChain(Qs), R, Val(unitary))
+end
+
+function _qr_factorization(Des::DescendingChain{T,S,V}, R, unitary::Val{true}) where {T, S, V}
+
+    QF = QFactorization(Des)
+    RF = RFactorizationUnitaryDiagonal(sign.(diag(R)))
+
+    QRFactorization(QF, RF)
+end
+
+function _qr_factorization(Des, R, unitary::Val{false})
+
+    QF = QFactorization(Des)
+    RF = RFactorizationUpperTriangular(R)
+
+    F = QRFactorization(QF, RF)
+end

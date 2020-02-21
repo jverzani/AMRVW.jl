@@ -1,4 +1,3 @@
-
 ## Main algorithm of AMRVW
 ## This follows that given in the paper very closely
 ## should trace algorithm better with `verbose`
@@ -17,18 +16,16 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
     # set counters
     n = length(QF.Q)
     ctr = AMRVW_Counter(0, 1, n, 0, n-1)
-    ctr.it_count += 1 # XXX remove this. make predictable
+
     # set up storage
     storage = make_storage(QF, m)
     A = storage.A  # cleanup
     EIGS = zeros(Complex{T}, n+1)
 
-
-
-    it_max = 20*n # 20*n
+    it_max = 20*n
     kk = 0
 
-    #check_deflation(state, ctr)
+    check_deflation(state, ctr)
 
     while kk <= it_max
 
@@ -36,28 +33,11 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
             break
         end
 
-        #@show kk
         check_deflation(state, ctr)
 
-        #show_status(state, ctr)
-        #@show eigvals(Matrix(state))[1]
-        ## printtp(eigvals(Matrix(state)))
-        ## printtp(Matrix(state))
-        ## k = ctr.stop_index
-        ## diagonal_block!(A, QF, RF, k, k+1)
-        ## printtp(A)
-
-        ## show
-        #@show QF.Q.x[2:4]
-        #@show Matrix(RF)[2:5, 2:5]
-
-
+        ##show_status(state, ctr)
 
         kk += 1
-
-
-
-
 
         ## Delta is number of rotators in piece being considered
         ## m must be greater than delta-1 to run a bulge step
@@ -66,21 +46,14 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
 
         if delta == 1
 
-            #diagonal_block!(A, QF, RF, k, k+1)
-            diagonal_block!(A, QF, RF, k, k)
+            diagonal_block!(A, QF, RF, k, k+1)
             e1::Complex{T}, e2::Complex{T} = eigen_values(A)
 
-            #@show :add_2_delta_1, k, k+1, e1, e2
-            #printtp(Matrix(state))
-            #printtp(A)
-            #diagonal_block!(A, QF, RF, k, k)
-            #printtp(A)
             EIGS[k] = e1
             EIGS[k+1] = e2
 
             # can finish up if near end
             if ctr.stop_index == 2
-                #@show :add_1_delta_1_finish, e1
                 diagonal_block!(A, QF, RF, 1, 2)
                 e1 = A[1,1]
                 EIGS[1] = e1
@@ -92,8 +65,6 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
             ctr.zero_index = 0
             ctr.start_index = 1
             check_deflation(state, ctr)
-            # ctr.stop_index -= 2
-
 
             ctr.stop_index <= 0 && break
 
@@ -105,18 +76,12 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
 
             if ctr.stop_index == 1
                 # finish up
-
-                #@show :delta_0_add_2_finish, e1,e2
                 EIGS[1], EIGS[2] = e1, e2
                 ctr.stop_index = 0
 
                 break
             end
 
-            ## @show :delta_0_add_1, k+1, e2
-            ## printtp(Matrix(state)[k-1:k+1, k-1:k+1])
-            ## diagonal_block!(A, QF, RF, k, k+1)
-            ## printtp(A)
 
             EIGS[k+1] = e2
 
@@ -127,12 +92,10 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
             ctr.start_index = 1
             check_deflation(state, ctr)
 
-
-
         elseif m > 2 && m >= delta - 1
             ## When finding shifts we find m eigenvalues from some other means
             ## so here we find the eigvals
- check_deflation(state, ctr)
+
             δ, Δ = ctr.start_index, ctr.stop_index
             diagonal_block!(A, QF, RF, δ, Δ+1)
 
@@ -160,9 +123,8 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
 
         else
 
-            ctr.it_count += 1
             bulge_step(QF, RF, storage, ctr, m)
-
+            ctr.it_count -= 1
 
         end
 
@@ -226,12 +188,12 @@ function check_deflation(state::AbstractQRRotatorFactorization, ctr)
         c, s = vals(QF.Q[k])
 
         if abs(s) <= tol
-            #@show :deflate, k
+
             deflate(QF, k, ctr)
 
             ctr.zero_index = k      # points to a matrix Q[k] either
             ctr.start_index = k + 1
-            ctr.it_count = 1        # reset counter
+            ctr.it_count = 15        # reset counter
 
             return
         end

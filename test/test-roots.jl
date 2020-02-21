@@ -170,3 +170,35 @@ end
 
 
 end
+
+@testset "qr_factorization" begin
+
+    # unitary=false
+    n = 15
+    M = triu(rand(T, n, n), -1)
+    e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
+
+    n = 15
+    M = triu(rand(S, n, n), -1)
+    e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
+
+    # unitary = true
+    Qs = A.random_rotator.(T, 1:n-1)
+    D = diagm(0 => rand([-1.0, 1.0], n))
+    M = Qs *  D
+     e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
+
+    Qs = A.random_rotator.(S, 1:n-1)
+    D = diagm(0 => [complex(sincos(t)...) for t in rand(n)])
+    M = Qs *  D
+    e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
+
+end

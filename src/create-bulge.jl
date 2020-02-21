@@ -1,7 +1,7 @@
 ##################################################
 ## Create Bulge
 ## 4  cases DoubleShift/SingleShift x Descending/Twisted Q Factorizations
-## RFactorization type doesn't entere here
+## RFactorization type doesn't enter here
 
 # ## The bulge is created by  (A-rho1) * (A - rho2) * e_1 where rho1 and rho2 are eigenvalue or random
 # ## for real case, we take the real part of this result
@@ -20,7 +20,9 @@ function create_bulge(QF::QFactorization{T,S,VV}, RF, storage,  ctr) where {T, S
     A = storage.A
 
 
-    if mod(ctr.it_count, 15) == 0
+    if iszero(ctr.it_count)
+        ctr.it_count = 15
+
         t = rand(T) * pi
 
         re1, ie1 = sincos(t)
@@ -78,7 +80,8 @@ function create_bulge(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, 
 
     A = storage.A
 
-    if mod(ctr.it_count, 15) == 0
+    if iszero(ctr.it_count)
+        ctr.it_count = 15
 
         t = rand(T) * pi
         if ray
@@ -120,8 +123,9 @@ end
 
 function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where {T, S}
 
+    if iszero(ctr.it_count)
+        ctr.it_count = 15
 
-    if mod(ctr.it_count, 15) == 0
         for i in 1:m
             storage.VU[i] = random_rotator.(S, ctr.start_index + m - i)
         end
@@ -138,7 +142,9 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
 
     @assert m >= 2  # for even we need atleast a quadratic poly
 
-    if mod(ctr.it_count, 15) == 0
+    if iszero(ctr.it_count)
+        ctr.it_count = 15
+
 
         t = rand(T) * pi
 

@@ -124,22 +124,3 @@ function qdrtc(b::T, c::T) where {T <: Real}
         return (r, zero(T), c/r, zero(T))
     end
 end
-
-##################################################
-
-## We need zero and one to match T,Complex{T} or just T,T depending
-function _zero_one(xs::Vector{S}) where {S}
-    T = real(S)
-    zero(T), one(T), zero(S), one(S)
-end
-
-
-
-## LinearALgebra.sorteig! is not v1.0-v1.?
-eigsortby(λ) = λ
-eigsortby(λ::Complex) = (real(λ),imag(λ))
-function _sorteig!(λ::AbstractVector)
-    p = sortperm(λ; alg=QuickSort, by=eigsortby)
-    permute!(λ, p)
-    return λ
-end

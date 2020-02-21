@@ -90,11 +90,12 @@ end
     R = Matrix(RF1)[1:end-1, 1:end-1]
     RF3 = A.RFactorizationUpperTriangular(R)
     RF4 = A.RFactorizationUpperTriangular(LinearAlgebra.UpperTriangular(Matrix(R)))
-    RF5 = A.RFactorizationIdentity{T, S}()
+    RF5 = A.RFactorizationUnitaryDiagonal(rand([-1.0, 1.0],6))
+    RF6 = A.RFactorizationIdentity{T, S}()
 
     pv = [:right, :left, :right, :left]
     QF = A.QFactorizationTwisted(A.TwistedChain(state.QF.Q.x, pv))
-    for RF in (RF1, RF2, RF3, RF4, RF5)
+    for RF in (RF1, RF2, RF3, RF4, RF5, RF6)
         state = A.QRFactorization(QF, RF)
         e1 = eigvals(Matrix(state))
         es = eigvals(state)
@@ -110,7 +111,10 @@ end
     R = Matrix(RF1)#[1:end-1, 1:end-1]
     RF3 = A.RFactorizationUpperTriangular(R)
     RF4 = A.RFactorizationUpperTriangular(LinearAlgebra.UpperTriangular(Matrix(R)))
-    RF5 = A.RFactorizationIdentity{T, S}()
+    ps = [complex(sincos(x)...) for x in rand(T,5)]
+    RF5 = A.RFactorizationUnitaryDiagonal(ps)
+
+    RF6 = A.RFactorizationIdentity{T, S}()
 
     pv = [:right, :left, :right]
     QF = A.QFactorizationTwisted(A.TwistedChain(state.QF.Q.x, pv))

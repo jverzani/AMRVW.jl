@@ -121,13 +121,13 @@ const A =  AMRVW
 Qs = A.random_rotator.(T, 1:10)
 Q = A.DescendingChain(Qs)
 QF = A.q_factorization(Q)
-state = A.QRFactorization(QF)
-eigvals(state)
+F = A.QRFactorization(QF)
+eigvals(F)
 ```
 
 Which can be compared with:
 
 ```
-M = diagm(0 => ones(T, 11))
-Qs * M |> eigvals
+MI = diagm(0 => ones(T, 11))
+Qs * MI |> eigvals
 ```
