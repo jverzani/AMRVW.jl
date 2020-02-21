@@ -22,7 +22,7 @@ The methods are summarized in monograph format:
 
 Core-Chasing Algorithms for the Eigenvalue Problem; by Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, and David S. Watkins; https://doi.org/10.1137/1.9781611975345
 
-As well, the twisted algorithm from "A generalization of the multishift QR algorithm" by Raf Vandebril and David S. Watkins; https://doi.org/10.1137/11085219X
+As well, the twisted algorithm from "A generalization of the multishift QR algorithm" by Raf Vandebril and David S. Watkins; https://doi.org/10.1137/11085219X is implemented here.
 
 The core-chasing algorithms utilize Francis's QR algorithm on sparse factorizations of the respected companion matrix. For polynomials with real coefficients, the storage requirements are O(n) and the algorithm requires O(n) flops per iteration, or O(n^2) flops overall. The basic QR algorithm applied to the full companion matrix would require O(n^2) storage and O(n^3) flops overall.
 
@@ -30,7 +30,7 @@ The core-chasing algorithms utilize Francis's QR algorithm on sparse factorizati
 ## Examples
 
 ```julia
-julia> import AMRVW: roots
+julia> import AMRVW; const A = AMRVW
 julia> p4 = [24.0, -50.0, 35.0, -10.0, 1.0]  # (x-1) * (x-2) * (x-3) * (x-4)
 
 5-element Array{Float64,1}:
@@ -40,7 +40,7 @@ julia> p4 = [24.0, -50.0, 35.0, -10.0, 1.0]  # (x-1) * (x-2) * (x-3) * (x-4)
  -10.0
    1.0
 
-julia> roots(p4)
+julia> A.roots(p4)
 4-element Array{Complex{Float64},1}:
  0.9999999999999996 + 0.0im
  2.0000000000000027 + 0.0im
@@ -93,7 +93,7 @@ be quite accurate and is computable in a reasonable time:
 julia> rs = rand(Float64, 10_000) .- 1/2
 julia> @time rts  = A.roots(rs)
 julia> rts  .|> isreal |> sum
- 18.205041 seconds (31 allocations: 1.146 MiB)
+ 15.955615 seconds (35 allocations: 1017.297 KiB)
 5
 ```
 
@@ -111,12 +111,11 @@ julia> xbar .+ 1.96*s/sqrt(n) * [-1,1], 2/pi*log(n) + .625738072 + 2/(pi*n)
 
 ----
 
-There are no exported functions, as of now. But the internal functions may be of interest. For example, the paper [Fast and stable unitary QR algorithm](http://etna.mcs.kent.edu/volumes/2011-2020/vol44/abstract.php?vol=44&pages=327-341) discusses a situation where a matrix `A` is unitary Hessenberg, and so is factored in terms of a descending chain of rotatorrs. To fit this model into the current framework, we have, for example:
+There are no exported functions, as of now. But the internal functions may be of interest. For example, the paper [Fast and stable unitary QR algorithm](http://etna.mcs.kent.edu/volumes/2011-2020/vol44/abstract.php?vol=44&pages=327-341) discusses a situation where a matrix `A` is unitary Hessenberg, and so is factored in terms of a descending chain of rotatorrs. To fit this matrix into the current framework, we have, for example:
 
 ```
 using LinearAlgebra
 T = Float64
-S =  T
 const A =  AMRVW
 Qs = A.random_rotator.(T, 1:10)
 Q = A.DescendingChain(Qs)

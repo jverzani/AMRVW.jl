@@ -38,6 +38,7 @@ struct DescendingChain{T, S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotat
   x::V
 end
 
+## We store ascending chain in order n, n-1, n-2, ...
 struct AscendingChain{T,S, V <: AbstractVector{Rotator{T,S}}} <: AbstractRotatorChain{T,S}
   x::V
 end
@@ -457,7 +458,7 @@ function passthrough!(A::DescendingChain, B::TwistedChain)
     length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
-    @assert (m >= n && M < N)
+    #@assert (m >= n && M < N)
     for i in iterate_rl(B.pv)
         B.x[i] = passthrough!(A, B.x[i])
     end
@@ -467,7 +468,7 @@ function passthrough!(A::AscendingChain, B::TwistedChain)
     length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
-    @assert (m > n && M <= N)
+    #@assert (m > n && M <= N)
     for i in iterate_rl(B.pv)
         B.x[i] = passthrough!(A, B.x[i])
     end
@@ -477,7 +478,7 @@ function passthrough!(B::TwistedChain, A::DescendingChain)
     length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
-    @assert (m > n && M <= N)
+    #@assert (m > n && M <= N)
     for i in iterate_lr(B.pv)
         B.x[i] = passthrough!(B.x[i], A)
     end
@@ -487,7 +488,7 @@ function passthrough!(B::TwistedChain, A::AscendingChain)
     length(B) == 0 && return nothing
     n,N = extrema(A)
     m,M = extrema(B)
-    @assert (m >= n && M < N)
+    #@assert (m >= n && M < N)
     for i in iterate_lr(B.pv)
         B.x[i] = passthrough!(B.x[i], A)
     end

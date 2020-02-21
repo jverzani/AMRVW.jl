@@ -224,17 +224,16 @@ Returns a complex vector of roots. When the algorithm fails, a warning is issued
 Examples:
 
 ```
-using AMRVW
+using AMRVW; const A = AMRVW
 rs = rand(10)
-roots(rs)      # uses Real double shift algorithm
+A.roots(rs)      # uses Real double shift algorithm
 
 rs = rand(Complex{Float64}, 10)
-roots(rs)      # uses Complex Single Shift algorithm
+A.roots(rs)      # uses Complex Single Shift algorithm
 
 rs = rand(10)
 vs, ws = A.basic_pencil(rs)
-roots(vs, ws)  # uses QZ pencil factorization
-
+A.roots(vs, ws)  # uses QZ pencil factorization
 ```
 
 References:

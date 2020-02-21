@@ -8,12 +8,15 @@ abstract type CoreTransform{T,S} end
 abstract type AbstractRotator{T,S} <: CoreTransform{T,S} end
 
 ## our rotators are [c s; -s conj(c)]
+## We *could* just directly use `LinearAlgebra.Givens` here, but
+## instead implement Rotator below to ensure the types Real/Real and Complex/Real for c and s
+## XXX: for twisted, it would have been easier to have Complex/Complex rotators, as then
+## `passthrough_phase` could have been dramatically simplified.
+##
 ## Interface
 ## vals: return c,s
 ## idx: return i
 ## adjoint: return adjoint
-## XXX: for twisted, it would have been easier to have Complex/Complex rotators, as then
-## `passthrough_phase` could have been dramatically simplified.
 
 ## get values
 @inline vals(r::AbstractRotator{T}) where {T} = (r.c, r.s)

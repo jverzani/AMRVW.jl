@@ -6,7 +6,7 @@ import LinearAlgebra: eigvals, diagm
 import Base: adjoint, *
 
 # package code goes here
-include("utils.jl")
+
 include("rotators.jl")
 include("transformations.jl")
 include("chains.jl")
@@ -28,6 +28,8 @@ include("twisted.jl")
 include("AMRVW_algorithm.jl")
 include("companion.jl")
 
+
+include("utils.jl")
 include("diagnostics.jl")
 
 
