@@ -14,8 +14,6 @@ pc = Complex{Float64}[40.0 + 10.0im, -76.0 + 60.0im, 10.0 - 95.0im, 25.0 + 40.0i
 pc_rts = S[im, 1+im,2+im, 3.0+im, 4+im]
 
 
-csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
-
 
 @testset "simple cases" begin
 
@@ -24,21 +22,21 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     ps = [1.0]
     rts = T[]
     @test A.roots(ps) == rts
-    @test csort(A.roots(vcat(zeros(2), ps))) == vcat(rts, zeros(T,2))
+    @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(T,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(T,2))
 
     ps = [1.0, 1.0]
     rts = [-1.0]
     @test A.roots(ps) == rts
-    @test csort(A.roots(vcat(zeros(2), ps))) == vcat(rts, zeros(T,2))
+    @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(T,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(T,2))
 
     ps = [1.0, 2, 1]
     rts = [-1.0, -1.0]
     @test A.roots(ps) == rts
-    @test csort(A.roots(vcat(zeros(2), ps))) == vcat(rts, zeros(T,2))
+    @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(T,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(T,2))
 
@@ -47,7 +45,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     ps = S[1.0]
     rts = S[]
     @test A.roots(ps) == rts
-    @test csort(A.roots(vcat(zeros(2), ps))) == vcat(rts, zeros(S,2))
+    @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(S,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(S,2))
 
@@ -56,7 +54,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     ps = S[1.0, 1.0]
     rts = S[-1.0]
     @test A.roots(ps) == rts
-    @test csort(A.roots(vcat(zeros(2), ps))) == vcat(rts, zeros(S,2))
+    @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(S,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(S,2))
 
@@ -64,7 +62,7 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     ps = S[1.0, 2, 1]
     rts = S[-1.0, -1.0]
     @test A.roots(ps) == rts
-    @test csort(A.roots(vcat(zeros(2), ps))) == vcat(rts, zeros(S,2))
+    @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(S,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(S,2))
 
@@ -76,11 +74,11 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     vs, ws = A.basic_pencil(ps)
     @test A.roots(vs, ws) == rts
     vs, ws = A.basic_pencil(vcat(zeros(2), ps))
-    @test csort(A.roots(vs, ws)) == vcat(rts, zeros(S,2))
+    @test A.roots(vs, ws) == vcat(rts, zeros(S,2))
     vs, ws = A.basic_pencil(vcat(ps, zeros(2)))
     @test A.roots(vs, ws) == rts
     vs, ws = A.basic_pencil(vcat(zeros(2), ps, zeros(2)))
-    @test csort(A.roots(vs, ws)) == vcat(rts, zeros(T,2))
+    @test A.roots(vs, ws) == vcat(rts, zeros(T,2))
 
 
 
@@ -90,20 +88,20 @@ csort(xs) = sort(sort(xs, by=x -> imag(x)), by=x -> real(x))
     vs, ws = A.basic_pencil(ps)
     @test A.roots(vs, ws) == rts
     vs, ws = A.basic_pencil(vcat(zeros(2), ps))
-    @test csort(A.roots(vs, ws)) == vcat(rts, zeros(S,2))
+    @test A.roots(vs, ws) == vcat(rts, zeros(S,2))
     vs, ws = A.basic_pencil(vcat(ps, zeros(2)))
     @test A.roots(vs, ws) == rts
     vs, ws = A.basic_pencil(vcat(zeros(2), ps, zeros(2)))
-    @test csort(A.roots(vs, ws)) == vcat(rts, zeros(T,2))
+    @test A.roots(vs, ws) == vcat(rts, zeros(T,2))
 
 end
 
 
 @testset "RDS" begin
 
-    @test all(csort(A.roots(p4)) .≈ 1.0:4)
-    @test all(csort(A.roots(p5)) .≈ 1.0:5)
-    @test all(csort(A.roots(p6)) .≈ 1.0:6)
+    @test all(A.roots(p4) .≈ 1.0:4)
+    @test all(A.roots(p5) .≈ 1.0:5)
+    @test all(A.roots(p6) .≈ 1.0:6)
 
     rs = rand(T, 500)
     rts = A.roots(rs)
@@ -114,7 +112,8 @@ end
 
 @testset "CSS" begin
 
-    @test all(isapprox.(csort(A.roots(pc)), pc_rts, atol=sqrt(eps(T))))
+    T = Float64
+    @test all(isapprox.(A.roots(pc), pc_rts, atol=sqrt(eps(T))))
 
     rs = rand(S, 500)
     rts = A.roots(rs)
@@ -126,13 +125,13 @@ end
 @testset "RDS, QZ" begin
 
     vs, ws = A.basic_pencil(p4)
-    @test all(csort(A.roots(vs, ws)) .≈ 1.0:4)
+    @test all(A.roots(vs, ws) .≈ 1.0:4)
 
     vs, ws = A.basic_pencil(p5)
-    @test all(csort(A.roots(vs, ws)) .≈ 1.0:5)
+    @test all(A.roots(vs, ws) .≈ 1.0:5)
 
     vs, ws = A.basic_pencil(p6)
-    @test all(csort(A.roots(vs, ws)) .≈ 1.0:6)
+    @test all(A.roots(vs, ws) .≈ 1.0:6)
 
     rs = rand(T, 500)
     vs, ws = A.basic_pencil(rs)
@@ -145,7 +144,7 @@ end
 @testset "CSS, QZ" begin
 
     vs, ws = A.basic_pencil(pc)
-    @test all(csort(round.(A.roots(vs, ws), digits=12)) .≈  pc_rts)
+    @test all(round.(A.roots(vs, ws), digits=12) .≈  pc_rts)
 
 
     rs = rand(S, 500)
@@ -153,5 +152,53 @@ end
     rts = A.roots(vs, ws)
     @test all(!iszero(rts))
 
+    function pencil_split(ps, n)
+        vs = zeros(eltype(ps), length(ps)-1)
+        ws = zeros(eltype(ps), length(ps)-1)
+
+        vs[1:n] = ps[1:n]
+        ws[n:end] = ps[n+1:end]
+
+        vs, ws
+    end
+
+    ps = [24.0, -50.0, 35.0, -10.0, 1.0]
+    for i in 1:4
+        resid = eigvals(A.amrvw(pencil_split(ps, i)...)) - [1,2,3,4]
+        @test norm(resid) <= sqrt(eps())
+    end
+
+
+end
+
+@testset "qr_factorization" begin
+
+    # unitary=false
+    n = 15
+    M = triu(rand(T, n, n), -1)
+    e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
+
+    n = 15
+    M = triu(rand(S, n, n), -1)
+    e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
+
+    # unitary = true
+    Qs = A.random_rotator.(T, 1:n-1)
+    D = diagm(0 => rand([-1.0, 1.0], n))
+    M = Qs *  D
+     e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
+
+    Qs = A.random_rotator.(S, 1:n-1)
+    D = diagm(0 => [complex(sincos(t)...) for t in rand(n)])
+    M = Qs *  D
+    e1 = eigvals(M)
+    e2 = eigvals(A.qr_factorization(M, unitary=false))
+    @test norm(e1 - e2) <= sqrt(eps())
 
 end

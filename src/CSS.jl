@@ -1,54 +1,55 @@
-## ComplexReal case
+## complex-real case
 
 
 ##################################################
 
 # after a quick fuse
 # we must passthrough the diagonal rotator through the rest of Q
-function absorb_Ut(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Val{:not_twisted}}) where {T, S, QFt, RFt}
+function absorb_Ut(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, S <: Complex, VV}
 
-    QF = state.QF
-    Ut = state.UV[1]'
+    Ut = storage.VU[1]'
     fuse!(Ut, QF)
 
     return nothing
 end
 
 
-function passthrough_triu(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Twt}, dir::Val{:right}) where {T, S, QFt, RFt,Twt}
+function passthrough_triu(QF::QFactorization{T, S, VV}, RF, storage, ctr, dir::Val{:right}) where {T, S <: Complex, VV}
 
-    RF = state.RF
-    U = state.UV[1]
-
+    U = storage.VU[1]
     i = idx(U)
+
+
     flag = false
 
-    if  i < state.ctrs.tr
+    if  i < ctr.tr
 
-        flag = simple_passthrough(RF, U, Val(:right))
-
-    end
-    if i > state.ctrs.tr || !flag
-
-        U = passthrough(RF, U, Val(:right))
-        state.UV[1] = U
+        flag = simple_passthrough!(RF, U)
 
     end
 
-     state.ctrs.tr -= 1
+    if i > ctr.tr || !flag
 
+        U = passthrough!(RF, U)
+        storage.VU[1] = U
+
+    end
+
+     ctr.tr -= 1
+
+    return nothing
 end
 
 
 ## When Ct and B are identical, we can update just one and leave U,V alone
-function simple_passthrough(RF::RFactorization{T, ComplexRealRotator{T}}, U, ::Val{:right}) where {T}
-<
+function simple_passthrough!(RF::RFactorizationRankOne{T, S}, U) where {T, S <: Complex}
+
     i = idx(U)
     N = length(RF)
 
-    _ = passthrough(RF.B, U, Val(:right))
+    _ = passthrough!(RF.B, U)
 
-    @inbounds for k in 0:1
+    for k in 0:1
 
         a,b = vals(RF.B[i+k])
         ii = N + 1 - (i + k)
@@ -60,25 +61,26 @@ function simple_passthrough(RF::RFactorization{T, ComplexRealRotator{T}}, U, ::V
 end
 
 
-function passthrough_Q(state::AbstractFactorizationState{T, S,ComplexRealRotator{T}, QFt, RFt, Twt}, dir::Val{:right}) where {T, S, QFt, RFt, Twt}
+function passthrough_Q(QF::QFactorization{T, S, VV}, RF, storage, ctr,  dir::Val{:right}) where {T, S <: Complex, VV}
 
-    QF = state.QF
-    U = state.UV[1]
+    U = storage.VU[1]
     i = idx(U)
 
 
-    if i < state.ctrs.stop_index
+    if i < ctr.stop_index
 
-        U = passthrough(QF, U, Val(:right))
+        U = passthrough!(QF, U)
 
-        state.UV[1] = U
+        storage.VU[1] = U
+
         return false
 
     else
 
         # handle details of knitting in
-        U = passthrough(QF.D, U, Val(:right))
-        Di = fuse!(QF, U) # handles D bit
+        D = QF.D
+        U = passthrough!(D, U)
+        fuse!(QF, U) # handles D bit
 
         return true
 
@@ -93,7 +95,7 @@ end
 # deflate a term
 # deflation for ComplexReal is different, as
 # we replace Qi with I and move diagonal part into D
-function deflate(QF::QFactorization{T, ComplexRealRotator{T}}, k) where {T}
+function deflate(QF::AbstractQFactorization{T, S}, k, cgr) where {T, S <: Complex}
 
     # when we deflate here we want to leave Q[k] = I and
 
@@ -115,6 +117,6 @@ function deflate(QF::QFactorization{T, ComplexRealRotator{T}}, k) where {T}
 
     # absorb Di into D
     Di =  DiagonalRotator(alpha, i)
-    passthrough(QF, Di, Val(:left))
+    passthrough_phase!(Di, QF)
 
 end

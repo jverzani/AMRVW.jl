@@ -1,0 +1,575 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+
+<link
+  href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"
+  rel="stylesheet">
+
+<style>
+.julia {font-family: "Source Code Pro";
+        color:#0033CC;
+        }
+body { padding-top: 60px; }
+h5:before {content:"\2746\ ";}
+h6:before {content:"\2742\ ";}
+pre {display: block;}
+th, td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+tr:hover {background-color: #f5f5f5;}
+</style>
+
+<script src="https://code.jquery.com/jquery.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+<!-- .julia:before {content: "julia> "} -->
+
+<style></style>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+
+<!-- not TeX-AMS-MML_HTMLorMML-->
+<script type="text/javascript"
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_SVG">
+</script>
+<script>
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [ ["\$","\$"], ["\\(","\\)"]]
+  },
+  displayAlign: "left",
+  displayIndent: "5%"
+});
+</script>
+
+
+<script type="text/javascript">
+$( document ).ready(function() {
+  $("h1").each(function(index) {
+       var title = $( this ).text()
+       $("#page_title").html("<strong>" + title + "</strong>");
+       document.title = title
+  });
+  $( "h2" ).each(function( index ) {
+    var nm =  $( this ).text();
+    var id = $.trim(nm).replace(/ /g,'');
+    this.id = id
+    $("#page_dropdown").append("<li><a href='#" + id + "'>" + nm + "</a></li>");
+  });
+  $('[data-toggle="popover"]').popover();
+});
+</script>
+
+</head>
+
+
+<body data-spy="scroll" >
+
+<nav class="navbar navbar-default  navbar-fixed-top">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+         
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li><a href="#" id="page_title"></a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+         <li class="dropdown">
+           <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+           Jump to... <span class="caret"></span></a>
+          <ul class="dropdown-menu" role="menu" id="page_dropdown"></ul>
+        </li>
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+
+<header>
+</header>
+
+<div class="container-fluid">
+  <div class="span10 offset1">
+<h1>An overview of <code>AMRVW</code></h1><p>The <code>AMRVW</code> package implements some numerical linear algebra algorithms of Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, and David S. Watkins for finding eigenvalues of matrices through Francis's method.</p><p>An inspiration is to find  the roots of a polynomial through the eigenvalues of a companion matrix. This is implemented in <code>AMRVW</code> through the <code>roots</code> function.</p><p>To illustrate,</p><pre class="sourceCode julia">using AMRVW
+const A = AMRVW  # currently there are no exports
+ps = [24.0, -50.0, 35.0, -10.0, 1.0]  #  (x-1)(x-2)(x-3)(x-4) = 24 -50x + 25x^2  -10x^3 +  x^4
+A.roots(ps)</pre>
+<pre class="output">
+4-element Array{Complex{Float64},1}:
+ 0.9999999999999996 + 0.0im
+ 2.0000000000000027 + 0.0im
+ 2.9999999999999876 + 0.0im
+  4.000000000000012 + 0.0im</pre>
+
+<p>The example shows</p><ul>
+<li><p>the interface expects polynomials specified through a vector of coefficients, <code>&#91;a0, a1, ..., an&#93;</code></p>
+</li>
+<li><p>the  4 roots, always as complex numbers</p>
+</li>
+<li><p>the fact that the roots are numeric approximations due to accumulated round off errors.</p>
+</li>
+</ul><p>Similarly, roots of polynomials over the  complex numbers can be found</p><pre class="sourceCode julia">ps  =  [0.0 + 1.0im, -1.0 + 0.0im, 0.0 + 0.0im, 0.0 + 0.0im, 0.0 - 1.0im, 1.0 + 0.0im] # (x-1)(x+1)(x-i)^2)(x+i)
+A.roots(ps)</pre>
+<pre class="output">
+5-element Array{Complex{Float64},1}:
+                   -1.0 + 2.220446049250313e-16im
+                   -0.0 + 1.0000000149011605im   
+                    0.0 + 0.9999999850988397im   
+ 1.5265566588595902e-16 - 1.0im                  
+     1.0000000000000004 - 5.551115123125785e-17im</pre>
+
+<p>There are other ways  to numerically find roots  of polynomials  in <code>Julia</code>, notably the <code>roots</code> function  of  the <code>Polynomials</code> package and the <code>roots</code> function of the <code>PolynomialRoots</code> package:</p><ul>
+<li><p>unlike <code>Polynomials.roots</code> (but similar to <code>PolynomialRoots.roots</code>) this  <code>roots</code> function can work with  big floats and other floating point types.</p>
+</li>
+<li><p>For moderate sized polynomials ($n \approx 50$), <code>PolynomialRoots.roots</code> is faster than <code>Polynomials.roots</code> which is faster than <code>roots</code>, though all are fast. When $n \approx 75$, <code>roots</code> is faster (much so for large $n$ than <code>Polynomials.roots</code>).</p>
+</li>
+<li><p>Unlike both <code>Polynomials.roots</code> and <code>PolynomialRoots.roots</code> this <code>roots</code> function can accurately identify roots of polynomials of high degree.  (For a polynomial with $n$ random coefficients, e.g., <code>ps &#61; rand&#40;n&#41;</code>) <code>Polynomials.roots</code> will have troubles for n around 50; <code>PolynomialRoots.roots</code> will have issues for <code>n</code> around 300; <code>roots</code> can quickly handle degree 3000, and still be accurate for higher degrees.)</p>
+</li>
+<li><p>The <code>roots</code> function is shown by  the authors  to be  backward stable. The same isn't the case  for the other  two.</p>
+</li>
+<li><p>In the first example, the residual errors are  similar in size to <code>Polynomials.roots</code>, but  <code>PolynomialRoots.roots</code> the residual errors seem to be generally a bit smaller.</p>
+</li>
+</ul><h2>The companion matrix</h2><p>Both <code>roots</code> and <code>Polynomials.roots</code> use a companion matrix representation using the  eigenvalues of this matrix to identify the roots of the polynomial. (The  <code>PolynomialRoots.roots</code> function relies on a different method following a paper by <a href="https://arxiv.org/abs/1203.1034">Skowron and Gould</a>.</p><p>Using some functions within <code>AMRVW</code> we can see the companion matrix:</p><pre class="sourceCode julia">ps = [24.0, -50.0, 35.0, -10.0, 1.0]  #  (x-1)(x-2)(x-3)(x-4) = 24 -50x + 25x^2  -10x^3 +  x^4
+F = A.amrvw(ps)
+M = Matrix(F) |> round2   # round2 is just M -> round.(M, digits=2)</pre>
+<pre class="output">
+4×4 Array{Float64,2}:
+  0.0   0.0   0.0  24.0
+ -1.0   0.0   0.0  50.0
+  0.0  -1.0   0.0  35.0
+  0.0   0.0  -1.0  10.0</pre>
+
+<pre class="sourceCode julia">using LinearAlgebra
+eigvals(F)</pre>
+<pre class="output">
+4-element Array{Complex{Float64},1}:
+ 0.9999999999999996 + 0.0im
+ 2.0000000000000027 + 0.0im
+ 2.9999999999999876 + 0.0im
+  4.000000000000012 + 0.0im</pre>
+
+<p>The eigvenvalues of this matrix indeed are the roots of the polynomials. Internally, <code>amrvw</code> actually uses an enlarged matrix, with an extra dimension that is not shown here.</p><h2>Francis's Algorithm</h2><p>Francis's Algorithm begins with a QR decomposition <code>M</code>. For example,</p><pre class="sourceCode julia">LinearAlgebra.qr(M)</pre>
+<pre class="output">
+LinearAlgebra.QRCompactWY{Float64,Array{Float64,2}}
+Q factor:
+4×4 LinearAlgebra.QRCompactWYQ{Float64,Array{Float64,2}}:
+ 0.0  0.0  0.0  1.0
+ 1.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0
+ 0.0  0.0  1.0  0.0
+R factor:
+4×4 Array{Float64,2}:
+ -1.0   0.0   0.0  50.0
+  0.0  -1.0   0.0  35.0
+  0.0   0.0  -1.0  10.0
+  0.0   0.0   0.0  24.0</pre>
+
+<p>the decomposition in <code>AMRVW</code> is slightly different, though similar</p><pre class="sourceCode julia">Matrix(F.QF)</pre>
+<pre class="output">
+4×4 Array{Float64,2}:
+  0.0   0.0   0.0  1.0
+ -1.0   0.0   0.0  0.0
+  0.0  -1.0   0.0  0.0
+  0.0   0.0  -1.0  0.0</pre>
+
+<pre class="sourceCode julia">Matrix(F.RF) |> round2</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+ 1.0  0.0  -0.0  -50.0   0.0
+ 0.0  1.0  -0.0  -35.0   0.0
+ 0.0  0.0   1.0  -10.0   0.0
+ 0.0  0.0   0.0   24.0  -1.0
+ 0.0  0.0   0.0    0.0   0.0</pre>
+
+<p>(Here the <code>RF</code> matrix shows the extra size used internally in the algorithm.)</p><p>The idea of Francis's shifted algorithm is to identify shifts $\rho_1$, $\rho_2$, $\dots$, $\rho_m$ and generate a <em>unitary</em> matrix $V_0 = \alpha (A-\rho_1 I)(A-\rho_2 I)\cdots(A-\rho_m)I \cdot e_1$, $e_1$ being a unit vector with $1$ in the $1$ entry and $0$ elsewhere. As $V_0$ is unitary, the product $V_0^{-1}F V_0$ will have the same eigenvalues.  When $F$ is upper Hessenberg (upper triangular starting with the subdiagonal), as is the case with the companion matrix, then this product will be almost upper Hessenberg, save for a bulge.</p><p>In the real-coefficient case,  $m=2$ is used to allow the calculations to be done over the real numbers. For the complex-coefficient case, $m=1$ is possible.</p><p>The following internal code demonstrates how to pull out a shift in the complex ($m=1$) case:</p><pre class="sourceCode julia">ps  =  [0.0 + 1.0im, -1.0 + 0.0im, 0.0 + 0.0im, 0.0 + 0.0im, 0.0 - 1.0im, 1.0 + 0.0im]
+F = A.amrvw(ps)
+M = Matrix(F); n = size(M, 1)
+MI = diagm(0 => ones(Complex{Float64}, 5)) # identity matrix
+storage, ctr, m = A.make_storage(F), A.make_counter(F), 1
+A.create_bulge(F.QF, F.RF, storage, ctr) # finds shifts and creates V_0
+(V0 = storage.VU[1] * MI) |> round2</pre>
+<pre class="output">
+5×5 Array{Complex{Float64},2}:
+ -0.71 + 0.01im  -0.71 + 0.0im   -0.0 + 0.0im  -0.0 + 0.0im  -0.0 + 0.0im
+  0.71 + 0.0im   -0.71 - 0.01im   0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
+   0.0 + 0.0im     0.0 + 0.0im    1.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im
+   0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im
+   0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im   0.0 + 0.0im   1.0 + 0.0im</pre>
+
+<p>Up to rounding, $V_0$ is unitary:</p><pre class="sourceCode julia">isapprox(V0 * V0', MI, atol=1e-8)</pre>
+<pre class="output">
+true</pre>
+
+<p>The matrix $V_0' M V_0$ has a bulge below the subdiagonal (the <code>&#91;3,1&#93;</code> position, illustrated with a <code>1</code> below):</p><pre class="sourceCode julia">V0' * M * V0 |> round2 .|> !iszero</pre>
+<pre class="output">
+5×5 BitArray{2}:
+ 1  1  0  0  1
+ 1  1  0  0  1
+ 1  1  0  0  0
+ 0  0  1  0  0
+ 0  0  0  1  1</pre>
+
+<p>The algorithm finds $V_1$ to chase the bulge downward:</p><pre class="sourceCode julia">A.absorb_Ut(F.QF, F.RF, storage, ctr)
+A.passthrough_triu(F.QF, F.RF, storage, ctr, Val(:right))
+A.passthrough_Q(F.QF, F.RF, storage, ctr, Val(:right))
+(V1 = storage.VU[1] * MI) |> round2</pre>
+<pre class="output">
+5×5 Array{Complex{Float64},2}:
+ 1.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im   0.0 + 0.0im  0.0 + 0.0im
+ 0.0 + 0.0im  0.58 - 0.01im  -0.82 + 0.0im   0.0 + 0.0im  0.0 + 0.0im
+ 0.0 + 0.0im  0.82 + 0.0im    0.58 + 0.01im  0.0 + 0.0im  0.0 + 0.0im
+ 0.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im   1.0 + 0.0im  0.0 + 0.0im
+ 0.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im   0.0 + 0.0im  1.0 + 0.0im</pre>
+
+<p>Now this product will shift the  bulge downward to the <code>&#91;4,2&#93;</code> position:</p><pre class="sourceCode julia">V1' * (V0' * M * V0) * V1 |> round2 .|> !iszero</pre>
+<pre class="output">
+5×5 BitArray{2}:
+ 1  1  1  0  1
+ 1  1  1  0  1
+ 0  1  1  0  1
+ 0  1  1  0  0
+ 0  0  0  1  1</pre>
+
+<p>And again:</p><pre class="sourceCode julia">A.passthrough_triu(F.QF, F.RF, storage, ctr, Val(:right))
+A.passthrough_Q(F.QF, F.RF, storage, ctr, Val(:right))
+(V2 = storage.VU[1] * MI) |> round2</pre>
+<pre class="output">
+5×5 Array{Complex{Float64},2}:
+  1.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im
+  0.0 + 0.0im   1.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im    0.0 + 0.0im
+ -0.0 + 0.0im  -0.0 + 0.0im  -0.5 + 0.01im  -0.87 + 0.0im   -0.0 + 0.0im
+  0.0 + 0.0im   0.0 + 0.0im  0.87 + 0.0im    -0.5 - 0.01im   0.0 + 0.0im
+  0.0 + 0.0im   0.0 + 0.0im   0.0 + 0.0im     0.0 + 0.0im    1.0 + 0.0im</pre>
+
+<pre class="sourceCode julia">V2' * (V1' * (V0' * M * V0) * V1) * V2 |> round2 .|> !iszero</pre>
+<pre class="output">
+5×5 BitArray{2}:
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 0  1  1  1  1
+ 0  0  1  1  1
+ 0  0  1  1  1</pre>
+
+<p>Once pushed to the bottom, the bulge is absorbed into the matrix, leaving an upper Hessenberg form.</p><h3>Shifts</h3><p>If the shifts are appropriately chosen, after a few iterations this resulting matrix can be "deflated" so that he algorithm can work on a smaller matrix.</p><p>Above the bulge is created with a single rotator. As mentioned, for the real variable case, two rotators are used, so that the computations can be kept using real numbers. In general, the AMRVW algorithm can be defined for $m$ rotators. These rotators are produced by <code>create_bulge</code>, as illustrated above, and stored in <code>storage.UV</code>.</p><p>The choice of shifts is <em>essentially</em> the eigenvalues of the lower $2 \times 2$ submatrix (In the $m$-shift case, the lower $m\times m$ submatrix). In the Vandrebril and Watkins paper it is mentioned that this choice <em>normally</em> yields quaratic convergence. That is, one of the rotators will become a diagonal rotator with <code>s</code> part $0$. When that happens, deflation can occur. The algorithm is applied on this smaller, deflated matrix, until the deflated matrix is comprised of no more than $m$ rotators, at least one of which is a diagonal rotator. At this point one or more eigenvalues can be found. This quadratic convergence implies that generally there are $\mathcal{O}(n)$ steps taken.</p><h2>The AMRVW decomposition of the companion matrix</h2><p>The main result of the two papers on "Fast and Backward Stable Computation of Roots of Polynomials" is a proof of backward stability of a method that utilizes a sparse factorization of both the <code>Q</code> and <code>R</code> parts of the QR decomposition of a companion matrix.</p><p>Returning to the real case, and digging into some structures, we can illustrate:</p><pre class="sourceCode julia">ps = [24.0, -50.0, 35.0, -10.0, 1.0]
+F = A.amrvw(ps)
+F.QF.Q</pre>
+<pre class="output">
+AMRVW.DescendingChain{Float64,Float64,Array{AMRVW.Rotator{Float64,Float64},1}}(AMRVW.Rotator{Float64,Float64}[AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 1), AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 2), AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 3)])</pre>
+
+<p>To explain, this is a "chain" of real rotators, more clearly seen with:</p><pre class="sourceCode julia">Vector(F.QF.Q)</pre>
+<pre class="output">
+3-element Array{AMRVW.Rotator{Float64,Float64},1}:
+ AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 1)
+ AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 2)
+ AMRVW.Rotator{Float64,Float64}(0.0, 1.0, 3)</pre>
+
+<p>A rotator is a matrix which is identical to the identity matrix except in the <code>&#91;i,i&#43;1&#93; × &#91;i, i&#43;1&#93;</code> block, in which case it takes the form of a rotator: <code>&#91;c s; -s c&#93;</code>. (Our rotators are in the different direction than those in the papers.) Here <code>c</code> and <code>s</code> are the cosine and sine of some angle. These rotators are indexed by <code>i</code> and we use the notation $U_i$ to indicate a rotator of this form for a given $i$. In the above, we  can see  with inspection that there are 3 rotators with $i$ being 1, 2, and 3. This set of rotators is "descending" due to their order (1 then 2 then 3); ascending would be 3 then 2 then 1. The product of descending rotators will be upper Hessenberg:</p><pre class="sourceCode julia">Matrix(F.QF.Q)</pre>
+<pre class="output">
+4×4 Array{Float64,2}:
+  0.0   0.0   0.0  1.0
+ -1.0   0.0   0.0  0.0
+  0.0  -1.0   0.0  0.0
+  0.0   0.0  -1.0  0.0</pre>
+
+<p>A rotator at level $i$ will commute with a rotator at level $j$ unless $|i-j| \leq 1$. In the case where $i-j = \pm 1$, a key computation is the "turnover", which represents $U_i V_j W_i$ as $VV_j WW_i UU_j$. With the turnover, we can easily pass a rotator through an ascending or descending chain without disturbing those patterns.</p><p>In the  above illustration of Francis's  algorithm, the matrices  $V_0$, $V_1$,  etc. can be seen to be  rotators of this type. More generally, a unitary matrix with $m$ shifts can be viewed as a product of $m$  such rotators.</p><p>The $R$ decomposition  is trickier.  In the initial QR decomposition, $R$ has a simple structure plus a rank one part (coming from the coefficients). The  decomposition has two chains, an ascending one, <code>Ct</code>, and a descending one, <code>B</code>:</p><pre class="sourceCode julia">Ct = F.RF.Ct
+B = F.RF.B</pre>
+<pre class="output">
+AMRVW.DescendingChain{Float64,Float64,Array{AMRVW.Rotator{Float64,Float64},1}}(AMRVW.Rotator{Float64,Float64}[AMRVW.Rotator{Float64,Float64}(-0.7536071065605803, 0.6573251318346122, 1), AMRVW.Rotator{Float64,Float64}(-0.8025327939615967, 0.5966080075025758, 2), AMRVW.Rotator{Float64,Float64}(-0.3843312210120439, 0.9231952732523013, 3), AMRVW.Rotator{Float64,Float64}(-0.04163054471218133, -0.999133073092352, 4)])</pre>
+
+<p>These almost begin as inverses:</p><pre class="sourceCode julia">MI = diagm(0 => ones(5))
+(Z = Ct * (B * MI)) |> round2</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+  1.0   0.0   0.0  0.0   0.0
+ -0.0   1.0   0.0  0.0   0.0
+ -0.0  -0.0   1.0  0.0   0.0
+  0.0   0.0  -0.0  0.0  -1.0
+  0.0   0.0   0.0  1.0   0.0</pre>
+
+<p>However, <code>Ct</code> is cleverly chosen to encode the rank 1 part. This can be uncovered through the following:</p><pre class="sourceCode julia">e1 = vcat(1, zeros(4))
+en1 = vcat(zeros(4), 1)
+rho = (en1' * (Ct * MI) * e1)</pre>
+<pre class="output">
+-0.015072142131211606</pre>
+
+<p>and</p><pre class="sourceCode julia">yt = -(1/rho * en1' * (Ct*(B*MI)))
+Ct * (e1 * yt) |> round2</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+  0.0   0.0  -0.0  -50.0   0.0
+  0.0   0.0  -0.0  -35.0   0.0
+  0.0   0.0  -0.0  -10.0   0.0
+  0.0   0.0   0.0   24.0   0.0
+ -0.0  -0.0  -0.0   -1.0  -0.0</pre>
+
+<p>Leading to <code>R</code>:</p><pre class="sourceCode julia">Z + Ct * (e1 * yt) |> round2</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+ 1.0  0.0  -0.0  -50.0   0.0
+ 0.0  1.0  -0.0  -35.0   0.0
+ 0.0  0.0   1.0  -10.0   0.0
+ 0.0  0.0   0.0   24.0  -1.0
+ 0.0  0.0   0.0    0.0   0.0</pre>
+
+<p>The algorithm passes a rotator through this decomposition, which in turn relies on passing a rotator through the two chains <code>B</code> and <code>Ct</code>, which, with the turnover computation, is easily computed.</p><p>With these decompositions in mind, the computation above $V_0' M V_0$, can be seen as $U_1' Q R U_1$.  The product $U_1' Q = U_1' Q_1 Q_2 \cdots Q_k$ is just a product of two rotators at level 1, so $U_1' Q_1$ can be fused to give a new $\tilde{Q}_1$ in the descending chain factorization of $Q$.  The passthrough just mentioned allows $\tilde{Q} R U_1$ to have this form $\tilde{Q} \tilde{U}_1 \tilde{R}$ and by passing through the descending chain, we have this form $U_2 \hat{Q} \tilde{R}$. The matrix $V_1$ (of Francis's algorithm above) is seen to be $U_2$, as the similarity transform using $Q_1=U_2$ leaves the product $\hat{Q} \tilde{R} U_2$ having the same eigen values, but with the bulge shifted down one level. This basic idea forms the algorithm to chase the bulge. In the $m > 1$ case, some other details are included.</p><p>The decomposition of the companion matrix is sparse. Rather than require $O(n^2)$ storage, it only needs $O(n)$. The iterative algorithm is $O(n)$ per iteration  and  $O(n^2)$ overall, as compared to the $O(n^3)$ required in general. This reduction allows the method to be practical for large $n$, unlike <code>Polynomial.roots</code> which uses an $O(n^3)$ algorithm.</p><h3>Pencil decompositions</h3><p>In "<em>Fast and backward stable computation of roots of polynomials, Part II</em>" the method is extended to the pencil decomposition of a polynomial.  A pencil decomposition of a polynomial, is a specification where if $p = a_0 + a_1x^1 + \cdots + a_n x^n$ then $v_1 = a_0$, $v_{i+1} + w_i = a_i$, and $w_n = a_n$. This has some advantages in cases where the polynomial has a particularly small leading coefficient, since division by a tiny $a_n$ will result in very large entries. The algorithm uses two upper triangular matrices.</p><p>The <code>roots</code> function allows a pencil decomposition to be passed in as two vectors:</p><pre class="sourceCode julia">ps = [24.0, -50.0, 35.0, -10.0, 1.0]
+vs, ws = A.basic_pencil(ps)
+A.roots(vs, ws)</pre>
+<pre class="output">
+4-element Array{Complex{Float64},1}:
+ 0.9999999999999978 + 0.0im
+  2.000000000000016 + 0.0im
+  2.999999999999957 + 0.0im
+  4.000000000000038 + 0.0im</pre>
+
+<h4>The Wilkinson polynomial</h4><p>The Wilkinson polynomial, $(x-1)(x-2)\cdots(x-20)$, poses a challenge for <code>roots</code>:</p><pre class="sourceCode julia">import Polynomials
+ps = Polynomials.coeffs(Polynomials.poly(1.0:20.0))
+A.roots(ps)</pre>
+<pre class="output">
+20-element Array{Complex{Float64},1}:
+ 0.9999999999999512 + 0.0im                
+ 2.0000000000701474 + 0.0im                
+  2.999999984018476 + 0.0im                
+ 4.0000009749386685 + 0.0im                
+  4.999975991339116 + 0.0im                
+  6.000307522017204 + 0.0im                
+   6.99759786465167 + 0.0im                
+  8.013488323123205 + 0.0im                
+  8.947674647168187 + 0.0im                
+ 10.392884549504053 - 0.04615584569744456im
+ 10.392884549504053 + 0.04615584569744456im
+ 12.333430486605119 - 0.7766219381322922im 
+ 12.333430486605119 + 0.7766219381322922im 
+ 14.471183155493078 - 1.0642088782329444im 
+ 14.471183155493078 + 1.0642088782329444im 
+ 16.674979944732737 - 0.8714271268945672im 
+ 16.674979944732737 + 0.8714271268945672im 
+ 18.540903438336436 + 0.0im                
+ 18.740138141986648 + 0.0im                
+ 20.014956839679538 + 0.0im                </pre>
+
+<p>The answer involves complex-valued roots, even though the roots are clearly integer valued. (The <code>Polynomials.roots</code> function and <code>PolynomialRoots.roots</code> do get  real answers for  this polynomial). As an aside, the exact implementation of the fundamental <code>turnover</code> operation will effect the number of such roots.  The issue of spurious complex-valued roots might be addressed by separating out the smaller coefficients from the large ones. Here is a function to split a polynomial into two pieces.</p><pre class="sourceCode julia">function pencil_split(ps, n)
+    vs = zeros(eltype(ps), length(ps)-1)
+    ws = zeros(eltype(ps), length(ps)-1)
+
+    vs[1:n] = ps[1:n]
+    ws[n:end] = ps[n+1:end]
+
+    vs, ws
+end</pre>
+<pre class="output">
+pencil_split (generic function with 1 method)</pre>
+
+<p>It turns out that with <code>n&#61;13</code> only real roots are identified:</p><pre class="sourceCode julia">A.roots(pencil_split(ps, 13)...)</pre>
+<pre class="output">
+20-element Array{Complex{Float64},1}:
+ 0.9999999999999036 + 0.0im
+  2.000000000046174 + 0.0im
+  2.999999993779523 + 0.0im
+  4.000000299608049 + 0.0im
+  4.999992868693066 + 0.0im
+  6.000097015407988 + 0.0im
+ 6.9991960378966445 + 0.0im
+  8.004256322623545 + 0.0im
+  8.985938176215912 + 0.0im
+ 10.030592997656994 + 0.0im
+ 10.964284539088766 + 0.0im
+ 12.010231202161691 + 0.0im
+  13.02086936985296 + 0.0im
+ 14.009268935343858 + 0.0im
+ 14.898793643212077 + 0.0im
+ 16.215709156415834 + 0.0im
+ 16.798926258829447 + 0.0im
+ 18.087132356819435 + 0.0im
+ 18.971255873673382 + 0.0im
+ 20.003454952675025 + 0.0im</pre>
+
+<p>The pencil here does a better job with this polynomial, but the choice of <code>13</code> was made with hindsight, not foresight.</p><h2>Other uses</h2><p>The <code>AMRVW.jl</code> package allows some other applications, though the exact interface needs to be settled on.</p><p>If we take rotators $Q_1, Q_2, \dots, Q_k$ their product will be upper Hessenberg:</p><pre class="sourceCode julia">Qs = A.random_rotator.(Float64, [1,2,3,4])</pre>
+<pre class="output">
+4-element Array{AMRVW.Rotator{Float64,Float64},1}:
+ AMRVW.Rotator{Float64,Float64}(0.5957020253667579, 0.8032055135355725, 1)
+ AMRVW.Rotator{Float64,Float64}(0.3819344301747386, 0.9241894237909768, 2)
+ AMRVW.Rotator{Float64,Float64}(0.5511444803723418, 0.8344098284147313, 3)
+ AMRVW.Rotator{Float64,Float64}(0.986483625267796, 0.16385987025048776, 4)</pre>
+
+<pre class="sourceCode julia">MI = diagm(0 => ones(5))
+(M = Qs * MI) |> round2</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+  0.6   0.31   0.41   0.61  0.1 
+ -0.8   0.23   0.3    0.45  0.08
+  0.0  -0.92   0.21   0.31  0.05
+  0.0   0.0   -0.83   0.54  0.09
+  0.0   0.0    0.0   -0.16  0.99</pre>
+
+<p>Their eigenvalues can be found:</p><pre class="sourceCode julia">eigvals(M)</pre>
+<pre class="output">
+5-element Array{Complex{Float64},1}:
+ -0.09493920877515816 - 0.9954830719992914im
+ -0.09493920877515816 + 0.9954830719992914im
+   0.8768896199481333 - 0.4806917873515399im
+   0.8768896199481333 + 0.4806917873515399im
+   0.9999999999999998 + 0.0im               </pre>
+
+<p>But the sparse representation can be used to also find such eigenvalues:</p><pre class="sourceCode julia">QF = A.q_factorization(A.DescendingChain(Qs))
+F = A.QRFactorization(QF)  # defaults to identify R factorization
+Matrix(F) |> round2 # same as M</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+  0.6   0.31   0.41   0.61  0.1 
+ -0.8   0.23   0.3    0.45  0.08
+  0.0  -0.92   0.21   0.31  0.05
+  0.0   0.0   -0.83   0.54  0.09
+  0.0   0.0    0.0   -0.16  0.99</pre>
+
+<pre class="sourceCode julia">eigvals(F)</pre>
+<pre class="output">
+5-element Array{Complex{Float64},1}:
+ -0.09493920877515824 - 0.9954830719992916im
+ -0.09493920877515824 + 0.9954830719992916im
+   0.8768896199481334 - 0.4806917873515399im
+   0.8768896199481334 + 0.4806917873515399im
+                  1.0 + 0.0im               </pre>
+
+<p>The <code>qr_factorization</code> method can take a Hessenberg matrix and complete the factorization. For this case, we have:</p><pre class="sourceCode julia">F = A.qr_factorization(M, unitary=true)
+eigvals(F)</pre>
+<pre class="output">
+5-element Array{Complex{Float64},1}:
+ -0.09493920877515828 - 0.9954830719992916im
+ -0.09493920877515828 + 0.9954830719992916im
+   0.8768896199481333 - 0.4806917873515401im
+   0.8768896199481333 + 0.4806917873515401im
+                  1.0 + 0.0im               </pre>
+
+<p>When <code>unitary&#61;true</code> is the case, this will outperform <code>eigvals</code> once the matrix size is around 50 by 50 and is significantly more performant for the 150 by 150 case.</p><hr /><p>Not all upper Hessenberg matrices can he expressed as a descending chain of rotators, as the latter is unitary. However, any upper Hessenberg matrix can easily be seen to be represented as a descending chain of rotators times an upper triangular matrix.</p><p>The Givens rotation is a rotator, $U$, based on a $c$ and $s$, chosen so that if $x= [a,b]$, then $[c s;-s conj(c)] x = [r,0]$. This allows, for example, the following:</p><pre class="sourceCode julia">M = triu(rand(5,5), -1)  # upper Hessenberg</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+ 0.8445640684081546  0.03839741561928123  0.4382234387578967   0.11948594415184988  0.6335854659495312 
+ 0.8889751032504838  0.3791913641076998   0.6442236345026744   0.4163339420025709   0.9578559603830203 
+ 0.0                 0.2729401602041084   0.17123746648171023  0.8425314299016049   0.12998254168756795
+ 0.0                 0.0                  0.7481638813790734   0.6874678066446192   0.6778892799066663 
+ 0.0                 0.0                  0.0                  0.8655686218335872   0.8154881942596424 </pre>
+
+<pre class="sourceCode julia">c,s,r = A.givensrot(M[1,1], M[2,1])
+U1 = A.Rotator(c,s,1)
+U1 * M |> round2</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+ 1.23  0.3   0.77  0.38  1.13
+ 0.0   0.23  0.13  0.2   0.2 
+ 0.0   0.27  0.17  0.84  0.13
+ 0.0   0.0   0.75  0.69  0.68
+ 0.0   0.0   0.0   0.87  0.82</pre>
+
+<p>That is the subdiagonal in column 1 is 0 Similarly, a <code>U2</code> could then be found so that subdiagonal in column 2 is 0, etc. That is a choice of rotators is available for $U_k U_{k-1} U_{k-2} \cdots U_2 U_1 M = R$. Setting $V_i = U_i'$, we have then $M = V_1 V_2 \cdots V_k R = QR$, where $Q$ is unitary and  in decomposed form, and $R$ is upper triangular.</p><p>For example:</p><pre class="sourceCode julia">Us = Any[]
+G = copy(M)
+for i in 1:4
+  c,s,r = A.givensrot(G[i,i], G[i+1,i])
+  Ui =  A.Rotator(c,s,i)
+  pushfirst!(Us, Ui)
+  lmul!(Ui, G)
+end
+R = G
+Qs = reverse(adjoint.(Us))</pre>
+<pre class="output">
+4-element Array{AMRVW.Rotator{Float64,Float64},1}:
+ AMRVW.Rotator{Float64,Float64}(0.6887656309821066, -0.7249840726373376, 1)  
+ AMRVW.Rotator{Float64,Float64}(0.6498079394682968, -0.7600984421796735, 2)  
+ AMRVW.Rotator{Float64,Float64}(0.020697387702445277, -0.9997857861273557, 3)
+ AMRVW.Rotator{Float64,Float64}(-0.40291631198199174, -0.91523682483761, 4)  </pre>
+
+<p>With this, we can do the following:</p><pre class="sourceCode julia">QF = A.q_factorization(A.DescendingChain(Qs))
+RF = A.RFactorizationUpperTriangular(R)
+
+F = A.QRFactorization(QF, RF)
+
+Matrix(F)  - M |> round2# same as F</pre>
+<pre class="output">
+5×5 Array{Float64,2}:
+ -0.0  -0.0  -0.0  -0.0   0.0
+ -0.0  -0.0  -0.0   0.0   0.0
+  0.0   0.0   0.0   0.0   0.0
+  0.0   0.0   0.0  -0.0   0.0
+  0.0   0.0   0.0  -0.0  -0.0</pre>
+
+<p>And</p><pre class="sourceCode julia">[eigvals(F) eigvals(M)]</pre>
+<pre class="output">
+5×2 Array{Complex{Float64},2}:
+ -0.5954650030930598 + 0.0im                  -0.5954650030930606 + 0.0im                 
+ 0.23469792894203834 + 0.0im                  0.23469792894203842 + 0.0im                 
+  0.6925526275864183 - 0.02394833129760679im   0.6925526275864178 - 0.023948331297608563im
+  0.6925526275864183 + 0.02394833129760679im   0.6925526275864178 + 0.023948331297608563im
+  1.8736107188800097 + 0.0im                   1.8736107188800113 + 0.0im                 </pre>
+
+<p>This patttern is encoded in the <code>qr_factorization</code> function, mentioned above. For any Hessenberg matrix it can be employed:</p><pre class="sourceCode julia">H = hessenberg(rand(5,5))
+F = A.qr_factorization(H.H)
+eigvals(F)</pre>
+<pre class="output">
+5-element Array{Complex{Float64},1}:
+ -0.28037125856273265 - 0.18009993724374557im
+ -0.28037125856273265 + 0.18009993724374557im
+  0.35680521693454814 - 0.20558303154681778im
+  0.35680521693454814 + 0.20558303154681778im
+   2.5463009477351237 + 0.0im                </pre>
+
+<p>This approach is in the ballpark with <code>eigvals&#40;Matrix&#40;H.H&#41;&#41;</code>, though slower by a factor performance-wise, as the <code>R</code> part is not factored into rotators, so uses $\mathcal{O}(n)$ operations – not $\mathcal{O}(1)$ – in each step of the algorithm. (When <code>unitary&#61;true</code> is the case, the <code>R</code> part is much faster, so is competitive.</p><hr /><p>The product of a descending chain of rotators is upper Hessenberg and the product of an  ascending chain or rotators is lower Hessenberg. With modifications, described in "A generalization of the multishift QR algorithm" a related algorithm can be employed. A "twisted chain" is one where a descending chain of rotators is permuted, an ascending chain being one possible twisting among many others.</p><pre class="sourceCode julia">N = 4
+T = Float64; S = T # real case here
+MI = diagm(0 => ones(N+1))
+Qs = A.random_rotator.(T, [4,3,2,1])
+M = Qs * MI
+
+QF = A.q_factorization(A.TwistedChain(Qs))
+F = A.QRFactorization(QF)   # use default identify R factorization
+
+[eigvals(M) eigvals(F)]</pre>
+<pre class="output">
+5×2 Array{Complex{Float64},2}:
+ -0.14905726788867874 - 0.9888285649644041im  -0.149057267888679 - 0.988828564964404im 
+ -0.14905726788867874 + 0.9888285649644041im  -0.149057267888679 + 0.988828564964404im 
+   0.8184200648942581 - 0.5746203941546777im  0.8184200648942586 - 0.5746203941546779im
+   0.8184200648942581 + 0.5746203941546777im  0.8184200648942586 + 0.5746203941546779im
+                  1.0 + 0.0im                                1.0 + 0.0im               </pre>
+
+<p>Here is another example with a CMV pattern to the twisted</p><pre class="sourceCode julia">N = 5
+MI = diagm(0 => ones(N+1))
+Qs = A.random_rotator.(T, [1,3,5,2,4])
+M = Qs * MI
+
+QF = A.q_factorization(A.TwistedChain(Qs))
+
+F = A.QRFactorization(QF)
+
+[eigvals(M) eigvals(F)]</pre>
+<pre class="output">
+6×2 Array{Complex{Float64},2}:
+ 0.11799228346520518 - 0.9930145120000343im   0.11799228346520507 - 0.9930145120000345im 
+ 0.11799228346520518 + 0.9930145120000343im   0.11799228346520507 + 0.9930145120000345im 
+  0.9575685607575576 - 0.2882055715087756im    0.9575685607575576 - 0.28820557150877557im
+  0.9575685607575576 + 0.2882055715087756im    0.9575685607575576 + 0.28820557150877557im
+  0.9926442051713444 - 0.12106808803210695im   0.9926442051713443 - 0.12106808803210661im
+  0.9926442051713444 + 0.12106808803210695im   0.9926442051713443 + 0.12106808803210661im</pre>
+
+<p>The implementation for twisted chains is not nearly as efficient as that for descending chains.</p>
+  </div>
+</div>
+
+</body>
+</html>
