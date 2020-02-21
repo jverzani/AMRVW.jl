@@ -15,7 +15,7 @@ function AMRVW_algorithm!(state::AbstractQRRotatorFactorization, m)
 
     # set counters
     n = length(QF.Q)
-    ctr = AMRVW_Counter(0, 1, n, 0, n-1)
+    ctr = AMRVW_Counter(0, 1, n, IT_COUNT, n-1)
 
     # set up storage
     storage = make_storage(QF, m)
@@ -143,8 +143,8 @@ mutable struct AMRVW_Counter
     zero_index::Int  # this should be dropped, it is just start_index-1
     start_index::Int
     stop_index::Int
-    it_count::Int
-    tr::Int
+    it_count::Int    # count on use of random rotators
+    tr::Int          # count for simple_passthrough
 end
 
 function make_counter(state)

@@ -82,6 +82,8 @@ The idea of Francis's shifted algorithm is to identify shifts $\rho_1$, $\rho_2$
 
 In the real-coefficient case,  $m=2$ is used to allow the calculations to be done over the real numbers. For the complex-coefficient case, $m=1$ is possible.
 
+The following internal code demonstrates how to pull out a shift in the complex ($m=1$) case:
+
 ```
 ps  =  [0.0 + 1.0im, -1.0 + 0.0im, 0.0 + 0.0im, 0.0 + 0.0im, 0.0 - 1.0im, 1.0 + 0.0im]
 F = A.amrvw(ps)
@@ -114,7 +116,7 @@ A.passthrough_Q(F.QF, F.RF, storage, ctr, Val(:right))
 (V1 = storage.VU[1] * MI) |> round2
 ```
 
-And this produce will have a bulge in `[4,2]` position:
+Now this product will shift the  bulge downward to the `[4,2]` position:
 
 ```
 V1' * (V0' * M * V0) * V1 |> round2 .|> !iszero
@@ -134,9 +136,10 @@ V2' * (V1' * (V0' * M * V0) * V1) * V2 |> round2 .|> !iszero
 
 Once pushed to the bottom, the bulge is absorbed into the matrix, leaving an upper Hessenberg form.
 
-If the shifts are appropriately chosen, after a few iterations this resulting matrix can have an eigenvalue immediately read off and after deflation subsequent eigenvalues can be found.
 
 ### Shifts
+
+If the shifts are appropriately chosen, after a few iterations this resulting matrix can be "deflated" so that he algorithm can work on a smaller matrix.
 
 Above the bulge is created with a single rotator. As mentioned, for
 the real variable case, two rotators are used, so that the
@@ -331,7 +334,7 @@ When `unitary=true` is the case, this will outperform `eigvals` once the matrix 
 
 Not all upper Hessenberg matrices can he expressed as a descending chain of rotators, as the latter is unitary. However, any upper Hessenberg matrix can easily be seen to be represented as a descending chain of rotators times an upper triangular matrix.
 
-The Givens rotation is a rotator, $U$, chosen so that if $x= [a,b]$, then $Ux = [r,0]$. This allows, for example, the following:
+The Givens rotation is a rotator, $U$, based on a $c$ and $s$, chosen so that if $x= [a,b]$, then $[c s;-s conj(c)] x = [r,0]$. This allows, for example, the following:
 
 ```
 M = triu(rand(5,5), -1)  # upper Hessenberg

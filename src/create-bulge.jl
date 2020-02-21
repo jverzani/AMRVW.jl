@@ -6,6 +6,8 @@
 # ## The bulge is created by  (A-rho1) * (A - rho2) * e_1 where rho1 and rho2 are eigenvalue or random
 # ## for real case, we take the real part of this result
 
+const IT_COUNT = 15  # if in 15 steps deflation does not occur, this kicks in a random rotator
+
 """
    create_bulge(state)
 
@@ -21,7 +23,7 @@ function create_bulge(QF::QFactorization{T,S,VV}, RF, storage,  ctr) where {T, S
 
 
     if iszero(ctr.it_count)
-        ctr.it_count = 15
+        ctr.it_count = IT_COUNT
 
         t = rand(T) * pi
 
@@ -81,7 +83,7 @@ function create_bulge(QF::QFactorization{T, S, VV}, RF, storage, ctr) where {T, 
     A = storage.A
 
     if iszero(ctr.it_count)
-        ctr.it_count = 15
+        ctr.it_count = IT_COUNT
 
         t = rand(T) * pi
         if ray
@@ -124,7 +126,7 @@ end
 function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) where {T, S}
 
     if iszero(ctr.it_count)
-        ctr.it_count = 15
+        ctr.it_count = IT_COUNT
 
         for i in 1:m
             storage.VU[i] = random_rotator.(S, ctr.start_index + m - i)
@@ -143,7 +145,7 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
     @assert m >= 2  # for even we need atleast a quadratic poly
 
     if iszero(ctr.it_count)
-        ctr.it_count = 15
+        ctr.it_count = IT_COUNT
 
 
         t = rand(T) * pi
