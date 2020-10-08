@@ -1,5 +1,7 @@
 # AMRVW
 
+[![Build Status](https://travis-ci.com/jverzani/AMRVW.jl.svg?branch=master)](https://travis-ci.com/jverzani/AMRVW.jl)
+
 
 Implementation of core-chasing algorithms for finding eigenvalues of factored matrices.  Fortan code for such methods is provided in the [eiscor](https://github.com/eiscor/eiscor) repository.
 
