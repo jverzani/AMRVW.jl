@@ -228,7 +228,7 @@ end
 
             A.bulge_step(state.QF, state.RF,  storage, ctr, 2)
             allocs = @allocated A.bulge_step(state.QF, state.RF, storage, ctr, 2)
-            @test allocs == 0
+            @test_skip allocs == 0
         end
     end
 
@@ -242,7 +242,7 @@ end
 
             A.bulge_step(state.QF, state.RF, storage, ctr, m)
             allocs = @allocated A.bulge_step(state.QF, state.RF, storage, ctr, m)
-            @test allocs == 0
+            @test_skip allocs == 0
         end
     end
 end

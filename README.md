@@ -1,5 +1,7 @@
 # AMRVW
 
+[![Build Status](https://travis-ci.com/jverzani/AMRVW.jl.svg?branch=master)](https://travis-ci.com/jverzani/AMRVW.jl)
+
 
 Implementation of core-chasing algorithms for finding eigenvalues of factored matrices.  Fortan code for such methods is provided in the [eiscor](https://github.com/eiscor/eiscor) repository.
 
@@ -52,7 +54,7 @@ By means of comparison, using the `Polynomials` package:
 
 ```julia
 julia> using Polynomials
-julia> roots(Poly(p4))
+julia> roots(Polynomial(p4))
 
 4-element Array{Float64,1}:
  1.000000000000002
@@ -92,7 +94,7 @@ be quite accurate and is computable in a reasonable time:
 ## by DOI:	10.1142/S0219199715500522, this should have expected value ~ 2/pi*log(n) + .625738072 + 2/(pi*n) ~ 6.48
 julia> rs = rand(Float64, 10_000) .- 1/2
 julia> @time rts  = A.roots(rs)
-julia> rts  .|> isreal |> sum
+julia> sum(isreal, rts)
  15.955615 seconds (35 allocations: 1017.297 KiB)
 5
 ```
@@ -100,7 +102,7 @@ julia> rts  .|> isreal |> sum
 As this is relatively speedy, statistics can be generated, albeit the following will take some time to  finish:
 
 ```julia
-julia> xs = [A.roots(randn(3000)) .|> isreal |> sum for _ in 1:3000]
+julia> xs = [sum(isreal, A.roots(randn(3000))) for _ in 1:3000]
 julia> using StatsBase
 julia> xbar, s = mean_and_std(xs)
 julia> n = 3000
