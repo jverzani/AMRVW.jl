@@ -60,8 +60,10 @@ function solve_simple_cases(ps::Vector{T}) where {T}
     elseif N == 3
         c,b,a = ps
         r1,i1, r2,i2 = quadratic_equation(a,b,c)
-        S[complex(r1, i1), complex(r2, i2)]
+        return S[complex(r1, i1), complex(r2, i2)]
     end
+
+    error("solve_simple_cases: too many coefficients")
 end
 
 
