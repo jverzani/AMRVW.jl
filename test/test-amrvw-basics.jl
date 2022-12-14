@@ -197,8 +197,11 @@ end
 
             # Matrix gives correct eigenvalues
             F = Matrix(state)
-            rts = csort(eigvals(F))
-            @test norm(csort(round2(eigvals(F)))  .- S[-1,-im,im,im,1] ) <= sqrt(eps(T))
+            U = round2(eigvals(F))
+            V = S[-1,-im,im,im,1]
+            @test all(U  .∈ Ref(V))
+#            rts = csort(eigvals(F))
+#            @test norm(csort(round2(eigvals(F)))  .- S[-1,-im,im,im,1] ) <= sqrt(eps(T))
 
         end
     end
