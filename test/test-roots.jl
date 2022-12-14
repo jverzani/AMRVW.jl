@@ -19,6 +19,13 @@ pc_rts = S[im, 1+im,2+im, 3.0+im, 4+im]
 
     ## constants
     T = Float64; S = Complex{T}
+    ps = T[]
+    rts = T[]
+    @test A.roots(ps) == rts
+    @test A.roots(vcat(zeros(2), ps)) == rts
+    @test A.roots(vcat(ps, zeros(2))) == rts
+    @test A.roots(vcat(zeros(2), ps, zeros(2))) == rts
+
     ps = [1.0]
     rts = T[]
     @test A.roots(ps) == rts
