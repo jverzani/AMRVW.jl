@@ -3,7 +3,8 @@ function deflate_leading_zeros(ps::Vector{S}) where {S}
     N = findlast(!iszero, ps)
     K = findfirst(!iszero, ps)
 
-    N == 0 && return(zeros(S,0), length(ps))
+    (isnothing(N) | isnothing(K)) && return (S[], 0)
+
     # XXX  should  we make  a view?
     ps = ps[K:N]
     ps, K-1
