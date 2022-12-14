@@ -153,7 +153,7 @@ end
 ##
 ## Implement thee different steps for one pass of the bulge chasing algorithm
 
-function step_0!(m,  ps, psd, Ms::TwistedChain, Des, Asc, D, RF) where {T}
+function step_0!(m,  ps, psd, Ms::TwistedChain, Des, Asc, D, RF)
 
     has_limb = ifelse(m > 1, true, false)
 
@@ -209,7 +209,7 @@ function step_0!(m,  ps, psd, Ms::TwistedChain, Des, Asc, D, RF) where {T}
 end
 
 
-function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
+function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF)
 
     phatk = psd[k]
 
@@ -300,7 +300,7 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF) where {T}
 end
 
 ## steps k=n-m to  n-2
-function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF) where {T}
+function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF)
 
     # make bottom
     U = pop!(Des)
