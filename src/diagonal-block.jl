@@ -42,7 +42,7 @@ end
 
 ## For twisted we use thee approximate diagonal block
 ## this is exact when the the j-1 and  k+1  rotators are deflated or j=1 or k=end
-function approx_diagonal_block!(A, QF, RF, j, k) where {T, S}
+function approx_diagonal_block!(A, QF, RF, j, k)
     R = RF
     D = QF.D
     Q = QF.Q
