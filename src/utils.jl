@@ -1,9 +1,21 @@
-function deflate_leading_zeros(ps::Vector{S}) where {S}
-    ## trim any 0s from the end of ps
-    N = findlast(!iszero, ps)
-    K = findfirst(!iszero, ps)
+# Returns a tuple (none_found::Bool, (first::Int, last::Int))
+function find_first_last(
+  pr::P,
+  v::AbstractVector) where {P <: Function}
 
-    N == 0 && return(zeros(S,0), length(ps))
+  first = findfirst(pr, v)
+  last = findlast(pr, v)
+
+  (isnothing(first) | isnothing(last)) && return (true, (0, 0))
+
+  (false, (first::Int, last::Int))
+end
+
+function deflate_leading_zeros(ps::Vector{S}) where {S}
+    (is_empty, (K, N)) = find_first_last(!iszero, ps)
+
+    is_empty && return (S[], 0)
+
     # XXX  should  we make  a view?
     ps = ps[K:N]
     ps, K-1
