@@ -1,4 +1,4 @@
-# AMRVW
+# AMRVW. Fast and backward stable computation of roots of polynomials
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jverzani.github.io/AMRVW.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jverzani.github.io/AMRVW.jl/dev)
@@ -7,7 +7,9 @@
 
 
 
-Implementation of core-chasing algorithms for finding eigenvalues of factored matrices.  Fortan code for such methods is provided in the [eiscor](https://github.com/eiscor/eiscor) repository.
+Implementation of core-chasing algorithms for finding eigenvalues of
+factored matrices.  FORTRAN code for such methods is provided in the
+[eiscor](https://github.com/eiscor/eiscor) repository.
 
 This repository provides a `Julia` package implementing the methods,
 as applied to the problem of finding the roots of polynomials through
@@ -20,17 +22,27 @@ SIAM J. Matrix Anal. Appl., 36(3), 942–973. (2015)
 https://doi.org/10.1137/140983434
 
 
-* Fast and backward stable comptation of roots of polynomials, Part II: backward error analysis; companion matrix and companion pencil. By
-Jared L. Aurentz, Thomas Mach, utation of roots of polynomials, Part II: backward error analysis; companion matrix and companion pencil. By
-Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, David S. Watkins; arXiv:1611.02435
+* Fast and backward stable computation of roots of polynomials, Part
+II: backward error analysis; companion matrix and companion pencil. By
+Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, David
+S. Watkins; arXiv:1611.02435
 
 The methods are summarized in monograph format:
 
-Core-Chasing Algorithms for the Eigenvalue Problem; by Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, and David S. Watkins; https://doi.org/10.1137/1.9781611975345
+Core-Chasing Algorithms for the Eigenvalue Problem; by Jared
+L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, and David
+S. Watkins; https://doi.org/10.1137/1.9781611975345
 
-As well, the twisted algorithm from "A generalization of the multishift QR algorithm" by Raf Vandebril and David S. Watkins; https://doi.org/10.1137/11085219X is implemented here.
+As well, the twisted algorithm from "A generalization of the
+multishift QR algorithm" by Raf Vandebril and David S. Watkins;
+https://doi.org/10.1137/11085219X is implemented here.
 
-The core-chasing algorithms utilize Francis's QR algorithm on sparse factorizations of the respected companion matrix. For polynomials with real coefficients, the storage requirements are O(n) and the algorithm requires O(n) flops per iteration, or O(n^2) flops overall. The basic QR algorithm applied to the full companion matrix would require O(n^2) storage and O(n^3) flops overall.
+The core-chasing algorithms utilize Francis's QR algorithm on sparse
+factorizations of the respected companion matrix. For polynomials with
+real coefficients, the storage requirements are O(n) and the algorithm
+requires O(n) flops per iteration, or O(n^2) flops overall. The basic
+QR algorithm applied to the full companion matrix would require O(n^2)
+storage and O(n^3) flops overall.
 
 
 ## Examples
@@ -103,7 +115,7 @@ julia> sum(isreal, rts)
 5
 ```
 
-As this is relatively speedy, statistics can be generated, albeit the following will take some time to  finish:
+As this is relatively speedy, statistics can be generated, albeit the following will take some time to finish:
 
 ```julia
 julia> xs = [sum(isreal, A.roots(randn(3000))) for _ in 1:3000]
@@ -117,7 +129,7 @@ julia> xbar .+ 1.96*s/sqrt(n) * [-1,1], 2/pi*log(n) + .625738072 + 2/(pi*n)
 
 ----
 
-There are no exported functions, as of now. But the internal functions may be of interest. For example, the paper [Fast and stable unitary QR algorithm](http://etna.mcs.kent.edu/volumes/2011-2020/vol44/abstract.php?vol=44&pages=327-341) discusses a situation where a matrix `A` is unitary Hessenberg, and so is factored in terms of a descending chain of rotatorrs. To fit this matrix into the current framework, we have, for example:
+There are no exported functions, as of now. But the internal functions may be of interest. For example, the paper [Fast and stable unitary QR algorithm](http://etna.mcs.kent.edu/volumes/2011-2020/vol44/abstract.php?vol=44&pages=327-341) discusses a situation where a matrix `A` is unitary Hessenberg, and so is factored in terms of a descending chain of rotators. To fit this matrix into the current framework, we have, for example:
 
 ```
 using LinearAlgebra
