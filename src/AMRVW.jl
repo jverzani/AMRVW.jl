@@ -32,5 +32,6 @@ include("companion.jl")
 include("utils.jl")
 include("diagnostics.jl")
 
+include("complex_conjugate_root_theorem.jl")
 
 end # module

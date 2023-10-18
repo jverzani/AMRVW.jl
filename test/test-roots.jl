@@ -25,6 +25,7 @@ pc_rts = S[im, 1+im,2+im, 3.0+im, 4+im]
     @test A.roots(vcat(zeros(2), ps)) == rts
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == rts
+    @test A.real_polynomial_roots(ps) == A.ComplexConjugateRootTheoremRoots(rts, S[])
 
     ps = [1.0]
     rts = T[]
@@ -32,6 +33,7 @@ pc_rts = S[im, 1+im,2+im, 3.0+im, 4+im]
     @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(T,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(T,2))
+    @test A.real_polynomial_roots(ps) == A.ComplexConjugateRootTheoremRoots(rts, S[])
 
     ps = [1.0, 1.0]
     rts = [-1.0]
@@ -39,6 +41,7 @@ pc_rts = S[im, 1+im,2+im, 3.0+im, 4+im]
     @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(T,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(T,2))
+    @test A.real_polynomial_roots(ps) == A.ComplexConjugateRootTheoremRoots(rts, S[])
 
     ps = [1.0, 2, 1]
     rts = [-1.0, -1.0]
@@ -46,6 +49,7 @@ pc_rts = S[im, 1+im,2+im, 3.0+im, 4+im]
     @test A.roots(vcat(zeros(2), ps)) == vcat(rts, zeros(T,2))
     @test A.roots(vcat(ps, zeros(2))) == rts
     @test A.roots(vcat(zeros(2), ps, zeros(2))) == vcat(rts, zeros(T,2))
+    @test A.real_polynomial_roots(ps) == A.ComplexConjugateRootTheoremRoots(rts, S[])
 
     ###
 
@@ -110,10 +114,18 @@ end
     @test all(A.roots(p5) .≈ 1.0:5)
     @test all(A.roots(p6) .≈ 1.0:6)
 
+    @test all(A.real_polynomial_roots(p4).real_roots .≈ 1:4)
+    @test all(A.real_polynomial_roots(p5).real_roots .≈ 1:5)
+    @test all(A.real_polynomial_roots(p6).real_roots .≈ 1:6)
+
+    @test isempty(A.real_polynomial_roots(p4).complex_roots)
+    @test isempty(A.real_polynomial_roots(p5).complex_roots)
+    @test isempty(A.real_polynomial_roots(p6).complex_roots)
+
     rs = rand(T, 500)
     rts = A.roots(rs)
-    @test all(!iszero(rts))
-
+    @test all((!iszero).(rts))
+    @test all(!iszero, A.real_polynomial_roots(rs).real_roots)
 
 end
 
