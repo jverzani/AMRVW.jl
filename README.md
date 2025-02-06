@@ -1,6 +1,5 @@
 # AMRVW. Fast and backward stable computation of roots of polynomials
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jverzani.github.io/AMRVW.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jverzani.github.io/AMRVW.jl/dev)
 [![Build Status](https://github.com/jverzani/AMRVW.jl/workflows/CI/badge.svg)](https://github.com/jverzani/AMRVW.jl/actions)
 [![codecov](https://codecov.io/gh/jverzani/AMRVW.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jverzani/AMRVW.jl)
@@ -48,7 +47,7 @@ storage and O(n^3) flops overall.
 ## Examples
 
 ```julia
-julia> import AMRVW; const A = AMRVW
+julia> import AMRVW as A
 julia> p4 = [24.0, -50.0, 35.0, -10.0, 1.0]  # (x-1) * (x-2) * (x-3) * (x-4)
 
 5-element Array{Float64,1}:
@@ -70,6 +69,7 @@ By means of comparison, using the `Polynomials` package:
 
 ```julia
 julia> using Polynomials
+
 julia> roots(Polynomial(p4))
 
 4-element Array{Float64,1}:
