@@ -97,7 +97,7 @@ function _w(B, j, k)
 end
 
 
-## We have W = C * R, where W invovles B and D, and C involves Ct; This
+## We have W = C * R, where W involves B and D, and C involves Ct; This
 ## solves for R terms, as in the paper
 ## To see the W pattern
 ## function rotm(a::T,b, i, N) where {T}
