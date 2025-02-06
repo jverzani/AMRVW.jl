@@ -308,7 +308,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF)
     bottom, Di = fuse(U,V)
 
     ## Decoupled too! Decoupled on right? as we augmented Ascending
-    ## have a complicted check, as m can be big
+    ## have a complicated check, as m can be big
     psdm = length(psd)-m+1 > 0 ? psd[end-m+1] : :left
 
     if psdm == :right

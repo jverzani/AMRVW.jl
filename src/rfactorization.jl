@@ -6,11 +6,10 @@
 ## * UnitaryDiagonal
 ## * UpperTriangular{T,S}
 
-"""
-
+#=
 An R factorization encapsupulate the `R` in a QR factorization. For the companion matrix case, this is a sparse factorization in terms of rotators. Other scenarios are different sub-types.
 
-"""
+=#
 abstract type AbstractRFactorization{T, S} <: LinearAlgebra.Factorization{S} end
 
 # Basic interface for an RFactorization:
@@ -63,11 +62,11 @@ end
 ##################################################
 
 ## Rank one decomposition for amrvw algorithm to find eigenvalues of companion matrix
-"""
+#=
 
 A companion matrix will have a QR decomposition wherein R is essentially an identy plus a rank one matrix
 
-"""
+=#
 struct RFactorizationRankOne{T,S, V} <: AbstractRFactorization{T, S}
   Ct::AscendingChain{T,S,V}
   B::DescendingChain{T,S,V}
@@ -98,7 +97,7 @@ function _w(B, j, k)
 end
 
 
-## We have W = C * R, where W invovles B and D, and C involves Ct; This
+## We have W = C * R, where W involves B and D, and C involves Ct; This
 ## solves for R terms, as in the paper
 ## To see the W pattern
 ## function rotm(a::T,b, i, N) where {T}
@@ -138,7 +137,7 @@ end
 ## u = rotm(cc_k, cs_k, 5,6) * rotm(cc_j, cs_j, 4,6) * rotm(cc_i, cs_i,3, 6)*rotm(cc_h, cs_h, 2,6) *  rotm(cc_g, cs_g, 1,6) * [what, wh, wi, wj, wk, wl]
 ## kk_4 = u[1](what => solve(u[6], what)[1]) |> simplify
 function Base.getindex(RF::RFactorizationRankOne, j, k)
-    # neeed to compute Cts and Ws(B,D)
+    # need to compute Cts and Ws(B,D)
     Ct = RF.Ct
     B = RF.B
     D = RF.D
@@ -222,11 +221,12 @@ end
 ## This is useful if a unitary Hessenberg matrix is factored into rotators:
 ## Un Un_1 ... U2 U1 * Q = R so that Q = U1' U2' ... Un' * R
 ## R factor will have this structure
-"""
+#=
 
-For the case where the QR decomposion has R as a diagonal matrix that is unitary
+For the case where the QR decomposition has R as a diagonal matrix
+that is unitary
 
-"""
+=#
 struct RFactorizationUnitaryDiagonal{T, S} <: AbstractRFactorization{T, S}
 D::SparseDiagonal{S}
 RFactorizationUnitaryDiagonal(D::SparseDiagonal{S}) where {S} = new{real(S),S}(D)
@@ -251,11 +251,11 @@ simple_passthrough!(RF::RFactorizationUnitaryDiagonal, args...) = false
 ##################################################
 
 # hold upper triangular matrix as full matrix
-"""
+#=
 
 For the case where the QR decomposition has R as a full, upper-triangular matrix
 
-"""
+=#
 struct RFactorizationUpperTriangular{T, S, Rt <: AbstractArray{S,2}} <: AbstractRFactorization{T, S}
 R::Rt
 RFactorizationUpperTriangular{T, S, Rt}(M) where {T, S, Rt}= new(M)

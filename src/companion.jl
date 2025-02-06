@@ -179,7 +179,7 @@ end
 
     amrvw(vs, ws)
 
-Computes a sparse factorization of of the companion matrix of a polynomial specified througha  pencil decomposition.
+Computes a sparse factorization of of the companion matrix of a polynomial specified through a pencil decomposition.
 
 A pencil decomposition of a polynomial, is a specification where
 if `p = a0 + a1x^1 + ... + xn x^n`
@@ -206,25 +206,28 @@ end
 
 
 """
-
     roots(ps)
     roots(vs, ws)
 
-Use an algorithm of AMRVW to find roots of a polynomial over the reals of complex numbers.
+Use an algorithm of AMRVW to find roots of a polynomial over the reals or complex numbers.
 
-ps: The coefficients, `[p0, p1, p2, ...., pn]`, of the polynomial `p0 + p1*x + p2*x^2 + ... + pn*x^n`
+* `ps`: The coefficients, `[p0, p1, p2, ...., pn]`, of the polynomial `p0 + p1*x + p2*x^2 + ... + pn*x^n`
 
-[vs, ws]: If a second set of coefficients is passed, a pencil decomposition is used.
-A pencil decomposition satisfies `vs[1]=p0; vs[i+1]+ws[i] = pi and ws[n] = pn`.
-A pencil can be used when there is a wide range in the coefficients of the polynomial, as though slower, it can be more stable.
-The non-exported function `basic_pencil` implements the pencil which pulls off the leading coefficient `a_n`.
+* `[vs, ws]`: If a second set of coefficients is passed, a pencil decomposition is used.
 
 Returns a complex vector of roots. When the algorithm fails, a warning is issued about the number of non-identified roots.
 
-Examples:
+A pencil decomposition satisfies `vs[1]=p0; vs[i+1]+ws[i] = pi and ws[n] = pn`.
+
+A pencil can be used when there is a wide range in the coefficients of the polynomial, as though slower, it can be more stable.
+
+The non-exported function `basic_pencil` implements the pencil which pulls off the leading coefficient `a_n`.
+
+
+## Examples:
 
 ```
-using AMRVW; const A = AMRVW
+import AMRVW as A
 rs = rand(10)
 A.roots(rs)      # uses Real double shift algorithm
 
@@ -238,10 +241,10 @@ A.roots(vs, ws)  # uses QZ pencil factorization
 
 References:
 
-* Fast and backward stable computation of the eigenvalues of matrix polynomials. By Aurentz, Jared & Mach, Thomas & Robol, Leonardo & Vandebril, Raf & Watkins, David. (2016). Mathematics of Computation. 88. DOI: 10.1090/mcom/3338.
+* *Fast and backward stable computation of the eigenvalues of matrix polynomials.* By Aurentz, Jared & Mach, Thomas & Robol, Leonardo & Vandebril, Raf & Watkins, David. (2016). Mathematics of Computation. 88. DOI: 10.1090/mcom/3338.
 
 
-* Fast and backward stable computation of roots of polynomials, Part II: backward error analysis; companion matrix and companion pencil
+* *Fast and backward stable computation of roots of polynomials, Part II: backward error analysis; companion matrix and companion pencil.* By
 Jared L. Aurentz, Thomas Mach, Leonardo Robol, Raf Vandebril, David S. Watkins; arXiv:1611.02435
 
 
@@ -274,7 +277,7 @@ end
 ## vs[1] = a0
 ## vs[i+1] + ws[i] = ai
 ## ws[n] = an
-## is a pencil decompostion.
+## is a pencil decomposition.
 ## `basic_pencil` will break [a0, a1, ..., an] into vs=[a0,a1, ..., a_{n-1}], ws=[0,0,..., 0, an]
 function roots(vs::Vector{S}, ws::Vector{S}) where {S}
 

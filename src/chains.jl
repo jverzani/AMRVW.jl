@@ -158,7 +158,7 @@ function Base.getindex(A::DescendingChain, i, j)
 end
 
 
-## Structure to hold a twisted represenation
+## Structure to hold a twisted representation
 ## pv is the position vector of length  n-1; we leave parametric so views can be used
 struct TwistedChain{T,S, V <: AbstractVector{Rotator{T,S}}, PVt <: AbstractVector{Symbol}} <: AbstractRotatorChain{T,S}
   x::V
@@ -206,7 +206,7 @@ function Base.Vector(Tw::TwistedChain)
     return Tw.x[position_vector_indices(Tw.pv)]
 end
 
-## Find position vector from a permuation of 1...n
+## Find position vector from a permutation of 1...n
 ## If i is to the left of i+1, set  ps[i] = :left
 ## if i is to the right if i+1, set ps[i] = :right
 ## e.g. 4,3,2,1 -> r,r,r (descending)

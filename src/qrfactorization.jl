@@ -53,12 +53,11 @@ function Base.Matrix(state::QRFactorization)
 end
 
 """
-
     qr_factorization(H::Matrix; unitary=false)
 
 For a Hessenberg matrix `H` return a factorization,`Q⋅R`, where `Q` is a `QFactorization` object of descending rotators and `R` is either a `AMRVW.RFactorizationUnitaryDiagonal` object (if `unitary=true`) or a `RFactorizationUpperTriangular` object.
 
-`H` may be a full matrix or the `.H` compontent  of a `hessenberg` factorization.
+`H` may be a full matrix or the `.H` component  of a `hessenberg` factorization.
 
 """
 function qr_factorization(H::AbstractMatrix; unitary=false)
