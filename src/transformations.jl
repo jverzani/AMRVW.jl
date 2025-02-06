@@ -8,11 +8,12 @@
 
 ##################################################
 
-"""
+#=
     c,s,r  = givensrot(a,b)
 
 where `[c s; -s conj(c)] * [a,b] = [r, 0]
-"""
+
+=#
 @inline function givensrot(a::T, b::T) where {T <: Real}
     G, r = givens(a,b,1,2)
     s = r >= 0 ? one(T) : -one(T)   #sign(r)

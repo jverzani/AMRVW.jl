@@ -1,9 +1,9 @@
-"""
+#=
 The `real_roots` field contains the real roots. The complex roots are stored in
 `complex_roots`, with only one half of each complex conjugate root pair stored.
 To be precise, of the two roots in the pair, only the root with the positive
 imaginary part is stored.
-"""
+=#
 struct ComplexConjugateRootTheoremRoots{F<:AbstractFloat}
     real_roots::Vector{F}
     complex_roots::Vector{Complex{F}}
@@ -17,9 +17,7 @@ Base.isequal(l::ComplexConjugateRootTheoremRoots, r::ComplexConjugateRootTheorem
 
 Base.hash(r::ComplexConjugateRootTheoremRoots, h::UInt) = hash(r.real_roots, hash(r.complex_roots, h))
 
-"""
-Indicates an internal error.
-"""
+## Indicates an internal error.
 struct ComplexConjugateException <: Exception
     count_real::Int
     count_cc_negimag::Int
@@ -27,6 +25,8 @@ struct ComplexConjugateException <: Exception
 end
 
 """
+    real_polynomial_roots(ps)
+
 Roots of a real polynomial with real coefficients.
 """
 function real_polynomial_roots(coefs::AbstractVector{F}) where {F<:AbstractFloat}

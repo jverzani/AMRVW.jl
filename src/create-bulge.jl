@@ -8,7 +8,7 @@
 
 const IT_COUNT = 15  # if in 15 steps deflation does not occur, this kicks in a random rotator
 
-"""
+#=
    create_bulge(state)
 
 Finds m=1 or 2 shifts (m=1 in the CSS case, m=2 in the RDS case) based on the eigenvalues of the lower 2x2 block (using `stop_index`). The
@@ -16,7 +16,7 @@ vector `x = alpha (A - rho_1 I) e_1` or `x = alpha (A-rho_1 I) (A-rho_2 I) e1` i
 are found so that `U_1' x = gamma e_1` or `U_1' U_2' x = gamma e_1`. The values `U_1` or `U_1`, `U_2` are store in `state`.
 
 
-"""
+=#
 function create_bulge(QF::QFactorization{T,S,VV}, RF, storage,  ctr) where {T, S <: Real,VV}
 
     A = storage.A
