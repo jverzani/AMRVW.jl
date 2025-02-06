@@ -191,11 +191,11 @@ tip(Uj::AbstractRotator, Di::IdentityRotator) = (Di, Uj)
 ##
 ## Move a diagonanol rotator from a fuse operation to the right to merge in with D.
 ##
-## pass Di thorugh A; fuses with D
+## pass Di through A; fuses with D
 ##
 ## In general, a recursive algorithm can handle this task;
 ## This would be **much** easier if Complex/Complex rotators were used.
-## These two functions are speficic to this task, and hence more efficient.
+## These two functions are specific to this task, and hence more efficient.
 function passthrough_phase!(Di::DiagonalRotator, A::DescendingChain, D::SparseDiagonal)
     ## We have two rules here
     ## D_i(alpha) * R_{i+1}(c,s) = R_{i+1}(c, conj(alpha)s) D_i(alpha)

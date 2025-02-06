@@ -137,7 +137,7 @@ end
 ## u = rotm(cc_k, cs_k, 5,6) * rotm(cc_j, cs_j, 4,6) * rotm(cc_i, cs_i,3, 6)*rotm(cc_h, cs_h, 2,6) *  rotm(cc_g, cs_g, 1,6) * [what, wh, wi, wj, wk, wl]
 ## kk_4 = u[1](what => solve(u[6], what)[1]) |> simplify
 function Base.getindex(RF::RFactorizationRankOne, j, k)
-    # neeed to compute Cts and Ws(B,D)
+    # need to compute Cts and Ws(B,D)
     Ct = RF.Ct
     B = RF.B
     D = RF.D
@@ -223,7 +223,8 @@ end
 ## R factor will have this structure
 #=
 
-For the case where the QR decomposion has R as a diagonal matrix that is unitary
+For the case where the QR decomposition has R as a diagonal matrix
+that is unitary
 
 =#
 struct RFactorizationUnitaryDiagonal{T, S} <: AbstractRFactorization{T, S}
