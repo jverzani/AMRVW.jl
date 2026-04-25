@@ -277,7 +277,7 @@ end
 ## vs[1] = a0
 ## vs[i+1] + ws[i] = ai
 ## ws[n] = an
-## is a pencil decompostion.
+## is a pencil decomposition.
 ## `basic_pencil` will break [a0, a1, ..., an] into vs=[a0,a1, ..., a_{n-1}], ws=[0,0,..., 0, an]
 function roots(vs::Vector{S}, ws::Vector{S}) where {S}
 

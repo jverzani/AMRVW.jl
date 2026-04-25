@@ -140,8 +140,9 @@ function deflate(QF::AbstractQFactorization{T, S}, k, ctr) where {T,S <: Real}
 
 end
 
-## The zero_index and stop_index+1 point at diagonal rotators [1 0; 0 1] or [-1 0; 0 -1]
-## this recoves 1 or -1
+## The zero_index and stop_index+1 point at diagonal rotators
+## [1 0; 0 1] or [-1 0; 0 -1]
+## this recovers 1 or -1
 function get_parity(QF::QFactorization{T, S}, k) where {T, S <: Real}
     if k > length(QF)
         return one(S)

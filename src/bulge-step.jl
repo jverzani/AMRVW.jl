@@ -21,7 +21,7 @@ end
 
 ##################################################
 ## Absorb U
-## After U absorbtion we have either
+## After U absorption we have either
 ## A * U or (W,A) * V * U
 ## THis chases U or (V*U) through until the value can be absorbed
 ##
