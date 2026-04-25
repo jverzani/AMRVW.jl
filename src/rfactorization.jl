@@ -173,7 +173,7 @@ function Base.Matrix(RF::RFactorizationRankOne{T,S}) where {T,S}
 
     n = length(RF) + 1
 
-    M = diagm(0 => ones(S, n))
+    M = diagm(0 => ones(S, n))::Matrix{S}
     e1 = vcat(1, zeros(S, n-1))
     en1 = vcat(zeros(S,n-1), 1)
     en = vcat(zeros(S,n-2), 1, 0)
@@ -227,16 +227,16 @@ For the case where the QR decomposion has R as a diagonal matrix that is unitary
 
 =#
 struct RFactorizationUnitaryDiagonal{T, S} <: AbstractRFactorization{T, S}
-D::SparseDiagonal{S}
-RFactorizationUnitaryDiagonal(D::SparseDiagonal{S}) where {S} = new{real(S),S}(D)
-function RFactorizationUnitaryDiagonal(xs::Vector{S}) where {S}
-    D = SparseDiagonal(xs)
-    RFactorizationUnitaryDiagonal(D)
-end
+    D::SparseDiagonal{S}
+    RFactorizationUnitaryDiagonal(D::SparseDiagonal{S}) where {S} = new{real(S),S}(D)
+    function RFactorizationUnitaryDiagonal(xs::Vector{S}) where {S}
+        D = SparseDiagonal(xs)
+        RFactorizationUnitaryDiagonal(D)
+    end
 end
 #XXX
 Base.copy(RF::RFactorizationUnitaryDiagonal) = RFactorizationUnitaryDiagonal(RF.D.x)
-Base.size(RF::RFactorizationUnitaryDiagonal) = size(RF.D)
+Base.size(RF::RFactorizationUnitaryDiagonal) = size(RF.D.x)
 Base.getindex(RF::RFactorizationUnitaryDiagonal{T, S}, i, j) where {T, S} = RF.D[i,j]
 Base.Matrix(RF::RFactorizationUnitaryDiagonal) = Matrix(RF.D)
 Base.length(RF::RFactorizationUnitaryDiagonal) = error("No dimension known")

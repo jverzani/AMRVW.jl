@@ -73,6 +73,7 @@ end
 function passthrough!(U::AbstractRotator, RF::RFactorizationPencil)
 
     U = passthrough!(U, RF.V)
+    isnothing(U) && return U # JET noop
     Ut = passthrough!(RF.W, U')
     U = Ut'
 

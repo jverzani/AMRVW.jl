@@ -80,6 +80,7 @@ function passthrough_Q(QF::QFactorization{T, S, VV}, RF, storage, ctr,  dir::Val
         # handle details of knitting in
         D = QF.D
         U = passthrough!(D, U)
+        isnothing(U) && return false # JET noop
         fuse!(QF, U) # handles D bit
 
         return true

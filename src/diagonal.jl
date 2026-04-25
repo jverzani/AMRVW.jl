@@ -10,11 +10,11 @@ abstract type AbstractSparseDiagonalMatrix{S} end
 
 
 struct SparseDiagonal{S} <: AbstractSparseDiagonalMatrix{S}
-x::Vector{S}
-SparseDiagonal(x::AbstractVector{S}) where {S} = new{S}(x)
-SparseDiagonal{S}(n) where {S} = new(ones(S, n))
-SparseDiagonal(::Type{T}, n) where {T <: Real} = SparseDiagonal{T}(0)
-SparseDiagonal(::Type{S}, n) where {S} = SparseDiagonal{S}(n)
+    x::Vector{S}
+    SparseDiagonal(x::AbstractVector{S}) where {S} = new{S}(x)
+    SparseDiagonal{S}(n) where {S} = new(ones(S, n))
+    SparseDiagonal(::Type{T}, n) where {T <: Real} = SparseDiagonal{T}(0)
+    SparseDiagonal(::Type{S}, n) where {S} = SparseDiagonal{S}(n)
 end
 
 
