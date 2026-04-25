@@ -314,7 +314,7 @@ function ascending_part(Ms::TwistedChain, i, Δ=1)
     start = i
     stop = i-1
 
-    (i <  n || i > N + 1) && return  AscendingChain(view(Ms.x, 1:0)) #start:stop # empyt inds #(inds, Asc)
+    (i <  n || i > N + 1) && return  AscendingChain(view(Ms.x, 1:0)) #start:stop # empty inds #(inds, Asc)
     while i > Δ
         i -= 1
         if i >= n && (i == N || pv[i-n+1] == :right) ## i-n+1 seems right when n != 1

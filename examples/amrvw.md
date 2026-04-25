@@ -384,7 +384,7 @@ And
 
 
 
-This patttern is encoded in the `qr_factorization` function, mentioned above. For any Hessenberg matrix it can be employed:
+This pattern is encoded in the `qr_factorization` function, mentioned above. For any Hessenberg matrix it can be employed:
 
 
 ```
