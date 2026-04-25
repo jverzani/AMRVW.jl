@@ -9,22 +9,34 @@ printtp(x) = println(sprint(io -> show(io, "text/plain", x)))
 
 
 ### Random rotators are useful for testing
-random_rotator(R::AbstractRotator, i) = random_rotator(typeof(R), i)
-function random_rotator(t::Type{T}, i) where {T <: Real}
+function random_rotator(t::AbstractRotator{T,S}, i::Int) where {T <: Real,S}
     a,b = rand(T, 2)
     c,s,_ = givensrot(a,b)
     Rotator(c,s,i)
 end
 
-function random_rotator(s::Type{S}, i) where {S <: Complex}
-    a,b = rand(S, 2)
+function random_rotator(s::AbstractRotator{T,S}, i::Int) where {T <: Complex,S}
+    a,b = rand(T, 2)
     c,s,_ = givensrot(a,b)
     ns = norm(s)
     alpha = conj(s)/ns
     Rotator(c*alpha,ns,i)
 end
 
+# XXX DRY up
+function random_rotator(t::Type{T}, i::Int) where {T <: Real}
+    a,b = rand(T, 2)
+    c,s,_ = givensrot(a,b)
+    Rotator(c,s,i)
+end
 
+function random_rotator(s::Type{S}, i::Int) where {S <: Complex}
+    a,b = rand(S, 2)
+    c,s,_ = givensrot(a,b)
+    ns = norm(s)
+    alpha = conj(s)/ns
+    Rotator(c*alpha,ns,i)
+end
 
 # simple graphic to show march of algorithm
 function show_status(state, ctr)

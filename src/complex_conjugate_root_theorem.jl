@@ -13,7 +13,7 @@ Base.:(==)(l::ComplexConjugateRootTheoremRoots, r::ComplexConjugateRootTheoremRo
     (l.real_roots == r.real_roots) && (l.complex_roots == r.complex_roots)
 
 Base.isequal(l::ComplexConjugateRootTheoremRoots, r::ComplexConjugateRootTheoremRoots) =
-    isequal(l.real_roots == r.real_roots) && isequal(l.complex_roots == r.complex_roots)
+    isequal(l.real_roots, r.real_roots) && isequal(l.complex_roots, r.complex_roots)
 
 Base.hash(r::ComplexConjugateRootTheoremRoots, h::UInt) = hash(r.real_roots, hash(r.complex_roots, h))
 

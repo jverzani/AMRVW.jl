@@ -490,7 +490,7 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF)
             bottom = passthrough!(bottom, RF)
         end
         @assert length(Ms.x) == idx(bottom)
-        Mx.x[end] = bottom
+        Ms.x[end] = bottom
     end
 
     return nothing

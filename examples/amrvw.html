@@ -85,7 +85,7 @@ $( document ).ready(function() {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-         
+
     </div>
 
     <!-- Collect the nav links, forms, and other content for toggling -->
@@ -132,9 +132,9 @@ A.roots(ps)</pre>
 <pre class="output">
 5-element Array{Complex{Float64},1}:
                    -1.0 + 2.220446049250313e-16im
-                   -0.0 + 1.0000000149011605im   
-                    0.0 + 0.9999999850988397im   
- 1.5265566588595902e-16 - 1.0im                  
+                   -0.0 + 1.0000000149011605im
+                    0.0 + 0.9999999850988397im
+ 1.5265566588595902e-16 - 1.0im
      1.0000000000000004 - 5.551115123125785e-17im</pre>
 
 <p>There are other ways  to numerically find roots  of polynomials  in <code>Julia</code>, notably the <code>roots</code> function  of  the <code>Polynomials</code> package and the <code>roots</code> function of the <code>PolynomialRoots</code> package:</p><ul>
@@ -345,25 +345,25 @@ ps = Polynomials.coeffs(Polynomials.poly(1.0:20.0))
 A.roots(ps)</pre>
 <pre class="output">
 20-element Array{Complex{Float64},1}:
- 0.9999999999999512 + 0.0im                
- 2.0000000000701474 + 0.0im                
-  2.999999984018476 + 0.0im                
- 4.0000009749386685 + 0.0im                
-  4.999975991339116 + 0.0im                
-  6.000307522017204 + 0.0im                
-   6.99759786465167 + 0.0im                
-  8.013488323123205 + 0.0im                
-  8.947674647168187 + 0.0im                
+ 0.9999999999999512 + 0.0im
+ 2.0000000000701474 + 0.0im
+  2.999999984018476 + 0.0im
+ 4.0000009749386685 + 0.0im
+  4.999975991339116 + 0.0im
+  6.000307522017204 + 0.0im
+   6.99759786465167 + 0.0im
+  8.013488323123205 + 0.0im
+  8.947674647168187 + 0.0im
  10.392884549504053 - 0.04615584569744456im
  10.392884549504053 + 0.04615584569744456im
- 12.333430486605119 - 0.7766219381322922im 
- 12.333430486605119 + 0.7766219381322922im 
- 14.471183155493078 - 1.0642088782329444im 
- 14.471183155493078 + 1.0642088782329444im 
- 16.674979944732737 - 0.8714271268945672im 
- 16.674979944732737 + 0.8714271268945672im 
- 18.540903438336436 + 0.0im                
- 18.740138141986648 + 0.0im                
+ 12.333430486605119 - 0.7766219381322922im
+ 12.333430486605119 + 0.7766219381322922im
+ 14.471183155493078 - 1.0642088782329444im
+ 14.471183155493078 + 1.0642088782329444im
+ 16.674979944732737 - 0.8714271268945672im
+ 16.674979944732737 + 0.8714271268945672im
+ 18.540903438336436 + 0.0im
+ 18.740138141986648 + 0.0im
  20.014956839679538 + 0.0im                </pre>
 
 <p>The answer involves complex-valued roots, even though the roots are clearly integer valued. (The <code>Polynomials.roots</code> function and <code>PolynomialRoots.roots</code> do get  real answers for  this polynomial). As an aside, the exact implementation of the fundamental <code>turnover</code> operation will effect the number of such roots.  The issue of spurious complex-valued roots might be addressed by separating out the smaller coefficients from the large ones. Here is a function to split a polynomial into two pieces.</p><pre class="sourceCode julia">function pencil_split(ps, n)
@@ -414,7 +414,7 @@ pencil_split (generic function with 1 method)</pre>
 (M = Qs * MI) |> round2</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
-  0.6   0.31   0.41   0.61  0.1 
+  0.6   0.31   0.41   0.61  0.1
  -0.8   0.23   0.3    0.45  0.08
   0.0  -0.92   0.21   0.31  0.05
   0.0   0.0   -0.83   0.54  0.09
@@ -434,7 +434,7 @@ F = A.QRFactorization(QF)  # defaults to identify R factorization
 Matrix(F) |> round2 # same as M</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
-  0.6   0.31   0.41   0.61  0.1 
+  0.6   0.31   0.41   0.61  0.1
  -0.8   0.23   0.3    0.45  0.08
   0.0  -0.92   0.21   0.31  0.05
   0.0   0.0   -0.83   0.54  0.09
@@ -462,10 +462,10 @@ eigvals(F)</pre>
 <p>When <code>unitary&#61;true</code> is the case, this will outperform <code>eigvals</code> once the matrix size is around 50 by 50 and is significantly more performant for the 150 by 150 case.</p><hr /><p>Not all upper Hessenberg matrices can he expressed as a descending chain of rotators, as the latter is unitary. However, any upper Hessenberg matrix can easily be seen to be represented as a descending chain of rotators times an upper triangular matrix.</p><p>The Givens rotation is a rotator, $U$, based on a $c$ and $s$, chosen so that if $x= [a,b]$, then $[c s;-s conj(c)] x = [r,0]$. This allows, for example, the following:</p><pre class="sourceCode julia">M = triu(rand(5,5), -1)  # upper Hessenberg</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
- 0.8445640684081546  0.03839741561928123  0.4382234387578967   0.11948594415184988  0.6335854659495312 
- 0.8889751032504838  0.3791913641076998   0.6442236345026744   0.4163339420025709   0.9578559603830203 
+ 0.8445640684081546  0.03839741561928123  0.4382234387578967   0.11948594415184988  0.6335854659495312
+ 0.8889751032504838  0.3791913641076998   0.6442236345026744   0.4163339420025709   0.9578559603830203
  0.0                 0.2729401602041084   0.17123746648171023  0.8425314299016049   0.12998254168756795
- 0.0                 0.0                  0.7481638813790734   0.6874678066446192   0.6778892799066663 
+ 0.0                 0.0                  0.7481638813790734   0.6874678066446192   0.6778892799066663
  0.0                 0.0                  0.0                  0.8655686218335872   0.8154881942596424 </pre>
 
 <pre class="sourceCode julia">c,s,r = A.givensrot(M[1,1], M[2,1])
@@ -474,7 +474,7 @@ U1 * M |> round2</pre>
 <pre class="output">
 5×5 Array{Float64,2}:
  1.23  0.3   0.77  0.38  1.13
- 0.0   0.23  0.13  0.2   0.2 
+ 0.0   0.23  0.13  0.2   0.2
  0.0   0.27  0.17  0.84  0.13
  0.0   0.0   0.75  0.69  0.68
  0.0   0.0   0.0   0.87  0.82</pre>
@@ -491,8 +491,8 @@ R = G
 Qs = reverse(adjoint.(Us))</pre>
 <pre class="output">
 4-element Array{AMRVW.Rotator{Float64,Float64},1}:
- AMRVW.Rotator{Float64,Float64}(0.6887656309821066, -0.7249840726373376, 1)  
- AMRVW.Rotator{Float64,Float64}(0.6498079394682968, -0.7600984421796735, 2)  
+ AMRVW.Rotator{Float64,Float64}(0.6887656309821066, -0.7249840726373376, 1)
+ AMRVW.Rotator{Float64,Float64}(0.6498079394682968, -0.7600984421796735, 2)
  AMRVW.Rotator{Float64,Float64}(0.020697387702445277, -0.9997857861273557, 3)
  AMRVW.Rotator{Float64,Float64}(-0.40291631198199174, -0.91523682483761, 4)  </pre>
 
@@ -513,13 +513,13 @@ Matrix(F)  - M |> round2# same as F</pre>
 <p>And</p><pre class="sourceCode julia">[eigvals(F) eigvals(M)]</pre>
 <pre class="output">
 5×2 Array{Complex{Float64},2}:
- -0.5954650030930598 + 0.0im                  -0.5954650030930606 + 0.0im                 
- 0.23469792894203834 + 0.0im                  0.23469792894203842 + 0.0im                 
+ -0.5954650030930598 + 0.0im                  -0.5954650030930606 + 0.0im
+ 0.23469792894203834 + 0.0im                  0.23469792894203842 + 0.0im
   0.6925526275864183 - 0.02394833129760679im   0.6925526275864178 - 0.023948331297608563im
   0.6925526275864183 + 0.02394833129760679im   0.6925526275864178 + 0.023948331297608563im
   1.8736107188800097 + 0.0im                   1.8736107188800113 + 0.0im                 </pre>
 
-<p>This patttern is encoded in the <code>qr_factorization</code> function, mentioned above. For any Hessenberg matrix it can be employed:</p><pre class="sourceCode julia">H = hessenberg(rand(5,5))
+<p>This pattern is encoded in the <code>qr_factorization</code> function, mentioned above. For any Hessenberg matrix it can be employed:</p><pre class="sourceCode julia">H = hessenberg(rand(5,5))
 F = A.qr_factorization(H.H)
 eigvals(F)</pre>
 <pre class="output">
@@ -542,8 +542,8 @@ F = A.QRFactorization(QF)   # use default identify R factorization
 [eigvals(M) eigvals(F)]</pre>
 <pre class="output">
 5×2 Array{Complex{Float64},2}:
- -0.14905726788867874 - 0.9888285649644041im  -0.149057267888679 - 0.988828564964404im 
- -0.14905726788867874 + 0.9888285649644041im  -0.149057267888679 + 0.988828564964404im 
+ -0.14905726788867874 - 0.9888285649644041im  -0.149057267888679 - 0.988828564964404im
+ -0.14905726788867874 + 0.9888285649644041im  -0.149057267888679 + 0.988828564964404im
    0.8184200648942581 - 0.5746203941546777im  0.8184200648942586 - 0.5746203941546779im
    0.8184200648942581 + 0.5746203941546777im  0.8184200648942586 + 0.5746203941546779im
                   1.0 + 0.0im                                1.0 + 0.0im               </pre>
@@ -560,8 +560,8 @@ F = A.QRFactorization(QF)
 [eigvals(M) eigvals(F)]</pre>
 <pre class="output">
 6×2 Array{Complex{Float64},2}:
- 0.11799228346520518 - 0.9930145120000343im   0.11799228346520507 - 0.9930145120000345im 
- 0.11799228346520518 + 0.9930145120000343im   0.11799228346520507 + 0.9930145120000345im 
+ 0.11799228346520518 - 0.9930145120000343im   0.11799228346520507 - 0.9930145120000345im
+ 0.11799228346520518 + 0.9930145120000343im   0.11799228346520507 + 0.9930145120000345im
   0.9575685607575576 - 0.2882055715087756im    0.9575685607575576 - 0.28820557150877557im
   0.9575685607575576 + 0.2882055715087756im    0.9575685607575576 + 0.28820557150877557im
   0.9926442051713444 - 0.12106808803210695im   0.9926442051713443 - 0.12106808803210661im

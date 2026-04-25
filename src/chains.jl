@@ -16,8 +16,8 @@ Base.iterate(A::AbstractRotatorChain) = iterate(A.x)
 Base.iterate(A::AbstractRotatorChain, st) = iterate(A.x, st)
 *(A::AbstractRotatorChain, M::Array) = Vector(A) * M
 *(M::Array, A::AbstractRotatorChain) = M * Vector(A)
-LinearAlgebra.lmul!(A::AbstractRotatorChain, M::Array) = lmul!(Vector(A), M)
-LinearAlgebra.rmul!(M::Array, A::AbstractRotatorChain) = rmul!(M, Vector(A))
+LinearAlgebra.lmul!(A::AbstractRotatorChain, M::AbstractMatrix) = lmul!(Vector(A), M)
+LinearAlgebra.rmul!(M::AbstractMatrix, A::AbstractRotatorChain) = rmul!(M, Vector(A))
 
 
 function Base.size(C::AbstractRotatorChain)
@@ -27,9 +27,9 @@ end
 
 Base.extrema(C::AbstractRotatorChain) = extrema(idx.((C.x[1], C.x[end])))
 
-function Base.Matrix(C::AbstractRotatorChain)
-    S =  eltype(first(C.x).c)
-    M = diagm(0 => ones(S, size(C)[2]))
+function Base.Matrix(C::AbstractRotatorChain{T,S}) where {T, S}
+    #S =  eltype(first(C.x).c)
+    M = diagm(0 => ones(T, size(C)[2]))::Matrix{T}
     lmul!(C, M)
 end
 
@@ -314,7 +314,7 @@ function ascending_part(Ms::TwistedChain, i, Δ=1)
     start = i
     stop = i-1
 
-    (i <  n || i > N + 1) && return  AscendingChain(view(Ms.x, 1:0)) #start:stop # empyt inds #(inds, Asc)
+    (i <  n || i > N + 1) && return  AscendingChain(view(Ms.x, 1:0)) #start:stop # empty inds #(inds, Asc)
     while i > Δ
         i -= 1
         if i >= n && (i == N || pv[i-n+1] == :right) ## i-n+1 seems right when n != 1
@@ -400,6 +400,7 @@ function passthrough!(U::AbstractRotator, A::AscendingChain)
 end
 
 # Need to check  bounds to ensure possible
+# (as this returns `nothing` we needed to add some conditional to get JET to quiet down)
 function passthrough!(A::DescendingChain, B::AscendingChain)
     m, M = extrema(A)
     n, N = extrema(B)

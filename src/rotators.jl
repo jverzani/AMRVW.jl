@@ -23,7 +23,7 @@ abstract type AbstractRotator{T,S} <: CoreTransform{T,S} end
 @inline idx(r::AbstractRotator) = r.i
 
 
-Base.copy(a::AbstractRotator) = AbstractRotator(a.c, a.s, a.i)
+#Base.copy(a::AbstractRotator) = AbstractRotator(a.c, a.s, a.i)
 is_diagonal(r::AbstractRotator{T,S}) where {T,S} = norm(r.s) <= eps(T)
 
 ## Multiplication of a rotator and a matrix
@@ -34,7 +34,7 @@ function *(a::AbstractRotator, M::AbstractArray)
     N
 end
 
-function LinearAlgebra.lmul!(a::AbstractRotator, M::AbstractArray)
+function LinearAlgebra.lmul!(a::AbstractRotator, M::AbstractMatrix)
     c, s = vals(a)
     i = idx(a); j = i+1
     n = size(M)[2]
@@ -103,7 +103,7 @@ DiagonalRotator(c::S, i) where {S} = DiagonalRotator{real(S),S}(c,i)
 end
 
 vals(D::DiagonalRotator{T,S}) where {T,S} = D.c, zero(T)
-LinearAlgebra.adjoint(U::DiagonalRotator) = DiagaonalRotator(conj(U.c), U.i)
+LinearAlgebra.adjoint(U::DiagonalRotator) = DiagonalRotator(conj(U.c), U.i)
 
 ## for real case, we have identity diagonal
 struct IdentityRotator{T,S} <: AbstractRotator{T,S}
