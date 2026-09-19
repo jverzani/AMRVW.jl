@@ -1,4 +1,4 @@
-## Diagonostic code
+## Diagnostic code
 ##
 
 ## debugging tools, basically
