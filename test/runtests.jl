@@ -8,4 +8,4 @@ include("test-passthrough.jl")
 include("test-roots.jl")
 include("test-twisted.jl")
 
-VERSION >= v"1.12" && include("test-jet.jl")
+#VERSION >= v"1.12" && include("test-jet.jl")

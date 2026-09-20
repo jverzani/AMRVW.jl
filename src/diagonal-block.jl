@@ -114,7 +114,7 @@ end
 ##     eigen_values(A[1,1], A[1,2], A[2,1], A[2,2])
 ## end
 
-function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
+function  eigen_values(a11::T, a12::T, a21::T, a22::T)::Tuple{Complex{T},Complex{T}} where {T <: Real}
     b = (a11 + a22) / 2
     c = a11 * a22 - a12 * a21
 
@@ -124,7 +124,7 @@ function  eigen_values(a11::T, a12::T, a21::T, a22::T) where {T <: Real}
 end
 
 # from `modified_quadratic.f90`
-function  eigen_values(a11::S, a12::S, a21::S, a22::S) where {S <: Complex}
+function  eigen_values(a11::S, a12::S, a21::S, a22::S)::Tuple{S,S} where {S <: Complex}
 
     tr = a11 + a22
     detm = a11 * a22 - a21 * a12
