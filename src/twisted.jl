@@ -149,6 +149,9 @@ function bulge_step!(n, m, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc,
 end
 
 
+## check that the rotators in Us have consecutive indices i0, i0+1, ... (allocation free)
+_has_indices_from(Us, i0) = all(idx(Us[k]) == i0 + k - 1 for k in eachindex(Us))
+
 ############################################################
 ##
 ## Implement thee different steps for one pass of the bulge chasing algorithm
@@ -282,9 +285,9 @@ function step_k!(k, n, m, psd, limb_side, limb, Des, Asc, Ms, D, RF)
 
         ## similarity transform descending to left side
         passthrough!(DescendingChain(Des), D)
-        inds = idx.(Des)
+        i0 = isempty(Des) ? 0 : idx(first(Des)) # Des has consecutive indices i0, i0+1, ...
         passthrough!(DescendingChain(Des), RF) #--> pass Des through Rf;  similarity transform
-        @assert all(idx.(Des) .== inds)
+        @assert _has_indices_from(Des, i0)
         U = pop!(Asc) # k = idx(U)
 
         if m > 1
@@ -436,9 +439,9 @@ function step_knit!(n, m, psd, limb_side, limb, Des,  Asc, Ms, D, RF)
         else
             # similarity to move Des to left side
             passthrough!(DescendingChain(Des), D)
-            inds = idx.(Des)
+            i0 = isempty(Des) ? 0 : idx(first(Des)) # Des has consecutive indices i0, i0+1, ...
             passthrough!(DescendingChain(Des), RF)
-            @assert all(idx.(Des) .== inds)
+            @assert _has_indices_from(Des, i0)
 
             limb_side = :right
 
