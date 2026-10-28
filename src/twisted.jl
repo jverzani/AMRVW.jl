@@ -108,6 +108,10 @@ function bulge_step!(n, m, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc,
 
     Des = [Asc[i]' for i in length(Asc):-1:1] # reverse(adjoint.(Asc))
 
+    # step_k! uses Asc as a queue (pushfirst!, then pop!); on Julia >= 1.11 that
+    # reallocates every time for a length-1 vector (m = 1) unless there is spare capacity
+    sizehint!(Asc, length(Asc) + 8)
+
     # ps is not copied, as Ms.pv is not modified until the end of the step
     # psd[k] = ps[m+k] with padding specified by choice; allocated once at final size
     ps = Ms.pv
