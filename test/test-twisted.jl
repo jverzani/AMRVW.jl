@@ -127,3 +127,25 @@ end
 
 
 end
+
+@testset "eigenvalues twisted Q, m > 2 shifts" begin
+    # max distance from each computed eigenvalue to its (greedily) matched reference
+    function max_matched_distance(es, ref)
+        ref = copy(ref); d = 0.0
+        for e in es
+            i = argmin(abs.(ref .- e))
+            d = max(d, abs(ref[i] - e))
+            deleteat!(ref, i)
+        end
+        d
+    end
+
+    for T in (Float64, Complex{Float64}), m in 3:6, N in (10, 20), seed in 1:3
+        Random.seed!(seed)
+        Qs = A.random_rotator.(T, shuffle(1:N))
+        state = A.QRFactorization(A.q_factorization(A.TwistedChain(Qs)))
+        e1 = eigvals(Matrix(state))
+        es = A.AMRVW_algorithm!(copy(state), m)
+        @test max_matched_distance(es, e1) <= sqrt(eps())
+    end
+end
