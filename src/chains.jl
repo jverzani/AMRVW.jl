@@ -250,46 +250,37 @@ function Base.pop!(A::TwistedChain)
     pop!(A.x), (isempty(A.pv) ? :nothing : pop!(A.pv))
 end
 
-## This should be an iterator
-##   Indices of Tw.x  to  pass twisted chain from  right side to left side
+## Iterator over the indices of Tw.x in the order needed to pass a twisted chain through:
+## first k+1 for each pv[k] == side (from the bottom up), then the remaining indices in order.
+## Lazy, so passing a chain through does not allocate.
+struct SideIndices{P}
+    pv::P
+    side::Symbol
+end
+
+Base.length(it::SideIndices) = length(it.pv) + 1
+Base.eltype(::Type{<:SideIndices}) = Int
+
+function Base.iterate(it::SideIndices, st = (length(it.pv), 1))
+    pv, side = it.pv, it.side
+    k, i = st
+    while k >= 1 # first pass, bottom up
+        pv[k] == side && return (k + 1, (k - 1, i))
+        k -= 1
+    end
+    while i <= length(pv) + 1 # second pass; i was taken in first pass if pv[i-1] == side
+        (i == 1 || pv[i-1] != side) && return (i, (0, i + 1))
+        i += 1
+    end
+    nothing
+end
+
+## Indices of Tw.x to pass twisted chain from right side to left side
 ## grab right terms from bottom
-function iterate_rl(pv)
-    # indices in Tw.x to move object from l to r
-    N = length(pv)+1
-    inds =  Int[]
-    for (i,pi)  in enumerate(reverse(pv))
-        if  pi  ==  :right
-            j  = N  - i
-            push!(inds, j+1)
-        end
-    end
-    for i  in 1:N
-        if  !(i in inds)
-            push!(inds, i)
-        end
-    end
-    inds
-end
+iterate_rl(pv) = SideIndices(pv, :right)
 
-
-function iterate_lr(pv)
-    # indices to move  object from left side to right
-      # indices in Tw.x to move object from l to r
-    N = length(pv)+1
-    inds =  Int[]
-    for (i,pi)  in enumerate(reverse(pv))
-        if  pi  ==  :left
-            j = N - i
-            push!(inds, j+1)
-        end
-    end
-    for i  in 1:N
-        if  !(i in inds)
-            push!(inds, i)
-        end
-    end
-    inds
-end
+## indices to move object from left side to right
+iterate_lr(pv) = SideIndices(pv, :left)
 
 
 ## Fish out of M the rotator with idx i
