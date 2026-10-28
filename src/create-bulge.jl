@@ -147,6 +147,14 @@ function create_bulge(QF::QFactorizationTwisted{T, S}, RF, storage, ctr, m) wher
     if iszero(ctr.it_count)
         ctr.it_count = IT_COUNT
 
+        if m > 2
+            # all m rotators must be replaced (as in the complex case),
+            # else VU[3:m] are left over from the previous bulge step
+            for i in 1:m
+                storage.VU[i] = random_rotator(S, ctr.start_index + m - i)
+            end
+            return nothing
+        end
 
         t = rand(T) * pi
 

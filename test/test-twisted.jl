@@ -127,3 +127,45 @@ end
 
 
 end
+
+@testset "eigenvalues twisted Q, m > 2 shifts" begin
+    # max distance from each computed eigenvalue to its (greedily) matched reference
+    function max_matched_distance(es, ref)
+        ref = copy(ref); d = 0.0
+        for e in es
+            i = argmin(abs.(ref .- e))
+            d = max(d, abs(ref[i] - e))
+            deleteat!(ref, i)
+        end
+        d
+    end
+
+    for T in (Float64, Complex{Float64}), m in 3:6, N in (10, 20), seed in 1:3
+        Random.seed!(seed)
+        Qs = A.random_rotator.(T, shuffle(1:N))
+        state = A.QRFactorization(A.q_factorization(A.TwistedChain(Qs)))
+        e1 = eigvals(Matrix(state))
+        es = A.AMRVW_algorithm!(copy(state), m)
+        @test max_matched_distance(es, e1) <= sqrt(eps())
+    end
+end
+
+@testset "twisted create_bulge, random shift fills all m rotators" begin
+    # after 15 steps without deflation a random shift is used; each of the m
+    # rotators in storage.VU must be set, with indices start+m-1, ..., start
+    for T in (Float64, Complex{Float64}), m in 2:5
+        Random.seed!(1)
+        Qs = A.random_rotator.(T, shuffle(1:12))
+        state = A.QRFactorization(A.q_factorization(A.TwistedChain(Qs)))
+        storage = A.make_storage(state.QF, m)
+        # leave stale rotators in storage, as a previous bulge step would
+        for i in 1:m
+            storage.VU[i] = A.Rotator(one(T), zero(real(T)), 99)
+        end
+        ctr = A.make_counter(state)
+        ctr.start_index = 3
+        ctr.it_count = 0
+        A.create_bulge(state.QF, state.RF, storage, ctr, m)
+        @test A.idx.(storage.VU) == collect(ctr.start_index + m - 1:-1:ctr.start_index)
+    end
+end

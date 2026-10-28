@@ -165,7 +165,9 @@ function make_storage(QF::QFactorization{T,S,V}, m) where {T, S, V}
 end
 
 function make_storage(QF::QFactorizationTwisted{T,S, Vt,  PVt}, m) where {T, S, Vt, PVt}
-    A = zeros(S, max(4, m+2), max(4, m+2))
+    # m+4: AMRVW_algorithm! takes a diagonal block of up to m+1 rotators plus the deflated
+    # one below (it can carry a phase), and approx_diagonal_block! adds a leading row/col
+    A = zeros(S, max(4, m+4), max(4, m+4))
     VU = Vector{Rotator{T, S}}(undef, m)   # Ascending Chain
     limb = TwistedChain(copy(QF.Q.x[1:(m-1)]), copy(QF.Q.pv[1:(m-2)]))
     (A=A, VU=VU, limb=limb)

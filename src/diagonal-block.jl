@@ -142,5 +142,6 @@ function  eigen_values(a11::S, a12::S, a21::S, a22::S)::Tuple{S,S} where {S <: C
 end
 
 #  this  makes some  algorithm type stable.
-_eigvals(A::AbstractMatrix{T}) where {T <: Real} = eigvals(A)::Vector{Complex{T}}
+# (eigvals of a real matrix returns a real vector when all eigenvalues are real)
+_eigvals(A::AbstractMatrix{T}) where {T <: Real} = complex(eigvals(A))::Vector{Complex{T}}
 _eigvals(A::AbstractMatrix{S}) where {S <: Complex} =  eigvals(A)
