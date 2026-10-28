@@ -6,3 +6,8 @@ docs/site
 test/benchmarks.json
 Manifest.toml
 TODO.md
+
+# IDE files
+.idea/
+*.iml
+.vscode/
