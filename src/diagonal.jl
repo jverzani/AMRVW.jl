@@ -44,7 +44,7 @@ Base.@propagate_inbounds function Base.setindex!(D::SparseDiagonal{T}, X, inds..
 end
 
 
-@inbounds Base.getindex(D::SparseDiagonal, k)  = D.x[k]
+Base.@propagate_inbounds Base.getindex(D::SparseDiagonal, k) = D.x[k]
 Base.@propagate_inbounds Base.setindex!(D::SparseDiagonal, X, inds...) = setindex!(D.x, X, inds...)
 
 Base.copy(D::SparseDiagonal) = SparseDiagonal(copy(D.x))
