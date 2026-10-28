@@ -292,17 +292,15 @@ function passthrough_phase!(Di::DiagonalRotator, V::DescendingChain, Vs::Tuple, 
 
         ##  Dj
         ## pass Dj through
-        ## we don't have views so we must modify
-        VV = V.x[2:end]
+        ## a view, so changes to VV write through to V
+        VV = view(V.x, 2:length(V.x))
         passthrough_phase!(Dj,  DescendingChain(VV), Vs, D)
-        V.x[2:end] = VV
 
     elseif i == n
 
         V.x[1], Dii = passthrough!(Di, V.x[1])
-        VV  = V.x[2:end]
+        VV = view(V.x, 2:length(V.x))
         passthrough_phase!(Dii, DescendingChain(VV), Vs, D)
-        V.x[2:end] = VV
 
     elseif n < i <= N
 
@@ -358,17 +356,15 @@ function passthrough_phase!(Di::DiagonalRotator, V::AscendingChain, Vs::Tuple, D
         passthrough_phase!(Di, Vs, D)
 
         ## pass Dj through rest of V
-        VV = V.x[2:end]
+        VV = view(V.x, 2:length(V.x))
         passthrough_phase!(Dj,  AscendingChain(VV), Vs, D)
-        V.x[2:end] = VV
 
     elseif i == N
 
         V.x[1], Dii = passthrough!(Di, V.x[1])
 
-        VV  = V.x[2:end]
+        VV = view(V.x, 2:length(V.x))
         passthrough_phase!(Dii, AscendingChain(VV), Vs, D)
-        V.x[2:end] = VV
 
     elseif n <= i < N
 

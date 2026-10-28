@@ -10,9 +10,9 @@
 # Q*R*inv(W)
 # to avoid (introduce?) confusion,we let R be V: and have
 # Q * V * inv(W) with the R Factorization store both V and W
-struct RFactorizationPencil{T, S} <: AbstractRFactorization{T, S}
-V::RFactorizationRankOne{T, S}
-W::RFactorizationRankOne{T, S}
+struct RFactorizationPencil{T, S, R <: RFactorizationRankOne{T, S}} <: AbstractRFactorization{T, S}
+V::R
+W::R
 end
 
 Base.copy(RF::RFactorizationPencil) = RFactorizationPencil(copy(RF.V), copy(RF.W))

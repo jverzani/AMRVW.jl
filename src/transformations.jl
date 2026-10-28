@@ -20,6 +20,19 @@ where `[c s; -s conj(c)] * [a,b] = [r, 0]
     s*G.c, s*G.s, s*r
 end
 
+## fast path: when no scaling is needed, compute directly (same formula as `givens`,
+## without the `Givens` construction and scaling checks); otherwise fall back
+@inline function givensrot(a::T, b::T) where {T <: AbstractFloat}
+    m = max(abs(a), abs(b))
+    if sqrt(floatmin(T)) < m < sqrt(floatmax(T))
+        r = sqrt(a*a + b*b)
+        return a/r, b/r, r
+    end
+    G, r = givens(a,b,1,2)
+    s = r >= 0 ? one(T) : -one(T)   #sign(r)
+    s*G.c, s*G.s, s*r
+end
+
 ## This leaves s real
 ## a, b= rand(Complex{Float64},2)
 ## G,r = givens(b,a, 1,2)
