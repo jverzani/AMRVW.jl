@@ -83,7 +83,7 @@ function bulge_step(QF::QFactorizationTwisted{T,S}, RF, storage, ctr, m)  where 
     δ, Δ = ctr.start_index, ctr.stop_index
     n = ctr.stop_index - ctr.zero_index + 1
 
-    Asc = copy(storage.VU[1:m])  # stored as V,U ## XXX copy! Could eliminate this
+    Asc = storage.VU[1:m]  # stored as V,U; slicing makes the copy
     Ms = QF.Q
     D = QF.D
     RF = RF
@@ -106,15 +106,25 @@ function bulge_step!(n, m, Ms::TwistedChain, D, RF::AbstractRFactorization, Asc,
     ## * used the limb defined in create storage
     ## This would require some reworking of step_knit!
 
-    Des = reverse(adjoint.(Asc))
+    Des = [Asc[i]' for i in length(Asc):-1:1] # reverse(adjoint.(Asc))
 
-    # psd[k] = ps[m+k] with padding soecufued by choice
-    ps = copy(Ms.pv)
-    psd = ps[m+1:end]
+    # step_k! uses Asc as a queue (pushfirst!, then pop!); on Julia >= 1.11 that
+    # reallocates every time for a length-1 vector (m = 1) unless there is spare capacity
+    sizehint!(Asc, length(Asc) + 8)
+
+    # ps is not copied, as Ms.pv is not modified until the end of the step
+    # psd[k] = ps[m+k] with padding specified by choice; allocated once at final size
+    ps = Ms.pv
+    nkeep = max(length(ps) - m, 0)
+    npad = isa(choice, Symbol) ? min(m, length(ps)) : length(choice)
+    psd = Vector{Symbol}(undef, nkeep + npad)
+    for k in 1:nkeep
+        psd[k] = ps[m+k]
+    end
     if isa(choice, Symbol)
-        append!(psd, repeat([choice], min(m, length(Ms.pv))))
+        fill!(view(psd, nkeep+1:nkeep+npad), choice)
     else
-        append!(psd, choice)
+        copyto!(psd, nkeep+1, choice, 1, npad)
     end
 
     ## Must put AscendingChain into place
@@ -161,8 +171,8 @@ function step_0!(m,  ps, psd, Ms::TwistedChain, Des, Asc, D, RF)
     has_limb = ifelse(m > 1, true, false)
 
     # grab limb, but keep order
-    # limb is a copy, not a view
-    limb = TwistedChain(copy(Ms.x[1:(m-1)]), copy(Ms.pv[1:(m-2)]))
+    # limb is a copy (slicing copies), not a view
+    limb = TwistedChain(Ms.x[1:(m-1)], Ms.pv[1:(m-2)])
     limb_side = :nothing
 
     if has_limb
