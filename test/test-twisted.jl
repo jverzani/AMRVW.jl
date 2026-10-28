@@ -149,3 +149,23 @@ end
         @test max_matched_distance(es, e1) <= sqrt(eps())
     end
 end
+
+@testset "twisted create_bulge, random shift fills all m rotators" begin
+    # after 15 steps without deflation a random shift is used; each of the m
+    # rotators in storage.VU must be set, with indices start+m-1, ..., start
+    for T in (Float64, Complex{Float64}), m in 2:5
+        Random.seed!(1)
+        Qs = A.random_rotator.(T, shuffle(1:12))
+        state = A.QRFactorization(A.q_factorization(A.TwistedChain(Qs)))
+        storage = A.make_storage(state.QF, m)
+        # leave stale rotators in storage, as a previous bulge step would
+        for i in 1:m
+            storage.VU[i] = A.Rotator(one(T), zero(real(T)), 99)
+        end
+        ctr = A.make_counter(state)
+        ctr.start_index = 3
+        ctr.it_count = 0
+        A.create_bulge(state.QF, state.RF, storage, ctr, m)
+        @test A.idx.(storage.VU) == collect(ctr.start_index + m - 1:-1:ctr.start_index)
+    end
+end
